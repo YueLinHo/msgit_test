@@ -6,14 +6,14 @@
 {                                                       }
 {*******************************************************}
 
-unit rxChPswDlg;
+unit RxChPswDlg;
 
 {$I RX.INC}
 
 interface
 
 uses
-  SysUtils, Windows,
+  SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Buttons,
   DBTables, DB;
 
@@ -59,8 +59,7 @@ function ChangePasswordDialog(Database: TDatabase; AttemptNumber: Integer;
 
 implementation
 
-uses
-  Consts, RXDConst, rxVCLUtils;
+uses Consts, RXResConst, RxVCLUtils;
 
 {$R *.DFM}
 
@@ -105,12 +104,12 @@ end;
 
 procedure TChPswdForm.FormCreate(Sender: TObject);
 begin
-  Caption := LoadStr(SChangePassword);
-  OldPswdLabel.Caption := LoadStr(SOldPasswordLabel);
-  NewPswdLabel.Caption := LoadStr(SNewPasswordLabel);
-  ConfirmLabel.Caption := LoadStr(SConfirmPasswordLabel);
-  OkBtn.Caption := ResStr(SOKButton);
-  CancelBtn.Caption := ResStr(SCancelButton);
+  Caption := RxLoadStr(SChangePassword);
+  OldPswdLabel.Caption := RxLoadStr(SOldPasswordLabel);
+  NewPswdLabel.Caption := RxLoadStr(SNewPasswordLabel);
+  ConfirmLabel.Caption := RxLoadStr(SConfirmPasswordLabel);
+  OkBtn.Caption := SOKButton;
+  CancelBtn.Caption := SCancelButton;
 end;
 
 procedure TChPswdForm.ClearEdits;
@@ -145,7 +144,9 @@ begin
         Error := peOther;
         if Table <> nil then begin
           Table.DatabaseName := Database.DatabaseName;
+{$IFNDEF VER80}
           Table.SessionName := Database.SessionName;
+{$ENDIF}
           Table.TableName := UsersTableName;
           Table.IndexFieldNames := UserNameField;
           Table.Open;
@@ -167,11 +168,11 @@ begin
           end;
         end;
         if Ok then
-          MessageDlg(LoadStr(SPasswordChanged), mtInformation, [mbOk], 0)
+          MessageDlg(RxLoadStr(SPasswordChanged), mtInformation, [mbOk], 0)
         else
           if Error = peMismatch then
-            MessageDlg(LoadStr(SPasswordsMismatch), mtError, [mbOk], 0)
-          else MessageDlg(LoadStr(SPasswordNotChanged), mtError, [mbOk], 0);
+            MessageDlg(RxLoadStr(SPasswordsMismatch), mtError, [mbOk], 0)
+          else MessageDlg(RxLoadStr(SPasswordNotChanged), mtError, [mbOk], 0);
       finally
         if Table <> nil then Table.Free;
       end;

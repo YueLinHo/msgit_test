@@ -1,15 +1,15 @@
 object RxResourceEditor: TRxResourceEditor
   Left = 198
   Top = 109
+  Width = 224
+  Height = 329
   BorderStyle = bsSizeToolWin
   Caption = 'Project Resources'
-  ClientHeight = 305
-  ClientWidth = 216
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   PopupMenu = PopupMenu
@@ -19,7 +19,7 @@ object RxResourceEditor: TRxResourceEditor
   TextHeight = 13
   object StatusBar: TStatusBar
     Left = 0
-    Top = 286
+    Top = 284
     Width = 216
     Height = 19
     Panels = <
@@ -33,7 +33,7 @@ object RxResourceEditor: TRxResourceEditor
     Left = 0
     Top = 0
     Width = 216
-    Height = 286
+    Height = 284
     Align = alClient
     Images = TreeImages
     Indent = 19

@@ -7,7 +7,7 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxAppEvent;
+unit RxAppEvent;
 
 {$C PRELOAD}
 {$I RX.INC}
@@ -15,16 +15,21 @@ unit rxAppEvent;
 interface
 
 uses
-  SysUtils, Windows,
-  Messages, Classes, Graphics, Controls,
-  {$IFDEF RX_D4} ActnList, {$ENDIF}
-  Forms;
+  SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  {$IFDEF RX_D17}System.Types,{$ENDIF}
+  Messages, Classes, Graphics, Controls, Forms
+  {$IFDEF RX_D4}, ActnList {$ENDIF};
 
 const
+{$IFNDEF VER80}
   DefHintColor = clInfoBk;
   DefHintPause = 500;
   DefHintShortPause = DefHintPause div 10;
   DefHintHidePause = DefHintPause * 5;
+{$ELSE}
+  DefHintColor = $80FFFF;
+  DefHintPause = 800;
+{$ENDIF}
 
 { TAppEvents }
 
@@ -38,9 +43,11 @@ type
     FShowHint: Boolean;
     FCanvas: TCanvas;
     FUpdateFormatSettings: Boolean;
+{$IFNDEF VER80}
     FHintShortPause: Integer;
     FHintHidePause: Integer;
     FShowMainForm: Boolean;
+{$ENDIF}
 {$IFDEF RX_D3}
     FUpdateMetricSettings: Boolean;
 {$ENDIF}
@@ -81,12 +88,14 @@ type
     procedure SetShowHint(Value: Boolean);
     function GetUpdateFormatSettings: Boolean;
     procedure SetUpdateFormatSettings(Value: Boolean);
+{$IFNDEF VER80}
     function GetHintShortPause: Integer;
     function GetHintHidePause: Integer;
     function GetShowMainForm: Boolean;
     procedure SetHintShortPause(Value: Integer);
     procedure SetHintHidePause(Value: Integer);
     procedure SetShowMainForm(Value: Boolean);
+{$ENDIF}
 {$IFDEF RX_D3}
     function GetUpdateMetricSettings: Boolean;
     procedure SetUpdateMetricSettings(Value: Boolean);
@@ -123,12 +132,14 @@ type
     property ShowHint: Boolean read GetShowHint write SetShowHint default True;
     property UpdateFormatSettings: Boolean read GetUpdateFormatSettings
       write SetUpdateFormatSettings default True;
+{$IFNDEF VER80}
     property HintShortPause: Integer read GetHintShortPause write SetHintShortPause
       default DefHintShortPause;
     property HintHidePause: Integer read GetHintHidePause write SetHintHidePause
       default DefHintHidePause;
     property ShowMainForm: Boolean read GetShowMainForm write SetShowMainForm
       default True;
+{$ENDIF}
 {$IFDEF RX_D3}
     property UpdateMetricSettings: Boolean read GetUpdateMetricSettings
       write SetUpdateMetricSettings default True;
@@ -168,8 +179,7 @@ type
 
 implementation
 
-uses
-  rxAppUtils, rxVclUtils;
+uses RxAppUtils, RxVclUtils;  // Polaris
 
 { TAppEventList }
 
@@ -203,14 +213,14 @@ type
     procedure DoDeactivate(Sender: TObject);
     procedure DoException(Sender: TObject; E: Exception);
     procedure DoIdle(Sender: TObject; var Done: Boolean);
-    function DoHelp(Command: Word; Data: Longint;
+    function DoHelp(Command: Word; Data: {$IFDEF RX_D16}THelpEventData{$ELSE}Longint{$ENDIF};
       var CallHelp: Boolean): Boolean;
     procedure DoHint(Sender: TObject);
     procedure DoMessage(var Msg: TMsg; var Handled: Boolean);
     procedure DoMinimize(Sender: TObject);
     procedure DoRestore(Sender: TObject);
     procedure DoShowHint(var HintStr: string; var CanShow: Boolean;
-      var HintInfo: THintInfo);
+      var HintInfo: {$IFDEF RX_D12}Controls.{$ENDIF}THintInfo);
     procedure DoActiveControlChange(Sender: TObject);
     procedure DoActiveFormChange(Sender: TObject);
 {$IFDEF RX_D4}
@@ -346,7 +356,7 @@ begin
   for I := FAppEvents.Count - 1 downto 0 do begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnException) then begin
       TAppEvents(FAppEvents[I]).FOnException(Sender, E);
-      Handled := True;
+        Handled := True;
     end;
     if not TAppEvents(FAppEvents[I]).Chained then begin
       if not Handled then Application.ShowException(E);
@@ -372,7 +382,7 @@ begin
   if Assigned(FOnIdle) then FOnIdle(Sender, Done);
 end;
 
-function TAppEventList.DoHelp(Command: Word; Data: Longint;
+function TAppEventList.DoHelp(Command: Word; Data: {$IFDEF RX_D16}THelpEventData{$ELSE}Longint{$ENDIF};
   var CallHelp: Boolean): Boolean;
 var
   I: Integer;
@@ -414,7 +424,8 @@ procedure TAppEventList.DoMinimize(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnMinimize) then
       TAppEvents(FAppEvents[I]).FOnMinimize(Sender);
     if not TAppEvents(FAppEvents[I]).Chained then Exit;
@@ -426,7 +437,8 @@ procedure TAppEventList.DoRestore(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnRestore) then
       TAppEvents(FAppEvents[I]).FOnRestore(Sender);
     if not TAppEvents(FAppEvents[I]).Chained then Exit;
@@ -435,11 +447,12 @@ begin
 end;
 
 procedure TAppEventList.DoShowHint(var HintStr: string; var CanShow: Boolean;
-  var HintInfo: THintInfo);
+  var HintInfo: {$IFDEF RX_D12}Controls.{$ENDIF}THintInfo);
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnShowHint) then
       TAppEvents(FAppEvents[I]).FOnShowHint(HintStr, CanShow, HintInfo);
     if not TAppEvents(FAppEvents[I]).Chained then Exit;
@@ -451,7 +464,8 @@ procedure TAppEventList.DoActiveControlChange(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnActiveControlChange) then
       TAppEvents(FAppEvents[I]).FOnActiveControlChange(Sender);
     if not TAppEvents(FAppEvents[I]).Chained then Exit;
@@ -463,7 +477,8 @@ procedure TAppEventList.DoActiveFormChange(Sender: TObject);
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnActiveFormChange) then
       TAppEvents(FAppEvents[I]).FOnActiveFormChange(Sender);
     if not TAppEvents(FAppEvents[I]).Chained then Exit;
@@ -478,7 +493,8 @@ procedure TAppEventList.DoActionExecute(Action: TBasicAction;
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnActionExecute) then
       TAppEvents(FAppEvents[I]).FOnActionExecute(Action, Handled);
     if not TAppEvents(FAppEvents[I]).Chained or Handled then Exit;
@@ -491,7 +507,8 @@ procedure TAppEventList.DoActionUpdate(Action: TBasicAction;
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnActionUpdate) then
       TAppEvents(FAppEvents[I]).FOnActionUpdate(Action, Handled);
     if not TAppEvents(FAppEvents[I]).Chained or Handled then Exit;
@@ -503,7 +520,8 @@ procedure TAppEventList.DoShortCut(var Msg: TWMKey; var Handled: Boolean);
 var
   I: Integer;
 begin
-  for I := FAppEvents.Count - 1 downto 0 do begin
+  for I := FAppEvents.Count - 1 downto 0 do
+  begin
     if Assigned(TAppEvents(FAppEvents[I]).FOnShortCut) then
       TAppEvents(FAppEvents[I]).FOnShortCut(Msg, Handled);
     if not TAppEvents(FAppEvents[I]).Chained or Handled then Exit;
@@ -529,9 +547,11 @@ begin
 {$IFDEF RX_D3}
   FUpdateMetricSettings := True;
 {$ENDIF}
+{$IFNDEF VER80}
   FHintShortPause := DefHintShortPause;
   FHintHidePause := DefHintHidePause;
   FShowMainForm := True;
+{$ENDIF}
 {$IFDEF RX_D4}
   FHintShortCuts := True;
   FBiDiMode := bdLeftToRight;
@@ -598,18 +618,26 @@ begin
   case Msg.Msg of
     WM_WININICHANGE:
       begin
+{$IFDEF VER80}
+        if UpdateFormatSettings then GetFormatSettings;
+{$ELSE}
   {$IFNDEF RX_D3}
-        if Application.ShowHint then begin
+        if Application.ShowHint then
+        begin
           Application.ShowHint := False;
           Application.ShowHint := True;
         end;
   {$ENDIF}
+{$ENDIF}
         try
           SettingsChanged;
         except
           Application.HandleException(Self);
         end;
       end;
+{$IFDEF VER80}
+    WM_ENDSESSION: if WordBool(Msg.wParam) then Halt;
+{$ENDIF}
     WM_PAINT:
       if Assigned(FOnPaintIcon) and IsIconic(Application.Handle) then
       begin
@@ -657,16 +685,24 @@ end;
 
 function TAppEvents.GetUpdateFormatSettings: Boolean;
 begin
+{$IFNDEF VER80}
   if (csDesigning in ComponentState) then Result := FUpdateFormatSettings
   else Result := Application.UpdateFormatSettings;
+{$ELSE}
+  Result := FUpdateFormatSettings;
+{$ENDIF}
 end;
 
 procedure TAppEvents.SetUpdateFormatSettings(Value: Boolean);
 begin
   FUpdateFormatSettings := Value;
+{$IFNDEF VER80}
   if not (csDesigning in ComponentState) then
     Application.UpdateFormatSettings := Value;
+{$ENDIF}
 end;
+
+{$IFNDEF VER80}
 
 function TAppEvents.GetHintShortPause: Integer;
 begin
@@ -703,6 +739,8 @@ begin
   FShowMainForm := Value;
   if not (csDesigning in ComponentState) then Application.ShowMainForm := Value;
 end;
+
+{$ENDIF}
 
 {$IFDEF RX_D3}
 
@@ -816,10 +854,12 @@ begin
       HintColor := FHintColor;
       HintPause := FHintPause;
       ShowHint := FShowHint;
+{$IFNDEF VER80}
       HintShortPause := FHintShortPause;
       HintHidePause := FHintHidePause;
       ShowMainForm := FShowMainForm;
       UpdateFormatSettings := FUpdateFormatSettings;
+{$ENDIF}
 {$IFDEF RX_D3}
       UpdateMetricSettings := FUpdateMetricSettings;
 {$ENDIF}
@@ -848,7 +888,10 @@ begin
 end;
 
 initialization
-
+{$IFNDEF VER80}
 finalization
   DestroyLocals;
+{$ELSE}
+  AddExitProc(DestroyLocals);
+{$ENDIF}
 end.

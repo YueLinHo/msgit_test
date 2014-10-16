@@ -8,7 +8,7 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxDBUtils;
+unit RxDBUtils;
 
 {$I RX.INC}
 {$W-,R-,B-,N+,P+}
@@ -16,10 +16,21 @@ unit rxDBUtils;
 interface
 
 uses
-  Windows, Registry, 
+  {$IFNDEF VER80} Windows, Registry, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  {$IFDEF RX_D17}System.Generics.Collections, {$ENDIF}
   Classes, SysUtils, DB, {$IFNDEF RX_D3} DBTables, {$ENDIF} IniFiles;
 
 type
+{$IFDEF RX_D12}
+  TBookmarkType = TBookmark;
+  TBookmarkPointerType = Pointer;
+  TBuffer = TRecordBuffer;
+{$ELSE}
+  TBookmarkType = TBookmarkStr;
+  TBookmarkPointerType = TBookmark;
+  TBuffer = PChar;
+{$ENDIF}
 
 { TLocateObject }
 
@@ -70,11 +81,13 @@ procedure InternalSaveFields(DataSet: TDataSet; IniFile: TObject;
   const Section: string);
 procedure InternalRestoreFields(DataSet: TDataSet; IniFile: TObject;
   const Section: string; RestoreVisible: Boolean);
+{$IFNDEF VER80}
 function DataSetLocateThrough(DataSet: TDataSet; const KeyFields: string;
   const KeyValues: Variant; Options: TLocateOptions): Boolean;
 procedure SaveFieldsReg(DataSet: TDataSet; IniFile: TRegIniFile);
 procedure RestoreFieldsReg(DataSet: TDataSet; IniFile: TRegIniFile;
   RestoreVisible: Boolean);
+{$ENDIF}
 procedure SaveFields(DataSet: TDataSet; IniFile: TIniFile);
 procedure RestoreFields(DataSet: TDataSet; IniFile: TIniFile;
   RestoreVisible: Boolean);
@@ -111,20 +124,29 @@ const
   sdfMSSQL      = '"CONVERT(datetime, ''"mm"/"dd"/"yyyy"'', 103)"';
 
 const
-  ServerDateFmt: string[50] = sdfStandard16;
+  ServerDateFmt: string{$IFNDEF RX_D12}[50]{$ENDIF} = sdfStandard16;
+
+{$IFDEF VER80}
+type
+  TBlobType = ftBlob..ftGraphic;
+{$ENDIF}
 
 const
 {$IFNDEF RX_D4}
+  {$IFNDEF VER80}
   ftBlobTypes = [ftBlob..ftTypedBinary];
+  {$ELSE}
+  ftBlobTypes = [ftBlob..ftGraphic];
+  {$ENDIF}
 {$ELSE}
   ftBlobTypes = [Low(TBlobType)..High(TBlobType)];
-{$ENDIF RX_D4}
+{$ENDIF RX_D3}
 {$IFDEF RX_V110} {$NODEFINE ftBlobTypes} {$ENDIF}
 
 {$IFNDEF RX_D4}
   ftNonTextTypes = [ftBytes, ftVarBytes, ftBlob, ftMemo, ftGraphic
-    , ftFmtMemo, ftParadoxOle, ftDBaseOle, ftTypedBinary
-    {$IFDEF RX_D3}, ftCursor {$ENDIF}];
+    {$IFNDEF VER80}, ftFmtMemo, ftParadoxOle, ftDBaseOle, ftTypedBinary
+    {$IFDEF RX_D3}, ftCursor {$ENDIF} {$ENDIF}];
   {$IFDEF VER110} { C++ Builder 3 or higher }
   {$NODEFINE ftNonTextTypes}
   (*$HPPEMIT 'namespace Dbutils'*)
@@ -147,10 +169,9 @@ procedure _DBError(Ident: Word);
 
 implementation
 
-uses
-  Forms, Controls, Dialogs, Consts, DBConsts, RXDConst, rxVCLUtils, rxFileUtil,
-  rxAppUtils, rxStrUtils, rxMaxMin, {$IFNDEF RX_D3} BdeUtils, {$ENDIF}
-  rxDateUtil;
+uses Forms, Controls, Dialogs, Consts, DBConsts, RXResConst, RxVCLUtils, RxFileUtil,
+  {$IFDEF RX_D5}RxAppUtils{$ELSE}AppUtils{$ENDIF}, RxMaxMin, {$IFNDEF RX_D3} BdeUtils, {$ENDIF}  // Polaris
+  {$IFDEF VER80} Str16, {$ENDIF} RxDateUtil, RxStrUtils; // Polaris
 
 { Utility routines }
 
@@ -177,7 +198,7 @@ begin
   if DataSet.State in [dsEdit, dsInsert] then begin
     DataSet.UpdateRecord;
     if DataSet.Modified then begin
-      case MessageDlg(LoadStr(SConfirmSave), mtConfirmation, mbYesNoCancel, 0) of
+      case MessageDlg(RxLoadStr(SConfirmSave), mtConfirmation, mbYesNoCancel, 0) of
         mrYes: DataSet.Post;
         mrNo: DataSet.Cancel;
         else SysUtils.Abort;
@@ -262,11 +283,13 @@ begin
 {$IFDEF RX_D3}
   Result := FLookupField.FieldKind in [fkData, fkInternalCalc];
 {$ELSE}
-  Result := (FLookupField.FieldKind = fkData) and IsFilterApplicable(DataSet);
+  Result := ({$IFNDEF VER80} FLookupField.FieldKind = fkData {$ELSE}
+    not FLookupField.Calculated {$ENDIF}) and IsFilterApplicable(DataSet);
 {$ENDIF}
 end;
 
 function TLocateObject.LocateFilter: Boolean;
+{$IFNDEF VER80}
 var
   SaveCursor: TCursor;
   Options: TLocateOptions;
@@ -284,6 +307,10 @@ begin
   finally
     Screen.Cursor := SaveCursor;
   end;
+{$ELSE}
+begin
+  Result := False;
+{$ENDIF}
 end;
 
 procedure TLocateObject.CheckFieldType(Field: TField);
@@ -295,7 +322,8 @@ function TLocateObject.Locate(const KeyField, KeyValue: string;
 var
   LookupKey: TField;
 begin
-  if DataSet = nil then begin
+  if DataSet = nil then
+  begin
     Result := False;
     Exit;
   end;
@@ -306,7 +334,8 @@ begin
   FLookupValue := KeyValue;
   FLookupExact := Exact;
   FCaseSensitive := CaseSensitive;
-  if FLookupField.DataType <> ftString then begin
+  if FLookupField.DataType <> ftString then
+  begin
     FCaseSensitive := True;
     try
       CheckFieldType(FLookupField);
@@ -320,9 +349,11 @@ begin
     DataSet.DisableControls;
     try
       Result := MatchesLookup(FLookupField);
-      if not Result then begin
+      if not Result then
+      begin
         if UseKey then Result := LocateKey
-        else begin
+        else
+        begin
           if FilterApplicable then Result := LocateFilter
           else Result := LocateFull;
         end;
@@ -369,12 +400,13 @@ end;
 
 { DataSet locate routines }
 
+{$IFNDEF VER80}
 function DataSetLocateThrough(DataSet: TDataSet; const KeyFields: string;
   const KeyValues: Variant; Options: TLocateOptions): Boolean;
 var
   FieldCount: Integer;
-  Fields: TList;
-  Bookmark: TBookmarkStr;
+  Fields: TList{$IFDEF RX_D17}<TField>{$ENDIF};
+  Bookmark: TBookmarkType;
 
   function CompareField(Field: TField; Value: Variant): Boolean;
   var
@@ -411,7 +443,7 @@ begin
     CheckBrowseMode;
     if BOF and EOF then Exit;
   end;
-  Fields := TList.Create;
+  Fields := TList{$IFDEF RX_D17}<TField>{$ENDIF}.Create;
   try
     DataSet.GetFieldList(Fields, KeyFields);
     FieldCount := Fields.Count;
@@ -431,7 +463,7 @@ begin
         end;
       finally
         if not Result {$IFDEF RX_D3} and
-          DataSet.BookmarkValid(PChar(Bookmark)) {$ENDIF} then
+          DataSet.BookmarkValid({$IFNDEF RX_D12}PChar{$ENDIF}(Bookmark)) {$ENDIF} then
           DataSet.Bookmark := Bookmark;
       end;
     finally
@@ -441,6 +473,7 @@ begin
     Fields.Free;
   end;
 end;
+{$ENDIF}
 
 { DataSetSortedSearch. Navigate on sorted DataSet routine. }
 
@@ -515,7 +548,7 @@ begin
     DatabaseErrorFmt(SFieldTypeMismatch, [Field.DisplayName]);
 {$ELSE}
     DBErrorFmt(SFieldTypeMismatch,
-      [Field.DisplayName]);
+      [Field.DisplayName{$IFDEF VER80}^{$ENDIF}]);
 {$ENDIF}
 end;
 
@@ -598,6 +631,7 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 procedure SaveFieldsReg(DataSet: TDataSet; IniFile: TRegIniFile);
 begin
   InternalSaveFields(DataSet, IniFile, DataSetSectionName(DataSet));
@@ -609,6 +643,7 @@ begin
   InternalRestoreFields(DataSet, IniFile, DataSetSectionName(DataSet),
     RestoreVisible);
 end;
+{$ENDIF}
 
 procedure SaveFields(DataSet: TDataSet; IniFile: TIniFile);
 begin
@@ -765,11 +800,15 @@ begin
   with Field do
     if not ReadOnly and not Calculated and IsNull then begin
       FocusControl;
+{$IFNDEF VER80}
   {$IFNDEF RX_D3}
       DBErrorFmt(SFieldRequired, [DisplayName]);
   {$ELSE}
       DatabaseErrorFmt(SFieldRequired, [DisplayName]);
   {$ENDIF}
+{$ELSE}
+      DBErrorFmt(SFieldRequired, [DisplayName^]);
+{$ENDIF}
     end;
 end;
 
@@ -791,7 +830,14 @@ begin
     for I := 0 to Source.FieldCount - 1 do begin
       F := Dest.FindField(Source.Fields[I].FieldName);
       if F <> nil then begin
+{$IFNDEF VER80}
         F.Value := Source.Fields[I].Value;
+{$ELSE}
+        if (F.DataType = Source.Fields[I].DataType) and
+          (F.DataSize = Source.Fields[I].DataSize) then
+          F.Assign(Source.Fields[I])
+        else F.AsString := Source.Fields[I].AsString;
+{$ENDIF}
       end;
     end;
   end
@@ -801,7 +847,12 @@ begin
       F := Dest.FindField(Dest.FieldDefs[I].Name);
       FSrc := Source.FindField(Source.FieldDefs[I].Name);
       if (F <> nil) and (FSrc <> nil) then begin
+{$IFNDEF VER80}
         F.Value := FSrc.Value;
+{$ELSE}
+        if F.DataType = FSrc.DataType then F.Assign(FSrc)
+        else F.AsString := FSrc.AsString;
+{$ENDIF}
       end;
     end;
   end;

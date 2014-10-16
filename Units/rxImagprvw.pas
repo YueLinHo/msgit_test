@@ -7,16 +7,15 @@
 {                                                       }
 {*******************************************************}
 
-unit rxImagPrvw;
+unit RxImagPrvw;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows,
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Classes, Graphics, Forms, Controls, FileCtrl, StdCtrls, ExtCtrls, Buttons,
-  RxCtrls, ObjStr, rxPlacemnt, rxPicClip;
+  RxCtrls, RxPicClip, RxPlacemnt, RxObjStr;
 
 type
   TImageForm = class(TForm)
@@ -63,13 +62,14 @@ function SelectImage(var AFileName: string; const Extensions,
 
 implementation
 
-uses
-  Consts, MaxMin, RxConst, VCLUtils, RxGraph;
+uses Consts, RxMaxMin, RxConst, RxVCLUtils, RxGraph;
 
 {$R *.DFM}
 
 {$I+}
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 const
   SAllFiles = 'All files';
@@ -84,7 +84,8 @@ begin
   try
     FileListBox.Mask := Extensions;
     FilterCombo.Filter := Filter;
-    if Pos('*.*', Filter) = 0 then begin
+    if Pos('*.*', Filter) = 0 then
+    begin
       if Length(Filter) > 0 then FilterCombo.Filter := Filter + '|';
       FilterCombo.Filter := FilterCombo.Filter + SAllFiles + ' (*.*)|*.*';
     end;
@@ -126,7 +127,8 @@ end;
 
 procedure TImageForm.ZoomImage;
 begin
-  if ValidPicture(Image.Picture) then begin
+  if ValidPicture(Image.Picture) then
+  begin
     with RxGraph.ZoomImage(Image.Picture.Width, Image.Picture.Height,
       ImagePanel.ClientWidth - 4, ImagePanel.ClientHeight - 4,
       StretchCheck.Checked) do
@@ -179,21 +181,27 @@ begin
   FBmpImage := TBitmap.Create;
   FBmpImage.Assign(FilePics.GraphicCell[5]);
   if not NewStyleControls then Font.Style := [fsBold];
-  with FormStorage do begin
+{$IFNDEF VER80}
+  with FormStorage do
+  begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
-  with TDirList(DirectoryList) do begin
+{$ENDIF}
+  with TDirList(DirectoryList) do
+  begin
     ClosedBmp.Assign(FilePics.GraphicCell[0]);
     OpenedBmp.Assign(FilePics.GraphicCell[1]);
     CurrentBmp.Assign(FilePics.GraphicCell[2]);
   end;
-  with TFileList(FileListBox) do begin
+  with TFileList(FileListBox) do
+  begin
     DirBmp.Assign(FilePics.GraphicCell[0]);
     ExeBmp.Assign(FilePics.GraphicCell[3]);
     UnknownBmp.Assign(FilePics.GraphicCell[4]);
   end;
-  with TDriveCombo(DriveCombo) do begin
+  with TDriveCombo(DriveCombo) do
+  begin
     FloppyBMP.Assign(FilePics.GraphicCell[6]);
     FixedBMP.Assign(FilePics.GraphicCell[7]);
     CDROMBMP.Assign(FilePics.GraphicCell[8]);
@@ -217,10 +225,10 @@ var
   I: Integer;
   FileExt: string;
 begin
-  for I := 0 to TFileList(FileListBox).Items.Count - 1 do begin
+  for I := 0 to TFileList(FileListBox).Items.Count - 1 do
+  begin
     FileExt := ExtractFileExt(TFileList(FileListBox).Items[I]);
-    if (TFileList(FileListBox).Items[I][1] <> '[') and
-      (CompareText(FileExt, '.bmp') = 0) then
+    if (TFileList(FileListBox).Items[I][1] <> '[') and (CompareText(FileExt, '.bmp') = 0) then
       TFileList(FileListBox).Items.Objects[I] := FBmpImage;
   end;
 end;
@@ -254,19 +262,25 @@ begin
   with PreviewForm do
   try
     Caption := SPreview;
+{$IFNDEF VER80}
     BorderStyle := bsSizeToolWin;
+{$ELSE}
+    BorderIcons := [biSystemMenu];
+{$ENDIF}
     Icon := Self.Icon;
     KeyPreview := True;
     Position := poScreenCenter;
     OnKeyPress := PreviewKeyPress;
-    with TImage.Create(PreviewForm) do begin
+    with TImage.Create(PreviewForm) do
+    begin
       Left := 0; Top := 0;
       Stretch := False;
       AutoSize := True;
       Picture.Assign(Image.Picture);
       Parent := PreviewForm;
     end;
-    if Image.Picture.Width > 0 then begin
+    if Image.Picture.Width > 0 then
+    begin
       ClientWidth := Image.Picture.Width;
       ClientHeight := Image.Picture.Height;
     end;
@@ -279,8 +293,9 @@ end;
 procedure TImageForm.OkBtnClick(Sender: TObject);
 begin
   if (ActiveControl = FileEdit) then FileListBox.ApplyFilePath(FileEdit.Text)
-  else if ValidPicture(Image.Picture) then ModalResult := mrOk
-  else Beep;
+  else
+    if ValidPicture(Image.Picture) then ModalResult := mrOk
+    else Beep;
 end;
 
 end.

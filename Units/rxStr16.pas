@@ -7,11 +7,11 @@
 {                                                       }
 {*******************************************************}
 
-unit rxStr16;
+unit RxStr16;
 
 interface
 
-{$IFNDEF WIN32}
+{$IFDEF VER80}
 
 {$I RX.INC}
 
@@ -32,11 +32,11 @@ function TrimLeft(const S: string): string;
 function TrimRight(const S: string): string;
 function QuotedStr(const S: string): string;
 
-{$ENDIF WIN32}
+{$ENDIF}
 
 implementation
 
-{$IFNDEF WIN32}
+{$IFDEF VER80}
 
 uses SysUtils;
 
@@ -101,6 +101,6 @@ begin
   Result := '''' + Result + '''';
 end;
 
-{$ENDIF WIN32}
+{$ENDIF}
 
 end.

@@ -6,16 +6,18 @@
 {                                                       }
 {*******************************************************}
 
-unit rxGIFCtrl;
+unit RxGIFCtrl;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Messages, Windows,
-  SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, Menus, ExtCtrls,
-  rxAnimate, RxGIF, RxTimer;
+uses 
+  Messages, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, Menus, ExtCtrls, 
+  {$IFDEF RX_D6}Types, {$ENDIF}
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  RxAnimate, RxGIF, RxTimer, RxConst;
 
 type
 
@@ -45,6 +47,10 @@ type
     FOnStop: TNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnFrameChanged: TNotifyEvent;
+{$IFNDEF RX_D10}
+    FOnMouseExit: TNotifyEvent;
+    FOnMouseEnter: TNotifyEvent;
+{$ENDIF}
     procedure TimerDeactivate;
     function GetFrameBitmap(Index: Integer; var TransColor: TColor): TBitmap;
     function GetDelayTime(Index: Integer): Cardinal;
@@ -63,6 +69,10 @@ type
     procedure ImageChanged(Sender: TObject);
     procedure TimerExpired(Sender: TObject);
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
+{$IFNDEF RX_D10}
+    procedure CMMouseEnter(var message: TMessage); message CM_MOUSEENTER;
+    procedure CMMouseLeave(var message: TMessage); message CM_MOUSELEAVE;
+{$ENDIF}
   protected
 {$IFDEF RX_D4}
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
@@ -123,23 +133,38 @@ type
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
+{$ENDIF}
+{$IFDEF RX_D9}
+    property OnMouseActivate;
+{$ENDIF}
+{$IFNDEF RX_D10}
+    property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
+    property OnMouseLeave: TNotifyEvent read FOnMouseExit write FOnMouseExit;
+{$ELSE}
+    property OnMouseEnter;
+    property OnMouseLeave;
 {$ENDIF}
   end;
 
 implementation
 
-uses
-  rxVCLUtils, rxMaxMin, RxGraph;
+uses RxVCLUtils, RxMaxMin, RxGraph;
 
 { Maximum delay (10 sec) guarantees that a very long and slow
   GIF does not hang the system }
 const
   MaxDelayTime = 10000;
+{$IFNDEF VER80}
   MinDelayTime = 50;
+{$ELSE}
+  MinDelayTime = 1;
+{$ENDIF}
 
 { TRxGIFAnimator }
 
@@ -173,7 +198,8 @@ end;
 
 procedure TRxGIFAnimator.AdjustSize;
 begin
-  if not (csReading in ComponentState) then begin
+  if not (csReading in ComponentState) then
+  begin
     if AutoSize and Assigned(FImage) and not FImage.Empty then
       SetBounds(Left, Top, FImage.ScreenWidth, FImage.ScreenHeight);
   end;
@@ -216,11 +242,13 @@ begin
   Index := Min(Index, FImage.Count - 1);
   UseCache := (FCache <> nil) and (FCacheIndex = Index - 1) and (FCacheIndex >= 0) and
     (FImage.Frames[FCacheIndex].DisposalMethod <> dmRestorePrevious);
-  if UseCache then begin
+  if UseCache then
+  begin
     Result := FCache;
     TransColor := FTransColor;
   end
-  else begin
+  else
+  begin
     FCache.Free;
     FCache := nil;
     Result := TBitmap.Create;
@@ -229,19 +257,23 @@ begin
   Result.Canvas.Lock;
 {$ENDIF}
   try
-    with Result do begin
-      if not UseCache then begin
+    with Result do
+    begin
+      if not UseCache then
+      begin
         Width := FImage.ScreenWidth;
         Height := FImage.ScreenHeight;
       end;
       Last := Index;
       First := Max(0, Last);
       SavePal := 0;
-      if FImage.Palette <> 0 then begin
+      if FImage.Palette <> 0 then
+      begin
         SavePal := SelectPalette(Canvas.Handle, FImage.Palette, False);
         RealizePalette(Canvas.Handle);
       end;
-      if not UseCache then begin
+      if not UseCache then
+      begin
         if (FImage.Frames[FImage.FrameIndex].TransparentColor <> clNone) then
         begin
           TransColor := GetNearestColor(Canvas.Handle,
@@ -252,7 +284,8 @@ begin
           Canvas.Brush.Color := PaletteColor(FImage.BackgroundColor)
         else Canvas.Brush.Color := PaletteColor(clWindow);
         Canvas.FillRect(Bounds(0, 0, Width, Height));
-        while First > 0 do begin
+        while First > 0 do
+        begin
           if (FImage.ScreenWidth = FImage.Frames[First].Width) and
             (FImage.ScreenHeight = FImage.Frames[First].Height) then
           begin
@@ -578,5 +611,19 @@ begin
   AdjustSize;
 {$ENDIF}
 end;
+
+{$IFNDEF RX_D10}
+procedure TRxGIFAnimator.CMMouseEnter(var message: TMessage);
+begin
+  inherited;
+  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);
+end;
+
+procedure TRxGIFAnimator.CMMouseLeave(var message: TMessage);
+begin
+  inherited;
+  if Assigned(FOnMouseExit) then FOnMouseExit(Self);
+end;
+{$ENDIF}
 
 end.

@@ -8,17 +8,16 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxCurrEdit;
+unit RxCurrEdit;
 
 {$I RX.INC}
 {$W-}
 
 interface
 
-uses
-  SysUtils, Windows,
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Menus, Forms, StdCtrls, Mask,
-  Buttons, rxToolEdit;
+  Buttons, RxToolEdit;
 
 type
 
@@ -75,7 +74,11 @@ type
 //Polaris up to porotected
     function CheckValue(NewValue: Extended; RaiseOnError: Boolean): Extended;
 
+{$IFNDEF VER80}
     procedure AcceptValue(const Value: Variant); override;
+{$ELSE}
+    procedure AcceptValue(const Value: string); override;
+{$ENDIF}
     procedure Change; override;
     procedure ReformatEditText; dynamic;
     function GetDefaultBitmap(var DestroyNeeded: Boolean): TBitmap; override;
@@ -155,10 +158,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property MaxLength;
     property MaxValue;
     property MinValue;
@@ -192,7 +197,9 @@ type
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
@@ -244,10 +251,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property MaxLength;
     property MaxValue;
     property MinValue;
@@ -284,7 +293,9 @@ type
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
@@ -293,10 +304,9 @@ type
 
 implementation
 
-uses
-  Consts, rxStrUtils, rxVclUtils, rxMaxMin, RxCalc;
+uses Consts, RxVCLUtils, RxMaxMin, RxCalc, RxStrUtils; // Polaris
 
- {$R *.R32}
+{$R *.RES}
 
 const
   sCalcBmp = 'CEDITBMP'; { Numeric editor button glyph }
@@ -312,10 +322,10 @@ var
 begin
   Result := False;
   for I := 1 to Length(Value) do
-    if not (Value[I] in [DecimalSeparator, '-', '+', '0'..'9', 'e', 'E']) then
+    if not CharInSet(Value[I], [{$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, '-', '+', '0'..'9', 'e', 'E']) then
       Exit;
   Result := TextToFloat(StrPLCopy(Buffer, Value,
-    SizeOf(Buffer) - 1), RetValue, fvExtended);
+    SizeOf(Buffer) - 1), RetValue {$IFNDEF VER80}, fvExtended {$ENDIF});
 end;
 
 function FormatFloatStr(const S: string; Thousands: Boolean): string;
@@ -325,21 +335,21 @@ var
 begin
   Result := '';
   MaxSym := Length(S);
-  IsSign := (MaxSym > 0) and (S[1] in ['-', '+']);
+  IsSign := (MaxSym > 0) and CharInSet(S[1], ['-', '+']);
   if IsSign then MinSym := 2
   else MinSym := 1;
-  I := Pos(DecimalSeparator, S);
+  I := Pos({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, S);
   if I > 0 then MaxSym := I - 1;
   I := Pos('E', AnsiUpperCase(S));
   if I > 0 then MaxSym := Min(I - 1, MaxSym);
-  Result := Copy(S, MaxSym + 1, MaxInt);
+  Result := Copy(S, MaxSym + 1, System.MaxInt);
   Group := 0;
   for I := MaxSym downto MinSym do begin
     Result := S[I] + Result;
     Inc(Group);
     if (Group = 3) and Thousands and (I > MinSym) then begin
       Group := 0;
-      Result := ThousandSeparator + Result;
+      Result := {$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator + Result;
     end;
   end;
   if IsSign then Result := S[1] + Result;
@@ -433,7 +443,7 @@ begin
   System.Delete(S, SelStart + 1, SelStop - SelStart);
   System.Insert(Key, S, SelStart + 1);
   S := TextToValText(S);
-  DecPos := Pos(DecimalSeparator, S);
+  DecPos := Pos({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, S);
   if (DecPos > 0) then begin
     SelStart := Pos('E', UpperCase(S));
     if (SelStart > DecPos) then DecPos := SelStart - DecPos
@@ -447,17 +457,17 @@ end;
 
 procedure TCustomNumEdit.KeyPress(var Key: Char);
 begin
-  if PopupVisible and (UpCase(Key) in ['0'..'9', DecimalSeparator, '.', ',',
+  if PopupVisible and CharInSet(UpCase(Key), ['0'..'9', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, '.', ',',
     '+', '-', '*', '/', '_', '=', 'C', 'R', 'Q', '%', #8, #13] -
-    [ThousandSeparator]) then
+    [{$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator]) then
   begin
     THack(FPopup).KeyPress(Key);
     Key := #0;
   end;
-  if Key in ['.', ','] - [ThousandSeparator] then
-    Key := DecimalSeparator;
+  if CharInSet(Key, ['.', ','] - [{$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator]) then
+    Key := {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator;
   inherited KeyPress(Key);
-  if (Key in [#32..#255]) and not IsValidChar(Key) then begin
+  if CharInSet(Key, [#32..#255]) and not IsValidChar(Key) then begin
     if BeepOnError then MessageBeep(0);
     Key := #0;
   end
@@ -694,13 +704,13 @@ end;
 function TCustomNumEdit.TextToValText(const AValue: string): string;
 begin
   Result := DelRSpace(AValue);
-  if DecimalSeparator <> ThousandSeparator then begin
-    Result := DelChars(Result, ThousandSeparator);
+  if {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator <> {$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator then begin
+    Result := DelChars(Result, {$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator);
   end;
-  if (DecimalSeparator <> '.') and (ThousandSeparator <> '.') then
-    Result := ReplaceStr(Result, '.', DecimalSeparator);
-  if (DecimalSeparator <> ',') and (ThousandSeparator <> ',') then
-    Result := ReplaceStr(Result, ',', DecimalSeparator);
+  if ({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator <> '.') and ({$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator <> '.') then
+    Result := ReplaceStr(Result, '.', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator);
+  if ({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator <> ',') and ({$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator <> ',') then
+    Result := ReplaceStr(Result, ',', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator);
   if Result = '' then Result := '0'
   else if Result = '-' then Result := '-0';
 end;
@@ -748,7 +758,11 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 procedure TCustomNumEdit.AcceptValue(const Value: Variant);
+{$ELSE}
+procedure TCustomNumEdit.AcceptValue(const Value: string);
+{$ENDIF}
 begin
   inherited AcceptValue(Value);
   Self.Value := CheckValue(Value, False); //Polaris
@@ -833,15 +847,15 @@ var
   I: Integer;
   C: Char;
 begin
-  Result := ',0.' + MakeStr('0', CurrencyDecimals);
+  Result := ',0.' + MakeStr('0', {$IFDEF RX_D15}FormatSettings.{$ENDIF}CurrencyDecimals);
   CurrStr := '';
-  for I := 1 to Length(CurrencyString) do begin
-    C := CurrencyString[I];
-    if C in [',', '.'] then CurrStr := CurrStr + '''' + C + ''''
+  for I := 1 to Length({$IFDEF RX_D15}FormatSettings.{$ENDIF}CurrencyString) do begin
+    C := {$IFDEF RX_D15}FormatSettings.{$ENDIF}CurrencyString[I];
+    if CharInSet(C, [',', '.']) then CurrStr := CurrStr + '''' + C + ''''
     else CurrStr := CurrStr + C;
   end;
   if Length(CurrStr) > 0 then
-    case CurrencyFormat of
+    case {$IFDEF RX_D15}FormatSettings.{$ENDIF}CurrencyFormat of
       0: Result := CurrStr + Result; { '$1' }
       1: Result := Result + CurrStr; { '1$' }
       2: Result := CurrStr + ' ' + Result; { '$ 1' }
@@ -872,7 +886,12 @@ begin
   CalcBitmap := nil;
 end;
 
+{$IFNDEF VER80}
 initialization
 finalization
   DestroyLocals;
+{$ELSE}
+initialization
+  AddExitProc(DestroyLocals);
+{$ENDIF}
 end.

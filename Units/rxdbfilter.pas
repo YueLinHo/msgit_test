@@ -6,24 +6,30 @@
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Revision and component added by JB.                   }
 {*******************************************************}
 
-unit rxdbfilter;
+unit RxDBFilter;
 
 interface
 
 {$I RX.INC}
 {$T-}
 
-uses
-  SysUtils, Windows, Messages, Classes, Controls, Forms,
+{$IFNDEF VER80}
+uses SysUtils, Windows, Messages, Classes, Controls, Forms, RxDBCtrl,
   Graphics, Menus, StdCtrls, ExtCtrls, Bde, DB, DBTables;
+{$ELSE}
+uses SysUtils, WinTypes, WinProcs, Messages, Classes, Controls, Forms,
+  Graphics, Menus, StdCtrls, ExtCtrls, DBITypes, DB, DBTables;
+{$ENDIF}
 
 type
 
 { TRxDBFilter }
 
   TFilterLogicCond = (flAnd, flOr); { for captured DataSet }
+{$IFNDEF VER80}
 {$IFDEF RX_D6}
   TDBFilterOption = TFilterOption;
   TDBFilterOptions = TFilterOptions;
@@ -31,7 +37,10 @@ type
   TDBFilterOption = type TFilterOption;
   TDBFilterOptions = type TFilterOptions;
 {$ENDIF}
-
+{$ELSE}
+  TDBFilterOption = (foCaseInsensitive, foNoPartialCompare);
+  TDBFilterOptions = set of TDBFilterOption;
+{$ENDIF}
   TFilterEvent = function (Sender: TObject; DataSet: TDataSet): Boolean of object;
 
   TDataSetStorage = record { for internal use only }
@@ -86,7 +95,7 @@ type
     procedure RecreateFuncFilter;
     procedure ActivateFilters;
     procedure DeactivateFilters;
-    function RecordFilter(RecBuf: Pointer; RecNo: Longint): Smallint; stdcall;
+    function RecordFilter(RecBuf: Pointer; RecNo: Longint): Smallint; {$IFNDEF VER80} stdcall; {$ENDIF}
     procedure BeforeDataPost(DataSet: TDataSet);
     procedure BeforeDataChange(DataSet: TDataSet);
     procedure BeforeDataCancel(DataSet: TDataSet);
@@ -133,17 +142,50 @@ function SetLookupFilter(DataSet: TDataSet; Field: TField;
   const Value: string; CaseSensitive, Exact: Boolean): HDBIFilter;
 {$ENDIF}
 
+{  TRxDBGridSorter  }
+type
+  TRxDBGridSorter = class(TComponent)
+  private
+    { Private declarations }
+    FRxDBGrid: TRxDBGrid;
+    FMarkers: Boolean;
+    sm: TSortMarker;
+    OldFName,FName: string;
+    FORDERstring: string;
+
+    procedure DoGridSorted(G: TRxDBGrid);
+    procedure MakeGridSorted(G: TRxDBGrid);
+    procedure SortIt;
+  protected
+    { Protected declarations }
+    procedure Loaded;override;
+  public
+    { Public declarations }
+    {--demonstration code-->}
+    procedure TitleButtonClick(Sender: TObject; ACol:Integer; Field: TField);
+    procedure DBGridGetBtnParams(Sender: TObject; Field: TField;
+     AFont: TFont; var Background: TColor; var SortMarker: TSortMarker;
+     IsDown: Boolean);
+    {<--demonstration code--}
+    constructor Create(AOwner:TComponent);override;
+  published
+    { Published declarations }
+    property RxDBGrid: TRxDBGrid read FRxDBGrid write FRxDBGrid;
+    property Markers:Boolean read FMarkers write FMarkers;
+    property OrderString:string read FORDERstring write FORDERstring;
+  end;
+
 implementation
 
-uses
-  DBConsts, Dialogs,
-  {$IFDEF RX_D3} DbCommon, {$ENDIF}
-  RXDConst, rxVCLUtils, rxDBUtils, rxBdeUtils;
+uses {$IFDEF VER80} DBIErrs, DBIProcs, Str16, {$ENDIF} DBConsts, Dialogs,
+  {$IFDEF RX_D3} DbCommon, {$ENDIF} RxResConst, RxVCLUtils, RxDBUtils, RxBdeUtils;
 
 procedure DropAllFilters(DataSet: TDataSet);
 begin
   if (DataSet <> nil) and DataSet.Active then begin
+{$IFNDEF VER80}
     DataSet.Filtered := False;
+{$ENDIF}
     DbiDropFilter((DataSet as TBDEDataSet).Handle, nil);
     DataSet.CursorPosChanged;
     DataSet.Resync([]);
@@ -152,14 +194,15 @@ end;
 
 { DBFilter exceptions }
 
-procedure FilterError(Ident: Word); near;
+procedure FilterError(Ident: string{Word}); near;
 begin
-  raise EFilterError.CreateRes(Ident);
+  raise EFilterError.Create{Res}(Ident);
 end;
 
-procedure FilterErrorFmt(Ident: Word; const Args: array of const); near;
+procedure FilterErrorFmt(Ident: string{Word}; const Args: array of const); near;
 begin
-  raise EFilterError.CreateResFmt(Ident, Args);
+  raise EFilterError.CreateFmt(Ident, Args);
+  //CreateResFmt(Ident, Args);
 end;
 
 const
@@ -244,7 +287,11 @@ end;
 
 function TFilterExpr.GetExprData(Pos, Size: Integer): PChar;
 begin
+{$IFNDEF VER80}
   ReallocMem(FExprBuffer, FExprBufSize + Size);
+{$ELSE}
+  FExprBuffer := ReallocMem(FExprBuffer, FExprBufSize, FExprBufSize + Size);
+{$ENDIF}
   Move(PChar(FExprBuffer)[Pos], PChar(FExprBuffer)[Pos + Size],
     FExprBufSize - Pos);
   Inc(FExprBufSize, Size);
@@ -745,7 +792,9 @@ end;
 
 {$ENDIF RX_D3} {DbCommon.pas}
 
-{$HINTS OFF}
+{$IFNDEF VER80}
+  {$HINTS OFF}
+{$ENDIF}
 
 type
   THackDataSet = class(TDataSet);
@@ -895,7 +944,9 @@ type
 
 {$ENDIF RX_D3}
 
-{$HINTS ON}
+{$IFNDEF VER80}
+  {$HINTS ON}
+{$ENDIF}
 
 procedure dsSetState(DataSet: TDataSet; Value: TDataSetState);
 begin
@@ -1008,6 +1059,18 @@ begin
   if FFilter <> nil then FFilter.ActiveChanged;
 end;
 
+{$IFDEF VER80}
+type
+  TFilterOption = TDBFilterOption;
+  TFilterOptions = TDBFilterOptions;
+
+function FilterCallback(pDBFilter: Longint; RecBuf: Pointer;
+  RecNo: Longint): Smallint; export;
+begin
+  Result := TRxDBFilter(pDBFilter).RecordFilter(RecBuf, RecNo);
+end;
+{$ENDIF}
+
 { TRxDBFilter }
 
 constructor TRxDBFilter.Create(AOwner: TComponent);
@@ -1059,7 +1122,9 @@ begin
   try
     if not (csLoading in ComponentState) then ActiveChanged;
     FDataLink.DataSource := Value;
+{$IFNDEF VER80}
     if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
   finally
     FIgnoreDataEvents := False;
   end;
@@ -1096,9 +1161,14 @@ begin
   if (FPriority < $FFFF) and (FExprHandle <> nil) then
     FuncPriority := FPriority + 1
   else FuncPriority := FPriority;
+{$IFNDEF VER80}
   Check(DbiAddFilter((FDataLink.DataSet as TBDEDataSet).Handle, Longint(Self),
     FuncPriority, False, nil, PFGENFilter(@TRxDBFilter.RecordFilter),
     Result));
+{$ELSE}
+  Check(DbiAddFilter(FDataLink.DataSet.Handle, Longint(Self), FuncPriority,
+    False, nil, FilterCallback, Result));
+{$ENDIF}
   FDataHandle := TBDEDataSet(FDatalink.DataSet).Handle;
 end;
 
@@ -1124,6 +1194,10 @@ begin
     Filter := Value;
   end
   else begin
+{$IFDEF VER80}
+    if (Filter <> nil) and FDatalink.Active then
+      DbiDropFilter((FDataLink.DataSet as TBDEDataSet).Handle, Filter);
+{$ENDIF}
     Filter := Value;
   end;
 end;
@@ -1178,7 +1252,7 @@ begin
       dsSetCanModify(DS, False);
 {$IFDEF RX_D4}
       SetLength(BufPtr, 1);
-      BufPtr[0] := PChar(RecBuf);
+      BufPtr[0] := RxDBUtils.TBuffer(RecBuf);
       dsSetBuffers(DS, BufPtr);
 {$ELSE}
       dsSetBuffers(DS, @PChar(RecBuf));
@@ -1315,7 +1389,7 @@ end;
 
 procedure TRxDBFilter.BeforeDataChange(DataSet: TDataSet);
 begin
-  FilterError(SCaptureFilter);
+  FilterError(RxLoadStr(SCaptureFilter));
 end;
 
 procedure TRxDBFilter.BeforeDataCancel(DataSet: TDataSet);
@@ -1377,7 +1451,7 @@ begin
       if Value then begin
         FActivating := True;
         try
-          if FCaptured then FilterError(SCaptureFilter);
+          if FCaptured then FilterError(RxLoadStr(SCaptureFilter));
           DbiSetToBegin((FDatalink.DataSet as TBDEDataSet).Handle);
           if FExprHandle = nil then RecreateExprFilter;
           if FFuncHandle = nil then RecreateFuncFilter;
@@ -1439,7 +1513,7 @@ begin
       BeforeEdit := DataSource.DataSet.BeforeEdit;
     end;
     DbiInitRecord((DataSource.DataSet as TBDEDataSet).Handle,
-      DataSource.DataSet.ActiveBuffer);
+      Pointer(DataSource.DataSet.ActiveBuffer));
     dsSetBOF(DataSource.DataSet, True);
     dsSetEOF(DataSource.DataSet, True);
     dsSetState(DataSource.DataSet, dsEdit);
@@ -1484,7 +1558,7 @@ end;
 
 procedure TRxDBFilter.ReadCaptureControls;
 const
-  LogicStr: array[TFilterLogicCond] of string[4] = (' AND', ' OR');
+  LogicStr: array[TFilterLogicCond] of string = (' AND', ' OR');
 var
   I: Integer;
   Field: TField;
@@ -1498,8 +1572,8 @@ begin
         UpdateRecord;
         for I := 0 to FieldCount - 1 do begin
           Field := Fields[I];
-          if not (Field.IsNull or Field.Calculated
-            or Field.Lookup) then
+          if not (Field.IsNull or Field.Calculated {$IFNDEF VER80}
+            or Field.Lookup {$ENDIF}) then
           begin
             S := '(' + cFldQuotaLeft + Field.FieldName + cFldQuotaRight +
               '=' + cQuota + Field.AsString + cQuota + ')';
@@ -1512,7 +1586,7 @@ begin
       FFilter.EndUpdate;
     end;
   end
-  else FilterError(SNotCaptureFilter);
+  else FilterError(RxLoadStr(SNotCaptureFilter));
 end;
 
 procedure TRxDBFilter.UpdateFuncFilter;
@@ -1560,5 +1634,118 @@ begin
     end;
   end;
 end;
+
+{  TRxDBGridSorter  }
+
+function GoodField(F:TField):Boolean;//Checking if it is a GOOD field
+begin
+  GoodField:=(F.FieldKind=fkData) and
+    ((F is TStringField) or (F is TFloatField) or (F is TIntegerField)
+    or (F is TBooleanField) or (F is TDateField) or (F is TDateTimeField));
+end;
+
+constructor TRxDBGridSorter.Create(AOwner:TComponent);
+begin
+  Inherited;
+  if csDesigning in ComponentState then //we drop component onto form
+  begin
+    //Start initialization
+    Markers:=True;
+  end;
+end;
+
+procedure TRxDBGridSorter.DoGridSorted(G:TRxDBGrid);
+{$IFDEF USE_QUERY}
+var
+  Q: TQuery;
+  A: Boolean;
+begin
+  //Initialization of variables
+  FName:='';
+  OldFName:='';
+  G.TitleButtons:=True;
+  Q:=TQuery(G.DataSource.DataSet);
+  A:=Q.Active;//Remember if Query was ACTIVE
+  //Adding MACRO(TParam) by which we will sort
+  Q.SQL.Add(' '+ORDERstring);
+  G.OnTitleBtnClick:=TBC;//Title Button Click Event
+  G.OnGetBtnParams:=GBP;//Get Button params Event
+  if A then Q.Open;//if Query was opened
+{$ELSE}
+begin
+{$ENDIF}
+end;
+
+procedure TRxDBGridSorter.MakeGridSorted(G:TRxDBGrid);
+begin
+//Check possible access violation errors
+  if Assigned(G) then
+    if Assigned(G.DataSource) then
+      if Assigned(G.DataSource.DataSet) then
+        if (G.DataSource.DataSet is TQuery) then //DataSet !MUST! be TQuery
+          DoGridSorted(G);
+end;
+
+procedure TRxDBGridSorter.SortIt;
+var
+  s,FN:string;
+  Q:TQuery;
+  V:Variant;
+  i:Integer;
+  Good:Boolean;//If there is any GOOD field then TRUE
+begin
+  Good:=False;
+  Q:=TQuery(RxDBGrid.DataSource.DataSet);
+  for i:=0 to Q.FieldCount-1 do
+    if GoodField(Q.Fields[i]) then//remember where is the active record
+    begin
+      Good:=True;
+      FN:=Q.Fields[i].FieldName;
+      V:=Q.Fields[i].AsVariant;
+      Break;
+    end;
+  Q.DisableControls;//if we don't do it grid will flash
+  s:=' ORDER BY '+FName;//We sorting be FName field
+  if sm=smUp then
+    s:=s+' DESC';
+  Q.SQL.Delete(Q.SQL.Count-1);//Replace ORDER BY Statement
+  Q.SQL.Add(s);
+  Q.Open;
+  if Good then
+    Q.Locate(FN,V,[]);//Going to record that we remember
+  Q.EnableControls;
+end;
+
+procedure TRxDBGridSorter.DBGridGetBtnParams(Sender: TObject; Field: TField;
+  AFont: TFont; var Background: TColor; var SortMarker: TSortMarker;
+  IsDown: Boolean);
+begin
+  if Markers then //if "Markers" property set to TRUE we draw sort markers
+    if Assigned(Field) then
+      if Field.FieldName=FName then
+        SortMarker:=sm;
+end;
+
+procedure TRxDBGridSorter.TitleButtonClick(Sender: TObject; ACol: Integer; Field: TField);
+begin
+  if GoodField(Field) then//Field must be GOOD
+  begin
+    OldFName:=FName;
+    FName:=Field.FieldName; //Field by which we will sort
+    if (sm=smDown) and (FName=OldFName) then
+      sm:=smUp
+    else
+      sm:=smDown;
+    SortIt;//Perform sorting in the Query
+  end;
+end;
+
+procedure TRxDBGridSorter.Loaded;
+begin
+  Inherited;
+  if not (csDesigning in ComponentState) then
+    MakeGridSorted(RxDBGrid);
+end;
+
 
 end.

@@ -7,14 +7,13 @@
 {                                                       }
 {*******************************************************}
 
-unit rxBoxProcs;
+unit RxBoxProcs;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Classes, Controls, StdCtrls, RxCtrls;
+uses Classes, Controls, StdCtrls, RxCtrls{$IFDEF RX_D6}, Types{$ENDIF};
 
 procedure BoxMoveSelectedItems(SrcList, DstList: TWinControl);
 procedure BoxMoveAllItems(SrcList, DstList: TWinControl);
@@ -30,8 +29,7 @@ function BoxCanDropItem(List: TWinControl; X, Y: Integer;
 
 implementation
 
-uses
-  Windows, Graphics;
+uses {$IFNDEF VER80} Windows {$ELSE} WinTypes, WinProcs {$ENDIF}, Graphics;
 
 function BoxItems(List: TWinControl): TStrings;
 begin
@@ -67,6 +65,17 @@ begin
     Result := TRxCustomListBox(List).ItemIndex
   else Result := LB_ERR;
 end;
+
+{$IFDEF VER80}
+function BoxGetCanvas(List: TWinControl): TCanvas;
+begin
+  if List is TCustomListBox then
+    Result := TCustomListBox(List).Canvas
+  else if List is TRxCustomListBox then
+    Result := TRxCustomListBox(List).Canvas
+  else Result := nil;
+end;
+{$ENDIF}
 
 procedure BoxSetItemIndex(List: TWinControl; Index: Integer);
 begin
@@ -232,16 +241,22 @@ var
   R: TRect;
 
   procedure DrawItemFocusRect(Idx: Integer);
+{$IFNDEF VER80}
   var
     P: TPoint;
     DC: HDC;
+{$ENDIF}
   begin
     R := BoxItemRect(List, Idx);
+{$IFNDEF VER80}
     P := List.ClientToScreen(R.TopLeft);
     R := Bounds(P.X, P.Y, R.Right - R.Left, R.Bottom - R.Top);
     DC := GetDC(0);
     DrawFocusRect(DC, R);
     ReleaseDC(0, DC);
+{$ELSE}
+    BoxGetCanvas(List).DrawFocusRect(R);
+{$ENDIF}
   end;
 
 begin

@@ -7,17 +7,18 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxAniFile;
+unit RxAniFile;
 
 {$I RX.INC}
 
 interface
 
-uses
-  SysUtils, Windows, Classes, Graphics;
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  {$IFDEF RX_D17}Types, System.UITypes,{$ENDIF}
+  Classes, Graphics;
 
 type
-  TFourCC = array[0..3] of Char;
+  TFourCC = array[0..3] of AnsiChar;
 
   PAniTag = ^TAniTag;
   TAniTag = packed record
@@ -108,10 +109,8 @@ implementation
 { This implementation based on animated cursor editor source code
   (ANIEDIT.C, copyright (C) Microsoft Corp., 1993-1996) }
 
-uses
-  Consts,
-  {$IFDEF RX_D6} RTLConsts, {$ENDIF} // Polaris
-  rxVCLUtils, rxMaxMin, RxGraph, rxIcoList, rxClipIcon;
+uses Consts, RxVCLUtils, RxMaxMin, RxGraph, RxIcoList, RxClipIcon
+     {$IFDEF RX_D6} , RTLConsts {$ENDIF}; // Polaris
 
 const
   FOURCC_ACON = 'ACON';
@@ -178,7 +177,8 @@ begin
   cbRead := pTag^.ckSize;
   if cbMax < cbRead then cbRead := cbMax;
   Result := S.Read(Data^, cbRead) = cbRead;
-  if Result then begin
+  if Result then
+  begin
     cbRead := PadUp(pTag^.ckSize) - cbRead;
     Result := S.Seek(cbRead, soFromCurrent) <> -1;
   end;
@@ -233,8 +233,10 @@ end;
 
 procedure TIconFrame.Assign(Source: TPersistent);
 begin
-  if Source is TIconFrame then begin
-    with TIconFrame(Source) do begin
+  if Source is TIconFrame then
+  begin
+    with TIconFrame(Source) do
+    begin
       if Self.FIcon = nil then Self.FIcon := TIcon.Create;
       Self.FIcon.Assign(FIcon);
       Self.FIsIcon := FIsIcon;
@@ -320,60 +322,74 @@ var
   I: Integer;
   Frame: TIconFrame;
 begin
-  if Source = nil then begin
+  if Source = nil then
+  begin
     Clear;
   end
-  else if Source is TAnimatedCursorImage then begin
-    NewImage;
-    try
-      with TAnimatedCursorImage(Source) do begin
-        Move(FHeader, Self.FHeader, SizeOf(FHeader));
-        Self.FTitle := FTitle;
-        Self.FCreator := FCreator;
-        Self.FOriginalColors := FOriginalColors;
-        for I := 0 to FIcons.Count - 1 do begin
-          Frame := TIconFrame.Create(-1, FHeader.jifRate);
-          try
-            Frame.Assign(TIconFrame(FIcons[I]));
-            Self.FIcons.Add(Frame);
-          except
-            Frame.Free;
-            raise;
+  else
+    if Source is TAnimatedCursorImage then
+    begin
+      NewImage;
+      try
+        with TAnimatedCursorImage(Source) do
+        begin
+          Move(FHeader, Self.FHeader, SizeOf(FHeader));
+          Self.FTitle := FTitle;
+          Self.FCreator := FCreator;
+          Self.FOriginalColors := FOriginalColors;
+          for I := 0 to FIcons.Count - 1 do
+          begin
+            Frame := TIconFrame.Create(-1, FHeader.jifRate);
+            try
+              Frame.Assign(TIconFrame(FIcons[I]));
+              Self.FIcons.Add(Frame);
+            except
+              Frame.Free;
+              raise ;
+            end;
           end;
         end;
+      except
+        NewImage;
+        raise ;
       end;
-    except
-      NewImage;
-      raise;
-    end;
-  end
-  else inherited Assign(Source);
+    end
+    else
+      inherited Assign(Source);
 end;
 
 procedure TAnimatedCursorImage.AssignTo(Dest: TPersistent);
 var
   I: Integer;
 begin
-  if Dest is TIcon then begin
-    if IconCount > 0 then Dest.Assign(Icons[0])
-    else Dest.Assign(nil);
-  end
-  else if Dest is TBitmap then begin
+  if Dest is TIcon then
+  begin
     if IconCount > 0 then
-      AssignToBitmap(TBitmap(Dest), TBitmap(Dest).Canvas.Brush.Color,
-        True, False)
-    else Dest.Assign(nil);
+      Dest.Assign(Icons[0])
+    else
+      Dest.Assign(nil);
   end
-  else if Dest is TIconList then begin
+  else if Dest is TBitmap then
+  begin
+    if IconCount > 0 then
+      AssignToBitmap(TBitmap(Dest), TBitmap(Dest).Canvas.Brush.Color, True,
+        False)
+    else
+      Dest.Assign(nil);
+  end
+  else if Dest is TIconList then
+  begin
     TIconList(Dest).BeginUpdate;
     try
       TIconList(Dest).Clear;
-      for I := 0 to IconCount - 1 do TIconList(Dest).Add(Icons[I]);
+      for I := 0 to IconCount - 1 do
+        TIconList(Dest).Add(Icons[I]);
     finally
       TIconList(Dest).EndUpdate;
     end;
   end
-  else inherited AssignTo(Dest);
+  else
+    inherited AssignTo(Dest);
 end;
 
 function TAnimatedCursorImage.ReadCreateIcon(Stream: TStream; ASize: Longint;
@@ -396,7 +412,8 @@ begin
     IsIcon := PCursorOrIcon(Mem.Memory)^.wType = RC3_ICON;
     if PCursorOrIcon(Mem.Memory)^.wType = RC3_CURSOR then
       PCursorOrIcon(Mem.Memory)^.wType := RC3_ICON;
-    if PCursorOrIcon(Mem.Memory)^.wType = RC3_ICON then begin
+    if PCursorOrIcon(Mem.Memory)^.wType = RC3_ICON then
+    begin
       { determinate original icon color }
       HeaderLen := PCursorOrIcon(Mem.Memory)^.Count * SizeOf(TIconRec);
       GetMem(List, HeaderLen);
@@ -404,7 +421,8 @@ begin
         Mem.Position := SizeOf(TCursorOrIcon);
         Mem.Read(List^, HeaderLen);
         for I := 0 to PCursorOrIcon(Mem.Memory)^.Count - 1 do
-          with List^[I] do begin
+          with List^[I] do
+          begin
             GetMem(BI, DIBSize);
             try
               Mem.Seek(DIBOffset, soFromBeginning);

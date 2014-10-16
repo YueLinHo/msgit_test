@@ -10,7 +10,7 @@ object SpeedbarSetupWindow: TSpeedbarSetupWindow
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = [fsBold]
   FormStyle = fsStayOnTop
   Icon.Data = {
@@ -56,7 +56,7 @@ object SpeedbarSetupWindow: TSpeedbarSetupWindow
   object ButtonsLabel: TLabel
     Left = 146
     Top = 11
-    Width = 119
+    Width = 114
     Height = 13
     Caption = '&Available buttons:    '
     FocusControl = ButtonsList
@@ -64,7 +64,7 @@ object SpeedbarSetupWindow: TSpeedbarSetupWindow
   object CategoriesLabel: TLabel
     Left = 12
     Top = 11
-    Width = 81
+    Width = 76
     Height = 13
     Caption = '&Categories:    '
   end

@@ -8,17 +8,16 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxCheckItm;
+unit RxCheckItm;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Windows, Messages,
-  SysUtils, Classes, Controls, Forms, Menus, Graphics, StdCtrls, Dialogs,
-  RXCtrls, ExtCtrls, RTLConsts, rxPlacemnt,
-  DesignIntf, DesignEditors, VCLEditors;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} Messages,
+  SysUtils, Classes, Controls, Forms, Menus, Graphics, StdCtrls, RxPlacemnt,
+  Dialogs, RXCtrls, ExtCtrls,
+{$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 type
 
@@ -101,12 +100,12 @@ implementation
 
 {$R *.DFM}
 
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
-uses
-  Consts,
-  {$IFDEF RX_D3} rxStrLEdit, {$ELSE} rxStrEdit, {$ENDIF}
-  RxConst, rxVclUtils, rxBoxProcs;
+uses {$IFDEF RX_D3} RxStrLEdit, {$ELSE} StrEdit, {$ENDIF} Consts, RxConst,
+  RxVCLUtils, RxBoxProcs;
 
 { TCheckItemsProperty }
 
@@ -125,13 +124,15 @@ begin
     if Comp is TComponent then
       Caption := TComponent(Comp).Name + '.' + Self.GetName
     else Caption := Self.GetName;
-    if Comp is TRxCheckListBox then begin
+    if Comp is TRxCheckListBox then
+    begin
       CheckList.AllowGrayed := TRxCheckListBox(Comp).AllowGrayed;
       CheckList.Sorted := TRxCheckListBox(Comp).Sorted;
       CheckList.CheckKind := TrxCheckListBox(Comp).CheckKind;
     end;
     CheckList.Items := TStrings(GetOrdValue);
-    if ShowModal = mrOk then begin
+    if ShowModal = mrOk then
+    begin
        SetOrdValue(LongInt(CheckList.Items));  
     end;
   finally
@@ -157,13 +158,14 @@ begin
   ClientWidth := 330;
   Font.Color := clWindowText;
   Font.Size := 8;
-  Font.Name := 'MS Sans Serif';
+  Font.Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
   Font.Style := [];
   Scaled := True;
   Position := poScreenCenter;
   { FEdit }
   FEdit := TEdit.Create(Self);
-  with FEdit do begin
+  with FEdit do
+  begin
     Parent := Self;
     Left := 8;
     Top := 12;
@@ -173,7 +175,8 @@ begin
   end;
   { FOkBtn }
   FOkBtn := TButton.Create(Self);
-  with FOkBtn do begin
+  with FOkBtn do
+  begin
     Parent := Self;
     Left := 168;
     Top := 60 + 80;
@@ -186,7 +189,8 @@ begin
   end;
   { FCancelBtn }
   FCancelBtn := TButton.Create(Self);
-  with FCancelBtn do begin
+  with FCancelBtn do
+  begin
     Parent := Self;
     Left := 246;
     Top := 60 + 80;
@@ -199,7 +203,8 @@ begin
   end;
   { FCheckBox }
   FComboBox := TComboBox.Create(Self);
-  with FComboBox do begin
+  with FComboBox do
+  begin
     Parent := Self;
     Style := csDropDownList;
     Items.Add('Unchecked');
@@ -212,7 +217,8 @@ begin
   end;
   { FEnableBox }
   FEnableBox := TCheckBox.Create(Self);
-  with FEnableBox do begin
+  with FEnableBox do
+  begin
     Parent := Self;
     Left := 104;
     Top := 40;
@@ -223,7 +229,8 @@ begin
     TabOrder := 4;
   end;
   FMemo := TMemo.Create(Self);
-  with FMemo do begin
+  with FMemo do
+  begin
     Parent := Self;
     Left:= 8 ;
     Width := Self.clientWidth - 16;
@@ -242,10 +249,13 @@ end;
 
 procedure TCheckItemsEditor.FormCreate(Sender: TObject);
 begin
-  with FormPlacement do begin
+{$IFNDEF VER80}
+  with FormPlacement do
+  begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
+{$ENDIF}
 (* my addition *)
   with HintMemo do Constraints.MinHeight := abs(Font.height)+8;
   PanelHint.Constraints.MinHeight:= PanelHint.Height - HintMemo.Height + HintMemo.Constraints.MinHeight;
@@ -272,11 +282,12 @@ begin
   if I >= 0 then
     with TCheckItemEditor.Create(Application) do
     try         // ??? Why there's no scaling when <New> is pressed ?
-      if Screen.PixelsPerInch <> 96 then begin { scale to screen res }
+      if Screen.PixelsPerInch <> 96 then
+      begin { scale to screen res }
         ScaleBy(Screen.PixelsPerInch, 96);
         { The ScaleBy method does not scale the font well, so set the
           font back to the original info. }
-        Font.Name := 'MS Sans Serif';
+        Font.Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
         Font.Size := 8;
         Left := (Screen.Width div 2) - (Width div 2);
         Top := (Screen.Height div 2) - (Height div 2);
@@ -285,7 +296,8 @@ begin
       FMemo.Lines.Text := CheckList.ItemHint[I]; // my addition
       FComboBox.ItemIndex := Integer(CheckList.State[I]);
       FEnableBox.Checked := CheckList.EnabledItem[I];
-      if ShowModal = mrOk then begin
+      if ShowModal = mrOk then
+      begin
         CheckList.Items[I] := FEdit.Text;
         CheckList.State[I] := TCheckBoxState(FComboBox.ItemIndex);
         CheckList.EnabledItem[I] := FEnableBox.Checked;
@@ -308,12 +320,13 @@ begin
     FMemo.Clear;   // my addition
     FComboBox.ItemIndex := Integer(clbDefaultState);
     FEnableBox.Checked := clbDefaultEnabled;
-    if ShowModal = mrOk then begin
+    if ShowModal = mrOk then
+    begin
       Index := CheckList.Items.Add(FEdit.Text);
       CheckList.State[Index] := TCheckBoxState(FComboBox.ItemIndex);
       CheckList.EnabledItem[Index] := FEnableBox.Checked;
       CheckList.ItemHint[Index] := FMemo.Lines.Text; FMemo.Lines.Clear;// my addition
-      CheckButtons;
+      CheckButtons;     
     end;
   finally
     Free;
@@ -322,7 +335,8 @@ end;
 
 procedure TCheckItemsEditor.DeleteBtnClick(Sender: TObject);
 begin
-  if CheckList.ItemIndex >= 0 then begin
+  if CheckList.ItemIndex >= 0 then
+  begin
     CheckList.Items.Delete(CheckList.ItemIndex);
     CheckButtons;
   end;
@@ -351,7 +365,8 @@ begin
   cbGrayedItem.Checked := False;
   cbCheckedItem.Checked := False;
   cbUncheckedItem.Checked := False;
-  if Enable then begin
+  if Enable then
+  begin
     EnabledItem.Checked := CheckList.EnabledItem[CheckList.ItemIndex];
     case CheckList.State[CheckList.ItemIndex] of
       cbChecked: cbCheckedItem.Checked := True;
@@ -364,7 +379,8 @@ end;
 procedure TCheckItemsEditor.AddListBtnClick(Sender: TObject);
 var i,j:integer;
 begin  j:=0;
-  with PopupStrings do begin
+  with PopupStrings do
+  begin
        for i:=0 to Items.Count -1 do
            if Items[i].Checked then begin j:=i; break; end;
        With Items[j] do Click;
@@ -382,23 +398,27 @@ begin
     try
       case Mode of
         1: Caption := 'Append to '+Self.Caption;
-        else Caption := Self.Caption;
+      else
+        Caption := Self.Caption;
       end;
 
-      if Mode = 1 then if mrYes =
-         MessageDlg('This will wipe out all ItemHints !!!'^M^J +
+      if Mode = 1 then
+         if         MessageDlg('This will wipe out all ItemHints !!!'^M^J +
                     'Would You cancel this action'^M^J^I+
-                    'and use <Edit> button instead?',mtConfirmation,[mbNo,mbYes],0)
+                    'and use <Edit> button instead?',mtConfirmation,[mbNo,mbYes],0) = mrYes
          then Abort;
 
       if Sender is TMenuItem then TMenuItem(Sender).Checked := true;   
-{$IFNDEF RX_D3}
+    {$IFNDEF VER80}
+      {$IFNDEF RX_D3}
       CodeWndBtn.Visible := False;
-{$ENDIF}
+      {$ENDIF}
+    {$ENDIF}
       if Mode = 1 then
          Memo.Lines.Assign(CheckList.Items);
 
-      if ShowModal = mrOk then begin
+      if ShowModal = mrOk then
+      begin
         if Mode = 1 then checkList.Items.Assign(Memo.Lines) else
         for I := 0 to Memo.Lines.Count - 1 do
           if Memo.Lines[I] <> '' then
@@ -455,17 +475,20 @@ var
 begin
   case Key of
     VK_DELETE:
-      if ssCtrl in Shift then begin
+      if ssCtrl in Shift then
+      begin
         DeleteBtnClick(nil);
         Key := 0;
       end;
     VK_INSERT:
-      if Shift = [] then begin
+      if Shift = [] then
+      begin
         AddListBtnClick(nil);
         Key := 0;
       end;
     VK_DOWN, VK_UP:
-      if (ssCtrl in Shift) then begin
+      if (ssCtrl in Shift) then
+      begin
         if Key = VK_DOWN then Incr := 1
         else Incr := -1;
         BoxMoveFocusedItem(CheckList, CheckList.ItemIndex + Incr);
@@ -478,7 +501,8 @@ end;
 procedure TCheckItemsEditor.CheckListDragDrop(Sender, Source: TObject; X,
   Y: Integer);
 begin
-  if Source = CheckList then begin
+  if Source = CheckList then
+  begin
     BoxMoveFocusedItem(CheckList, CheckList.ItemAtPos(Point(X, Y), True));
     CheckButtons;
   end;

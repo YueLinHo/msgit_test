@@ -7,17 +7,22 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxPgMngrEd;
+unit RxPgMngrEd;
 
 {$I RX.INC}
 
 interface
 
 uses
+{$IFNDEF VER80}
   Windows,
+{$ELSE}
+  WinTypes, WinProcs,
+{$ENDIF}
   SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs, Grids,
-  rxPageMngr, StdCtrls, rxPlacemnt, ExtCtrls, rxVCLUtils,
-  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors {$ELSE} LibIntf, DsgnWnds, DsgnIntf {$ENDIF}; // Polaris
+  RxPageMngr, StdCtrls, RxPlacemnt, ExtCtrls, RxVCLUtils,
+  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors, Types 
+  {$ELSE} LibIntf, DsgnWnds, DsgnIntf {$ENDIF}; // Polaris
 
 type
   TProxyEditor = class(TDesignWindow)
@@ -28,11 +33,14 @@ type
     ProxyGrid: TDrawGrid;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormShow(Sender: TObject);
-    procedure ProxyGridDrawCell(Sender: TObject; Col, Row: Longint; Rect: TRect; State: TGridDrawState);
-    procedure ProxyGridSelectCell(Sender: TObject; Col, Row: Longint; var CanSelect: Boolean);
+    procedure ProxyGridDrawCell(Sender: TObject; Col, Row: Longint;
+      Rect: TRect; State: TGridDrawState);
+    procedure ProxyGridSelectCell(Sender: TObject; Col, Row: Longint;
+      var CanSelect: Boolean);
     procedure CloseBtnClick(Sender: TObject);
     procedure DeleteBtnClick(Sender: TObject);
-    procedure ProxyGridKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure ProxyGridKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
     procedure FormResize(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
@@ -100,12 +108,13 @@ type
 
 implementation
 
-uses
-  Consts, Buttons, RxCtrls, RXConst, RXLConst, RxDsgn;
+uses Consts, Buttons, RxCtrls, RXConst, RXResConst, RxDsgn;
 
 {$R *.DFM}
 
+{$IFNDEF VER80}
  {$D-}
+{$ENDIF}
 
 {$IFDEF RX_D4}
 type
@@ -233,7 +242,7 @@ end;
 function TPageManagerEditor.GetVerb(Index: Integer): string;
 begin
   case Index of
-    0: Result := LoadStr(srProxyEditor);
+    0: Result := RxLoadStr(srProxyEditor);
   end;
 end;
 
@@ -257,13 +266,26 @@ end;
 function TProxyEditor.UniqueName(Component: TComponent): string;
 var
   Temp: string;
+{$IFDEF VER80}
+  I: Integer;
+  Comp: TComponent;
+{$ENDIF}
 begin
   Result := '';
   if (Component <> nil) then Temp := Component.ClassName
   else Temp := TPageProxy.ClassName;
   if (UpCase(Temp[1]) = 'T') and (Length(Temp) > 1) then
     System.Delete(Temp, 1, 1);
+{$IFNDEF VER80}
   Result := Designer.UniqueName(Temp);
+{$ELSE}
+  I := 1;
+  repeat
+    Result := Temp + IntToStr(I);
+    Comp := OwnerForm.FindComponent(Result);
+    Inc(I);
+  until (Comp = nil) or (Comp = Component);
+{$ENDIF}
 end;
 
 function TProxyEditor.GetEditState: TEditState;
@@ -351,7 +373,7 @@ end;
 procedure TProxyEditor.FormShow(Sender: TObject);
 begin
   if FPageManager.PageOwner <> nil then begin
-    Caption := Format(LoadStr(srPageProxies), [FPageManager.PageOwner.Name]);
+    Caption := Format(RxLoadStr(srPageProxies), [FPageManager.PageOwner.Name]);
   end;
 end;
 
@@ -402,8 +424,8 @@ begin
   CellText := '';
   if gdFixed in State then begin
     case Col of
-      0: CellText := LoadStr(srProxyName);
-      1: CellText := LoadStr(srPageName);
+      0: CellText := RxLoadStr(srProxyName);
+      1: CellText := RxLoadStr(srPageName);
     end;
   end
   else begin
@@ -476,10 +498,12 @@ end;
 procedure TProxyEditor.FormCreate(Sender: TObject);
 begin
   if NewStyleControls then Font.Style := [];
+{$IFNDEF VER80}
   with FormStorage do begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
+{$ENDIF}
 end;
 
 end.

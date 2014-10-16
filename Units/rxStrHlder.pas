@@ -6,16 +6,16 @@
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Patched by JB. for Unicode store                      }
 {*******************************************************}
 
-unit rxStrHlder;
+unit RxStrHlder;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Classes;
+uses Windows, SysUtils, Classes;
 
 type
 
@@ -24,9 +24,9 @@ type
 { TMacro }
 
   TMacros = class;
-  TMacroTextEvent = procedure(Sender: TObject; Data: Variant; 
+  TMacroTextEvent = procedure(Sender: TObject; Data: Variant;
     var Text: string) of object;
-  
+
   TMacro = class(TCollectionItem)
   private
     FName: string;
@@ -76,7 +76,7 @@ type
     procedure GetMacroList(List: TList; const MacroNames: string);
     function IndexOf(const AName: string): Integer;
     function IsEqual(Value: TMacros): Boolean;
-    function ParseString(const Value: string; DoCreate: Boolean; 
+    function ParseString(const Value: string; DoCreate: Boolean;
       SpecialChar: Char): string;
     function MacroByName(const Value: string): TMacro;
     function FindMacro(const Value: string): TMacro;
@@ -91,7 +91,7 @@ type
   TStrHolder = class(TComponent)
   private
     FStrings: TStrings;
-    FXorKey: string;
+    FXorKey: AnsiString;
     FReserved: Integer;
 {$IFDEF RX_D3}
     FMacros: TMacros;
@@ -111,8 +111,10 @@ type
     procedure WriteStrings(Writer: TWriter);
     procedure ReadVersion(Reader: TReader);
     procedure WriteVersion(Writer: TWriter);
+{$IFNDEF VER80}
     function GetCommaText: string;
     procedure SetCommaText(const Value: string);
+{$ENDIF}
 {$IFDEF RX_D3}
     function GetCapacity: Integer;
     procedure SetCapacity(NewCapacity: Integer);
@@ -140,7 +142,9 @@ type
     function MacroByName(const MacroName: string): TMacro;
     function ExpandMacros: string;
 {$ENDIF}
+{$IFNDEF VER80}
     property CommaText: string read GetCommaText write SetCommaText;
+{$ENDIF}
   published
 {$IFDEF RX_D3}
     property Capacity: Integer read GetCapacity write SetCapacity default 0;
@@ -150,7 +154,7 @@ type
 {$ENDIF}
     property Duplicates: TDuplicates read GetDuplicates write SetDuplicates
       default dupIgnore;
-    property KeyString: string read FXorKey write FXorKey stored False;
+    property KeyString: AnsiString read FXorKey write FXorKey stored False;
     property Sorted: Boolean read GetSorted write SetSorted default False;
     property Strings: TStrings read FStrings write SetStrings stored False;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -163,11 +167,10 @@ uses
 {$IFDEF RX_D3}
   Consts,
 {$ENDIF}
-  RxStrUtils
-  {$IFDEF RX_D6} ,Variants, RTLConsts {$ENDIF}; // Polaris
+  {$IFDEF RX_D6} Variants, RTLConsts, {$ENDIF} RxStrUtils; // Polaris
 
 const
-  XorVersion = 1;
+  XorVersion = {$IFDEF UNICODE}2{$ELSE}1{$ENDIF};
 
 {$IFDEF RX_D3}
 
@@ -184,12 +187,12 @@ end;
 
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
 begin
-  Result := (C in [' ', ',', ';', ')', #13, #10]) or (C in Delims);
+  Result := CharInSet(C, [' ', ',', ';', ')', #13, #10]) or CharInSet(C, Delims);
 end;
 
 function IsLiteral(C: Char): Boolean;
 begin
-  Result := C in ['''', '"'];
+  Result := CharInSet(C, ['''', '"']);
 end;
 
 procedure CreateMacros(List: TMacros; const Value: PChar; SpecialChar: Char; Delims: TCharSet);
@@ -237,21 +240,25 @@ begin
     if (CurChar = SpecialChar) and not Literal and ((CurPos + 1)^ <> SpecialChar) then
     begin
       StartPos := CurPos;
-      while (CurChar <> #0) and (Literal or not NameDelimiter(CurChar, Delims)) do begin
+      while (CurChar <> #0) and (Literal or not NameDelimiter(CurChar, Delims)) do
+      begin
         Inc(CurPos);
         CurChar := CurPos^;
-        if IsLiteral(CurChar) then begin
+        if IsLiteral(CurChar) then
+        begin
           Literal := Literal xor True;
           if CurPos = StartPos + 1 then EmbeddedLiteral := True;
         end;
       end;
       CurPos^ := #0;
-      if EmbeddedLiteral then begin
+      if EmbeddedLiteral then
+      begin
         Name := StripLiterals(StartPos + 1);
         EmbeddedLiteral := False;
       end
       else Name := StrPas(StartPos + 1);
-      if Assigned(List) then begin
+      if Assigned(List) then
+      begin
         if List.FindMacro(Name) = nil then
           List.CreateMacro(Name);
       end;
@@ -261,9 +268,11 @@ begin
       StrMove(StartPos, CurPos, StrLen(CurPos) + 1);
       CurPos := StartPos;
     end
-    else if (CurChar = SpecialChar) and not Literal and ((CurPos + 1)^ = SpecialChar) then
-      StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
-    else if IsLiteral(CurChar) then Literal := Literal xor True;
+    else
+      if (CurChar = SpecialChar) and not Literal and ((CurPos + 1)^ = SpecialChar) then
+        StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
+      else
+        if IsLiteral(CurChar) then Literal := Literal xor True;
     Inc(CurPos);
   until CurChar = #0;
 end;
@@ -287,9 +296,9 @@ end;
 
 function TMacro.GetDisplayName: string;
 begin
-  if FName = '' then 
-    Result := inherited GetDisplayName 
-  else 
+  if FName = '' then
+    Result := inherited GetDisplayName
+  else
     Result := FName;
 end;
 
@@ -297,7 +306,7 @@ procedure TMacro.SetDisplayName(const Value: string);
 begin
   if (Value <> '') and (AnsiCompareText(Value, FName) <> 0) and
     (Collection is TMacros) and (TMacros(Collection).IndexOf(Value) >= 0) then
-    raise Exception.Create(SDuplicateString);    
+    raise Exception.Create(SDuplicateString);
   FName := Value;
   inherited;
 end;
@@ -315,9 +324,9 @@ end;
 
 function TMacro.GetMacros: TMacros;
 begin
-  if Collection is TMacros then 
+  if Collection is TMacros then
     Result := TMacros(Collection)
-  else 
+  else
     Result := nil;
 end;
 
@@ -402,7 +411,8 @@ var
 begin
   Result := Count = Value.Count;
   if Result then
-    for I := 0 to Count - 1 do begin
+    for I := 0 to Count - 1 do
+    begin
       Result := Items[I].IsEqual(Value.Items[I]);
       if not Result then Break;
     end;
@@ -419,7 +429,8 @@ function TMacros.FindMacro(const Value: string): TMacro;
 var
   I: Integer;
 begin
-  for I := 0 to Count - 1 do begin
+  for I := 0 to Count - 1 do
+  begin
     Result := TMacro(inherited Items[I]);
     if AnsiCompareText(Result.Name, Value) = 0 then Exit;
   end;
@@ -433,7 +444,8 @@ var
 begin
   BeginUpdate;
   try
-    for I := 0 to Value.Count - 1 do begin
+    for I := 0 to Value.Count - 1 do
+    begin
       P := FindMacro(Value[I].Name);
       if P <> nil then P.Assign(Value[I]);
     end;
@@ -442,7 +454,7 @@ begin
   end;
 end;
 
-function TMacros.ParseString(const Value: string; DoCreate: Boolean; 
+function TMacros.ParseString(const Value: string; DoCreate: Boolean;
   SpecialChar: Char): string;
 var
   Macros: TMacros;
@@ -451,7 +463,8 @@ begin
   Macros := TMacros.Create{$IFDEF RX_D4}(Self.GetOwner){$ENDIF};
   try
     CreateMacros(Macros, PChar(Result), SpecialChar, ['.']);
-    if DoCreate then begin
+    if DoCreate then
+    begin
       Macros.AssignValues(Self);
       Self.Assign(Macros);
     end;
@@ -465,7 +478,8 @@ var
   I: Integer;
   Macros: TList;
 begin
-  if Pos(';', MacroName) <> 0 then begin
+  if Pos(';', MacroName) <> 0 then
+  begin
     Macros := TList.Create;
     try
       GetMacroList(Macros, MacroName);
@@ -475,7 +489,7 @@ begin
     finally
       Macros.Free;
     end;
-  end 
+  end
   else Result := MacroByName(MacroName).Value;
 end;
 
@@ -485,7 +499,8 @@ var
   I: Integer;
   Macros: TList;
 begin
-  if Pos(';', MacroName) <> 0 then begin
+  if Pos(';', MacroName) <> 0 then
+  begin
     Macros := TList.Create;
     try
       GetMacroList(Macros, MacroName);
@@ -494,7 +509,7 @@ begin
     finally
       Macros.Free;
     end;
-  end 
+  end
   else MacroByName(MacroName).Value := Value;
 end;
 
@@ -567,6 +582,7 @@ begin
   FStrings.Clear;
 end;
 
+{$IFNDEF VER80}
 function TStrHolder.GetCommaText: string;
 begin
   Result := FStrings.CommaText;
@@ -576,6 +592,7 @@ procedure TStrHolder.SetCommaText(const Value: string);
 begin
   FStrings.CommaText := Value;
 end;
+{$ENDIF}
 
 {$IFDEF RX_D3}
 function TStrHolder.GetCapacity: Integer;
@@ -606,9 +623,10 @@ begin
     Macros.ParseString(FStrings.Text, True, MacroChar);
 end;
 
-procedure TStrHolder.SetMacroChar(Value: Char); 
+procedure TStrHolder.SetMacroChar(Value: Char);
 begin
-  if Value <> FMacroChar then begin
+  if Value <> FMacroChar then
+  begin
     FMacroChar := Value;
     RecreateMacros;
   end;
@@ -632,19 +650,22 @@ var
 begin
   BeforeExpandMacros;
   Result := FStrings.Text;
-  for I := Macros.Count - 1 downto 0 do begin
+  for I := Macros.Count - 1 downto 0 do
+  begin
     Macro := Macros[I];
     if VarIsEmpty(Macro.FData) then Continue;
     repeat
       P := Pos(MacroChar + Macro.Name, Result);
       Found := (P > 0) and ((Length(Result) = P + Length(Macro.Name)) or
         NameDelimiter(Result[P + Length(Macro.Name) + 1], ['.']));
-      if Found then begin
+      if Found then
+      begin
         LiteralChars := 0;
         for J := 1 to P - 1 do
           if IsLiteral(Result[J]) then Inc(LiteralChars);
         Found := LiteralChars mod 2 = 0;
-        if Found then begin
+        if Found then
+        begin
           Result := Copy(Result, 1, P - 1) + Macro.Text + Copy(Result,
             P + Length(Macro.Name) + 1, MaxInt);
         end;
@@ -657,26 +678,33 @@ end;
 procedure TStrHolder.DefineProperties(Filer: TFiler);
 
   function DoWrite: Boolean;
+{$IFNDEF VER80}
   var
     I: Integer;
     Ancestor: TStrHolder;
+{$ENDIF}
   begin
+{$IFNDEF VER80}
     Ancestor := TStrHolder(Filer.Ancestor);
     Result := False;
     if (Ancestor <> nil) and (Ancestor.FStrings.Count = FStrings.Count) and
       (KeyString = Ancestor.KeyString) and (FStrings.Count > 0) then
-      for I := 0 to FStrings.Count - 1 do begin
+      for I := 0 to FStrings.Count - 1 do
+      begin
         Result := CompareText(FStrings[I], Ancestor.FStrings[I]) <> 0;
         if Result then Break;
       end
     else Result := (FStrings.Count > 0) or (Length(KeyString) > 0);
+{$ELSE}
+    Result := (FStrings.Count > 0) or (Length(KeyString) > 0);
+{$ENDIF}
   end;
 
 begin
   inherited DefineProperties(Filer);
   { for backward compatibility }
   Filer.DefineProperty('InternalVer', ReadVersion, WriteVersion,
-    Filer.Ancestor = nil);
+    {$IFNDEF VER80} Filer.Ancestor = nil {$ELSE} False {$ENDIF});
   Filer.DefineProperty('StrData', ReadStrings, WriteStrings, DoWrite);
 end;
 
@@ -691,15 +719,95 @@ begin
 end;
 
 procedure TStrHolder.ReadStrings(Reader: TReader);
+{$IFNDEF UNICODE}
+  {$IFNDEF RX_D6}
+  function Utf8ToAnsi (Source : STRING): AnsiString;
+    (* Converts the given UTF-8 String to Windows ANSI (in current system codepage). *)
+    procedure OnErrorInConvert(var r : STRING; const s : STRING; const mes : STRING);
+    begin
+      MessageBox(0, Pchar(Format('Utf8ToAnsi error occured. Message: %s; Code=%u',[mes, GetlastError])), 'Error', MB_OK);
+      SetLength(r, Length(s));
+      r := s;
+    end;
+
+  var
+    wideStr : WideString;
+    wideLen : Integer;
+    converted : Integer; 
+    errOccured : Boolean; 
+  begin
+    errOccured := false; 
+    try 
+      // Determine real size of UTF-8 string in symbols
+      wideLen := MultiByteToWideChar(CP_UTF8,0,PChar(Source),Length(Source),nil,0); 
+      if wideLen <> 0 then
+      begin
+        // Allocate memory for UTF-16 string
+        SetLength(wideStr, wideLen);
+        // Convert source UTF-8 string to UTF-16 (WideString)
+        wideLen := MultiByteToWideChar(CP_UTF8,0,PChar(Source),Length(Source),PWChar(wideStr),wideLen);
+        if wideLen <> 0 then
+        begin
+          // Allocate memory for result AnsiString
+          SetLength(Result, wideLen);
+          // Convert UTF-16 (WideString) to AnsiString with current system codepage
+          converted := WideCharToMultibyte(CP_ACP,0,PWChar(wideStr),wideLen,PChar(result),wideLen,nil,nil);
+          if converted = 0 then
+            errOccured := true;
+        end
+        else errOccured := true;
+      end
+      else errOccured := true;
+
+      if errOccured then
+        OnErrorInConvert(Result,Source,'');
+    except on E : Exception do
+      begin
+        OnErrorInConvert(Result,Source,E.Message);
+      end;
+    end;
+  end;
+  {$ENDIF}
+{$ENDIF}
 begin
   Reader.ReadListBegin;
-  if not Reader.EndOfList then KeyString := Reader.ReadString;
+  if not Reader.EndOfList then
+    KeyString := AnsiString(Reader.ReadString);
   FStrings.Clear;
+{$IFDEF UNICODE}
+  while not Reader.EndOfList do
+  begin
+    { je nizsi verze - obsah je vzdy v ANSII }
+    if FReserved = 0 then
+    begin
+      { otevreny format. nic nekodovano }
+      { precti zaznam do ansi a pridej }
+      FStrings.Add(string(AnsiString(Reader.ReadString)));
+    end
+    else
+    if FReserved < XorVersion then
+    begin
+      { precti zaznam do ANSII a dekoduj }
+      { konvertuj do unicode a pridej }
+      FStrings.Add(string(XorDecode(KeyString, AnsiString(Reader.ReadString))));
+    end
+    else
+    if FReserved >= XorVersion then
+    begin
+      { precti zaznam do string - je to hexadecimalni zapis UTF8 a dekoduj }
+      FStrings.Add({$IFDEF RX_D12}UTF8ToString{$ELSE}UTF8Decode{$ENDIF}(XorDecode(KeyString, AnsiString(Reader.ReadString))))
+    end;
+  end;
+{$ELSE}
   while not Reader.EndOfList do
     if FReserved >= XorVersion then
-      FStrings.Add(XorDecode(KeyString, Reader.ReadString))
+      if FReserved > XorVersion then
+        FStrings.Add(Utf8ToAnsi(XorDecode(KeyString, AnsiString(Reader.ReadString))))
+      else
+        FStrings.Add(XorDecode(KeyString, AnsiString(Reader.ReadString)))
     else
-      FStrings.Add(XorString(KeyString, Reader.ReadString));
+      FStrings.Add(string(XorString(KeyString, AnsiString(Reader.ReadString))));
+{$ENDIF}
   Reader.ReadListEnd;
 end;
 
@@ -736,9 +844,19 @@ var
   I: Integer;
 begin
   Writer.WriteListBegin;
-  Writer.WriteString(KeyString);
+  Writer.WriteString(string(KeyString));
   for I := 0 to FStrings.Count - 1 do
-    Writer.WriteString(XorEncode(KeyString, FStrings[I]));
+  begin
+{$IFDEF UNICODE}
+    Writer.WriteString(string(XorEncode(KeyString, UTF8Encode(FStrings[I]))));
+{$ELSE}
+  {$IFNDEF VER80}
+    Writer.WriteString(XorEncode(KeyString, AnsiString(FStrings[I])));
+  {$ELSE}
+    Writer.WriteString(XorString(KeyString, FStrings[I]));
+  {$ENDIF}
+{$ENDIF}
+  end;
   Writer.WriteListEnd;
 end;
 
@@ -749,7 +867,9 @@ end;
 
 procedure TStrHolder.WriteVersion(Writer: TWriter);
 begin
+{$IFNDEF VER80}
   Writer.WriteInteger(XorVersion);
+{$ENDIF}
 end;
 
 end.

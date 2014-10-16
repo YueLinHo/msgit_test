@@ -7,15 +7,16 @@
 {                                                       }
 {*******************************************************}
 
-unit RXSlider;
+unit RxSlider;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Windows,
-  Controls, ExtCtrls, Classes, Graphics, Messages, Menus;
+uses 
+  {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Controls, ExtCtrls, Classes, Graphics, Messages, Menus 
+  {$IFDEF RX_D6}, Types{$ENDIF};
 
 type
   TNumThumbStates = 1..2;
@@ -213,7 +214,9 @@ type
     property OnDragOver;
     property OnDragDrop;
     property OnEndDrag;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -265,10 +268,9 @@ type
 
 implementation
 
-uses
-  Consts, Forms, SysUtils, rxVCLUtils, rxMaxMin, RxConst;
+uses Consts, Forms, SysUtils, RxVCLUtils, RxMaxMin, RxConst;
 
-{$R *.R32}
+{$R *.RES}
 
 const
   ImagesResNames: array[TSliderImage] of PChar =
@@ -307,7 +309,8 @@ begin
   FOnChanged := nil;
   FOnDrawPoints := nil;
   FRuler.Free;
-  for I := Low(FImages) to High(FImages) do begin
+  for I := Low(FImages) to High(FImages) do
+  begin
     FImages[I].OnChange := nil;
     FImages[I].Free;
   end;
@@ -340,7 +343,8 @@ var
   PS: TPaintStruct;
 begin
   if FPaintBuffered then inherited
-  else begin
+  else
+  begin
 {$IFDEF RX_D3}
     Canvas.Lock;
     try
@@ -383,15 +387,21 @@ var
   TopColor, BottomColor, TransColor: TColor;
   HighlightThumb: Boolean;
   P: TPoint;
+{$IFNDEF VER80}
   Offset: Integer;
+{$ENDIF}
 begin
-  if csPaintCopy in ControlState then begin
+{$IFNDEF VER80}
+  if csPaintCopy in ControlState then
+  begin
     Offset := GetOffsetByValue(GetSliderValue);
     P := GetThumbPosition(Offset);
   end else
+{$ENDIF}
   P := Point(FThumbRect.Left, FThumbRect.Top);
   R := GetClientRect;
-  if BevelStyle <> bvNone then begin
+  if BevelStyle <> bvNone then
+  begin
     TopColor := clBtnHighlight;
     if BevelStyle = bvLowered then TopColor := clBtnShadow;
     BottomColor := clBtnShadow;
@@ -399,11 +409,13 @@ begin
     Frame3D(Canvas, R, TopColor, BottomColor, FBevelWidth);
   end;
   if (csOpaque in ControlStyle) then
-    with Canvas do begin
+    with Canvas do
+    begin
       Brush.Color := Color;
       FillRect(R);
     end;
-  if FRuler.Width > 0 then begin
+  if FRuler.Width > 0 then
+  begin
     if soRulerOpaque in Options then TransColor := clNone
     else TransColor := FRuler.TransparentColor;
     DrawBitmapTransparent(Canvas, FRulerOrg.X, FRulerOrg.Y, FRuler,
@@ -416,12 +428,16 @@ begin
     InflateRect(R, -2, -2);
     Canvas.DrawFocusRect(R);
   end;
-  if (soShowPoints in Options) then begin
+  if (soShowPoints in Options) then
+  begin
     if Assigned(FOnDrawPoints) then FOnDrawPoints(Self)
     else InternalDrawPoints(Canvas, Increment, 3, 5);
   end;
+{$IFNDEF VER80}
   if csPaintCopy in ControlState then
-    HighlightThumb := not Enabled else
+    HighlightThumb := not Enabled
+  else
+{$ENDIF}
   HighlightThumb := FThumbDown or not Enabled;
   DrawThumb(Canvas, P, HighlightThumb);
 end;
@@ -453,7 +469,8 @@ begin
   if Orientation = soHorizontal then Image := ImageHThumb
   else Image := ImageVThumb;
   R := Rect(0, 0, Image.Width, Image.Height);
-  if NumThumbStates = 2 then begin
+  if NumThumbStates = 2 then
+  begin
     if Highlight then R.Left := (R.Right - R.Left) div 2
     else R.Right := (R.Right - R.Left) div 2;
   end;
@@ -484,24 +501,28 @@ begin
     else Interval := RulerLength;
   until (Interval >= MinInterval + 1) or (Interval >= RulerLength);
   Val := MinValue;
-  for I := 1 to PointsCnt do begin
+  for I := 1 to PointsCnt do
+  begin
     H := PointsHeight;
     if I = PointsCnt then Val := MaxValue;
     if (Val = MaxValue) or (Val = MinValue) then H := ExtremePointsHeight;
     X := GetOffsetByValue(Val);
-    if Orientation = soHorizontal then begin
+    if Orientation = soHorizontal then
+    begin
       X1 := X + (FImages[siHThumb].Width div NumThumbStates) div 2;
       Y1 := FPointsRect.Top;
       X2 := X1;
       Y2 := Y1 + H;
     end
-    else begin
+    else
+    begin
       X1 := FPointsRect.Left;
       Y1 := X + FImages[siVThumb].Height div 2;
       X2 := X1 + H;
       Y2 := Y1;
     end;
-    with ACanvas do begin
+    with ACanvas do
+    begin
       MoveTo(X1, Y1);
       LineTo(X2, Y2);
     end;
@@ -653,17 +674,19 @@ end;
 
 procedure TRxCustomSlider.DefineProperties(Filer: TFiler);
 
+{$IFNDEF VER80}
   function DoWrite: Boolean;
   begin
     if Assigned(Filer.Ancestor) then
       Result := FUserImages <> TRxCustomSlider(Filer.Ancestor).FUserImages
     else Result := FUserImages <> [];
   end;
+{$ENDIF}
 
 begin
   if Filer is TReader then inherited DefineProperties(Filer);
   Filer.DefineBinaryProperty('UserImages', ReadUserImages, WriteUserImages,
-    DoWrite);
+    {$IFNDEF VER80} DoWrite {$ELSE} FUserImages <> [] {$ENDIF});
 end;
 
 procedure TRxCustomSlider.ReadUserImages(Stream: TStream);
@@ -755,7 +778,7 @@ begin
   if Orientation <> Value then begin
     FOrientation := Value;
     Sized;
-    if ComponentState * [csLoading, csUpdating] = [] then
+    if ComponentState * [csLoading {$IFNDEF VER80}, csUpdating {$ENDIF}] = [] then
       SetBounds(Left, Top, Height, Width);
   end;
 end;
@@ -996,7 +1019,11 @@ begin
   if not (csDesigning in ComponentState) and PtInRect(FThumbRect,
     ScreenToClient(P)) then
   begin
+{$IFNDEF VER80}
     Windows.SetCursor(Screen.Cursors[crHand]);
+{$ELSE}
+    WinProcs.SetCursor(Screen.Cursors[crHand]);
+{$ENDIF}
   end
   else inherited;
 end;

@@ -6,7 +6,7 @@
 {                                                       }
 {*******************************************************}
 
-unit rxSelDSFrm;
+unit RxSelDSFrm;
 
 {$I RX.INC}
 
@@ -14,9 +14,9 @@ interface
 
 {$IFDEF DCS}
 
-uses
-  Windows, SysUtils, Messages, Classes, Graphics, Controls,
-  Forms, Dialogs, DB, StdCtrls,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinProcs, WinTypes, {$ENDIF} SysUtils,
+  Messages, Classes, Graphics, Controls, Forms, Dialogs, DB, StdCtrls,
+  RxDsgn,
   {$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 type
@@ -72,8 +72,7 @@ implementation
 
 {$IFDEF DCS}
 
-uses
-  DbConsts, TypInfo, rxVclUtils, {StrUtils,} RxLConst,   // Polaris
+uses DbConsts, TypInfo, RxVclUtils, RxStrUtils, RxResConst,   // Polaris
   {$IFDEF RX_D3}{$IFDEF RX_D5} DsnDbCst, {$ELSE} BdeConst, {$ENDIF}{$ENDIF}
   DSDesign;
 
@@ -96,7 +95,11 @@ begin
     if ShowModal = mrOk then
       if DataSetList.ItemIndex >= 0 then begin
         with DataSetList do  
+{$IFNDEF VER80}
           Result := FDesigner.GetComponent(Items[ItemIndex]) as TDataSet;
+{$ELSE}
+          Result := FDesigner.Form.FindComponent(Items[ItemIndex]) as TDataSet;
+{$ENDIF}
       end;
   finally
     Free;
@@ -144,7 +147,7 @@ begin
   if (Field <> nil) then begin
     Temp := Field.FieldName;
     for I := Length(Temp) downto 1 do
-      if not (Temp[I] in AlphaNumeric) then System.Delete(Temp, I, 1);
+      if not CharInSet(Temp[I], AlphaNumeric) then System.Delete(Temp, I, 1);
     if (Temp = '') or not IsValidIdent(Temp) then begin
       Temp := Field.ClassName;
       if (UpCase(Temp[1]) = 'T') and (Length(Temp) > 1) then
@@ -153,9 +156,19 @@ begin
   end
   else Exit;
   Temp := Component.Name + Temp;
+{$IFNDEF VER80}
   Comp := Designer.GetComponent(Temp);
   if (Comp = nil) or (Comp = Field) then Result := Temp
   else Result := Designer.UniqueName(Temp);
+{$ELSE}
+  I := 0;
+  repeat
+    Result := Temp;
+    if I > 0 then Result := Result + IntToStr(I);
+    Comp := Designer.Form.FindComponent(Result);
+    Inc(I);
+  until (Comp = nil) or (Comp = Field);
+{$ENDIF}
 end;
 
 procedure TMemDataSetEditor.ExecuteVerb(Index: Integer);
@@ -173,8 +186,8 @@ end;
 function TMemDataSetEditor.GetVerb(Index: Integer): string;
 begin
   case Index of
-    0: Result := ResStr(SDatasetDesigner);
-    1: Result := LoadStr(srBorrowStructure);
+    0: Result := {ResStr(}SDatasetDesigner{)};
+    1: Result := RxLoadStr(srBorrowStructure);
   end;
 end;
 
@@ -191,13 +204,26 @@ begin
 end;
 
 procedure TSelectDataSetForm.FillDataSetList(ExcludeDataSet: TDataSet);
+{$IFDEF VER80}
+var
+  I: Integer;
+  Component: TComponent;
+{$ENDIF}
 begin
   DataSetList.Items.BeginUpdate;
   try
     DataSetList.Clear;
     FExclude := '';
     if ExcludeDataSet <> nil then FExclude := ExcludeDataSet.Name;
+{$IFNDEF VER80}
     FDesigner.GetComponentNames(GetTypeData(TypeInfo(TDataSet)), AddDataSet);
+{$ELSE}
+    for I := 0 to FDesigner.Form.ComponentCount - 1 do begin
+      Component := FDesigner.Form.Components[I];
+      if (Component is TDataSet) and (Component <> ExcludeDataSet) then
+        AddDataSet(Component.Name);
+    end;
+{$ENDIF}
     with DataSetList do begin
       if Items.Count > 0 then ItemIndex := 0;
       Enabled := Items.Count > 0;

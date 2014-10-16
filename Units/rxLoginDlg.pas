@@ -8,15 +8,14 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxLoginDlg;
+unit RxLoginDlg;
 
 {$I RX.INC}
 
 interface
 
-uses
-  SysUtils, Messages, Classes, Controls, Forms, Dialogs, StdCtrls,
-  ExtCtrls, DB, DBTables, rxDBLists, RxLogin, rxBdeUtils;
+uses SysUtils, Messages, Classes, Controls, Forms, Dialogs, StdCtrls,
+  ExtCtrls, DB, DBTables, RxDBLists, RxLogin, RxBdeUtils;
 
 type
   TCheckUserNameEvent = function(UsersTable: TTable;
@@ -81,10 +80,10 @@ function UnlockDialogEx(const UserName: string; OnUnlock: TCheckUnlockEvent;
 
 implementation
 
-uses
-  Windows, Registry, BDE,
-  IniFiles, Graphics, Consts,
-  rxAppUtils, RxDConst, rxVclUtils, RxConst;
+uses {$IFNDEF VER80} Windows, Registry, BDE, {$ELSE} WinTypes, WinProcs,
+  DbiTypes, {$ENDIF} IniFiles, Graphics, {$IFDEF RX_D5}RxAppUtils{$ELSE}AppUtils{$ENDIF},
+  RxVCLUtils, RxConst, RxResConst, Consts; // Polaris
+  
 
 const
   keyLastLoginUserName = 'LastUser';
@@ -127,7 +126,11 @@ begin
     else FDialog.ModalResult := mrCancel;
   end
   else if Mode = dmAppLogin then begin
+{$IFNDEF VER80}
     SetCursor := GetCurrentThreadID = MainThreadID;
+{$ELSE}
+    SetCursor := True;
+{$ENDIF}
     SaveLogin := Database.OnLogin;
     try
       try
@@ -175,7 +178,9 @@ begin
   if (FMode in [dmAppLogin, dmDBLogin]) and FSelectDatabase then begin
     with TBDEItems.Create(FDialog) do
     try
+{$IFNDEF VER80}
       SessionName := Database.SessionName;
+{$ENDIF}
       ItemType := bdDatabases;
       FDialog.CustomCombo.Items.Clear;
       Open;
@@ -197,14 +202,18 @@ var
   Ini: TObject;
 begin
   try
+{$IFNDEF VER80}
     if UseRegistry then begin
       Ini := TRegIniFile.Create(IniFileName);
 {$IFDEF RX_D5}
       TRegIniFile(Ini).Access := KEY_READ;
 {$ENDIF}
     end
-    else
+    else 
       Ini := TIniFile.Create(IniFileName);
+{$ELSE}
+    Ini := TIniFile.Create(IniFileName);
+{$ENDIF}
     try
       FDialog.UserNameEdit.Text := IniReadString(Ini, FDialog.ClassName,
         keyLastLoginUserName, LoginName);
@@ -224,8 +233,12 @@ begin
   if Result then begin
     LoginName := GetUserName;
     if IniFileName <> '' then begin
+{$IFNDEF VER80}
       if UseRegistry then Ini := TRegIniFile.Create(IniFileName)
       else Ini := TIniFile.Create(IniFileName);
+{$ELSE}
+      Ini := TIniFile.Create(IniFileName);
+{$ENDIF}
       try
         IniWriteString(Ini, FDialog.ClassName, keyLastLoginUserName, GetUserName);
         IniWriteString(Ini, FDialog.ClassName, keyLastAliasName, Database.AliasName);
@@ -237,22 +250,28 @@ begin
 end;
 
 function TDBLoginDialog.ExecuteDbLogin(LoginParams: TStrings): Boolean;
+{$IFNDEF VER80}
 var
   CurrSession: TSession;
+{$ENDIF}
 begin
   Result := False;
   if (Database = nil) or not Assigned(LoginParams) then Exit;
   if ShowDBName then
-    FDialog.AppTitleLabel.Caption := FmtLoadStr(SDatabaseName,
+    FDialog.AppTitleLabel.Caption := Format(RxLoadStr(SDatabaseName),
       [Database.DatabaseName]);
   FDialog.UserNameEdit.Text := LoginParams.Values[szUSERNAME];
+{$IFNDEF VER80}
   CurrSession := Sessions.CurrentSession;
+{$ENDIF}
   try
     Result := FDialog.ShowModal = mrOk;
     if Result then FillParams(LoginParams)
     else SysUtils.Abort;
   finally
+{$IFNDEF VER80}
     Sessions.CurrentSession := CurrSession;
+{$ENDIF}
   end;
 end;
 
@@ -341,17 +360,19 @@ begin
     try
       try
         Table.DatabaseName := Database.DatabaseName;
+{$IFNDEF VER80}
         Table.SessionName := Database.SessionName;
+{$ENDIF}
         Table.TableName := UsersTableName;
         Table.IndexFieldNames := UserNameField;
         Table.Open;
         if Table.FindKey([GetUserName]) then begin
           Result := CheckUser(Table);
           if not Result then
-            raise EDatabaseError.Create(LoadStr(SInvalidUserName));
+            raise EDatabaseError.Create(RxLoadStr(SInvalidUserName));
         end
         else
-          raise EDatabaseError.Create(LoadStr(SInvalidUserName));
+          raise EDatabaseError.Create(RxLoadStr(SInvalidUserName));
       except
         Application.HandleException(Self);
       end;

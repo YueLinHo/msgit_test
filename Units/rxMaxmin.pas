@@ -4,17 +4,18 @@
 {                                                       }
 {         Copyright (c) 1996 AO ROSNO                   }
 {                                                       }
+{ Revision and functions added by JB.                   }
 {*******************************************************}
 
 {$I RX.INC}
 {$N+}
 
-unit rxMaxMin;
+unit RxMaxMin;
 
 interface
 
-function Max(A, B: Longint): Longint;
-function Min(A, B: Longint): Longint;
+function Max(A, B: Longint): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
+function Min(A, B: Longint): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
 function MaxInteger(const Values: array of Longint): Longint;
 function MinInteger(const Values: array of Longint): Longint;
 {$IFDEF RX_D4}
@@ -26,16 +27,50 @@ function MaxFloat(const Values: array of Extended): Extended;
 function MinFloat(const Values: array of Extended): Extended;
 function MaxDateTime(const Values: array of TDateTime): TDateTime;
 function MinDateTime(const Values: array of TDateTime): TDateTime;
+{$IFNDEF VER80}
 function MaxOf(const Values: array of Variant): Variant;
 function MinOf(const Values: array of Variant): Variant;
-
-procedure SwapLong(var Int1, Int2: Longint);
-procedure SwapInt(var Int1, Int2: Integer);
-{$IFDEF RX_D4}
-procedure SwapInt64(var Int1, Int2: Int64);
 {$ENDIF}
 
+procedure SwapLong(var Int1, Int2: Longint); {$IFDEF RX_D9}inline;{$ENDIF}
+procedure SwapInt(var Int1, Int2: Integer); {$IFDEF RX_D9}inline;{$ENDIF}
+{$IFDEF RX_D4}
+procedure SwapInt64(var Int1, Int2: Int64); {$IFDEF RX_D9}inline;{$ENDIF}
+{$ENDIF}
+
+{$IFDEF VER80}
+function MakeWord(A, B: Byte): Word; {$IFDEF RX_D9}inline;{$ENDIF}
+{$ENDIF}
+
+function MaxIntArr(const Values: array of Integer): Integer;
+function MinIntArr(const Values: array of Integer): Integer;
+
 implementation
+
+function MaxIntArr(const Values: array of Integer): Integer;
+var
+  I: Cardinal;
+begin
+  Result := Values[0];
+  for I := 0 to High(Values) do
+    if Values[I] > Result then Result := Values[I];
+end;
+
+function MinIntArr(const Values: array of Integer): Integer;
+var
+  I: Cardinal;
+begin
+  Result := Values[0];
+  for I := 0 to High(Values) do
+    if Values[I] < Result then Result := Values[I];
+end;
+
+{$IFDEF VER80}
+function MakeWord(A, B: Byte): Word;
+begin
+  Result := A or B shl 8;
+end;
+{$ENDIF}
 
 procedure SwapInt(var Int1, Int2: Integer);
 var
@@ -148,6 +183,7 @@ begin
     if Values[I] < Result then Result := Values[I];
 end;
 
+{$IFNDEF VER80}
 function MaxOf(const Values: array of Variant): Variant;
 var
   I: Cardinal;
@@ -165,5 +201,6 @@ begin
   for I := 0 to High(Values) do
     if Values[I] < Result then Result := Values[I];
 end;
+{$ENDIF}
 
 end.

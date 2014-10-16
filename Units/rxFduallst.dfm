@@ -6,15 +6,18 @@ object DualListForm: TDualListForm
   BorderStyle = bsDialog
   ClientHeight = 269
   ClientWidth = 392
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = [fsBold]
-  PixelsPerInch = 96
+  OldCreateOrder = True
   Position = poScreenCenter
   OnActivate = ListClick
   OnCreate = FormCreate
   OnShow = ListClick
+  PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel
     Left = 4
@@ -27,13 +30,13 @@ object DualListForm: TDualListForm
   object SrcLabel: TLabel
     Left = 12
     Top = 12
-    Width = 5
+    Width = 3
     Height = 13
   end
   object DstLabel: TLabel
     Left = 216
     Top = 12
-    Width = 5
+    Width = 3
     Height = 13
   end
   object SrcList: TTextListBox
@@ -78,9 +81,10 @@ object DualListForm: TDualListForm
     Width = 26
     Height = 26
     Caption = '>'
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -12
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 1
@@ -92,9 +96,10 @@ object DualListForm: TDualListForm
     Width = 26
     Height = 26
     Caption = '>>'
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -12
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 2
@@ -106,9 +111,10 @@ object DualListForm: TDualListForm
     Width = 26
     Height = 26
     Caption = '<'
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -12
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 3
@@ -120,9 +126,10 @@ object DualListForm: TDualListForm
     Width = 26
     Height = 26
     Caption = '<<'
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -12
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 4

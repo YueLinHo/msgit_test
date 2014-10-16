@@ -12,8 +12,7 @@ interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Classes, Controls;
+uses SysUtils, Classes, Controls;
 
 procedure RegisterProgressControl(AClass: TControlClass; const MaxPropName,
   MinPropName, ProgressPropName: string);
@@ -27,12 +26,14 @@ procedure SetProgressValue(Control: TControl; ProgressValue: Longint);
 implementation
 
 {$DEFINE USE_GAUGE}
-{$IFDEF USE_PROGRESSBAR}
-  {$UNDEF USE_GAUGE}
+{$IFNDEF VER80}
+  {$IFDEF USE_PROGRESSBAR}
+    {$UNDEF USE_GAUGE}
+  {$ENDIF}
 {$ENDIF}
 
-uses
-  TypInfo, {$IFDEF USE_GAUGE} Gauges, {$ENDIF} ComCtrls;
+uses TypInfo, {$IFNDEF VER80} {$IFDEF USE_GAUGE} Gauges, {$ENDIF} ComCtrls;
+  {$ELSE} Gauges; {$ENDIF}
 
 { TProgressList }
 
@@ -62,7 +63,9 @@ type
 constructor TProgressList.Create;
 begin
   inherited Create;
+{$IFNDEF VER80}
   Add(TProgressBar, 'Max', 'Min', 'Position');
+{$ENDIF}
 {$IFDEF USE_GAUGE}
   Add(TGauge, 'MaxValue', 'MinValue', 'Progress');
 {$ENDIF}
@@ -84,9 +87,9 @@ begin
   New(NewRec);
   with NewRec^ do begin
     ControlClass := AClass;
-    MaxProperty := MaxPropName;
-    MinProperty := MinPropName;
-    ProgressProperty := ProgressPropName;
+    MaxProperty := AnsiString(MaxPropName);
+    MinProperty := AnsiString(MinPropName);
+    ProgressProperty := AnsiString(ProgressPropName);
   end;
   inherited Add(NewRec);
 end;
@@ -121,7 +124,7 @@ function TProgressList.SetControlProperty(Control: TControl;
 var
   PropInfo: PPropInfo;
   I: Integer;
-  PropName: string;
+  PropName: AnsiString;
 begin
   Result := False;
   if (Control <> nil) then begin
@@ -133,9 +136,9 @@ begin
         else {ppProgress}
           PropName := PProgressData(Items[I])^.ProgressProperty;
       end;
-      PropInfo := GetPropInfo(Control.ClassInfo, PropName);
+      PropInfo := GetPropInfo(Control.ClassInfo, string(PropName));
       if (PropInfo <> nil) and (PropInfo^.PropType^.Kind in
-        [tkInteger, tkFloat, tkVariant]) then
+        [tkInteger, tkFloat {$IFNDEF VER80}, tkVariant {$ENDIF}]) then
       begin
         SetOrdProp(Control, PropInfo, Value);
         Result := True;
@@ -186,7 +189,18 @@ begin
   GetProgressList.SetControlProperty(Control, ppProgress, ProgressValue);
 end;
 
+{$IFDEF VER80}
+procedure Finalize; far;
+begin
+  ProgressList.Free;
+end;
+{$ENDIF}
+
 initialization
+{$IFNDEF VER80}
 finalization
   ProgressList.Free;
+{$ELSE}
+  AddExitProc(Finalize);
+{$ENDIF}
 end.

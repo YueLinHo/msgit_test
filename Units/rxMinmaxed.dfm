@@ -10,7 +10,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -46,7 +46,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
   object Label3: TLabel
     Left = 14
     Top = 15
-    Width = 92
+    Width = 93
     Height = 13
     Caption = 'Maximize Position:  '
   end
@@ -96,7 +96,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
   object Label9: TLabel
     Left = 14
     Top = 73
-    Width = 83
+    Width = 81
     Height = 13
     Caption = 'Max Track Size:  '
   end
@@ -121,7 +121,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
   object Label12: TLabel
     Left = 14
     Top = 102
-    Width = 80
+    Width = 77
     Height = 13
     Caption = 'Min Track Size:  '
   end
@@ -205,8 +205,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 150
     Top = 11
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 0
@@ -215,8 +214,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 232
     Top = 11
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 1
@@ -225,8 +223,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 150
     Top = 40
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 2
@@ -235,8 +232,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 232
     Top = 40
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 3
@@ -245,8 +241,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 150
     Top = 69
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 4
@@ -255,8 +250,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 232
     Top = 69
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 5
@@ -265,8 +259,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 150
     Top = 98
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 6
@@ -275,8 +268,7 @@ object MinMaxInfoEditDialog: TMinMaxInfoEditDialog
     Left = 232
     Top = 98
     Width = 37
-    Height = 20
-    AutoSize = False
+    Height = 21
     DecimalPlaces = 0
     DisplayFormat = '0'
     TabOrder = 7

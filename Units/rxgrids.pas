@@ -8,17 +8,16 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit RXGrids;
+unit RxGrids;
 
 {$I RX.INC}
 {$W-,T-}
 
 interface
 
-uses
-  Windows, Registry,
+uses {$IFNDEF VER80} Windows, Registry, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Controls, Graphics, StdCtrls, ExtCtrls, Forms, Menus,
-  Grids, RxConst, IniFiles, rxPlacemnt;
+  Grids, RxConst, IniFiles, RxPlacemnt {$IFDEF RX_D6}, Types{$ENDIF};
 
 { TRxDrawGrid }
 
@@ -30,6 +29,7 @@ type
   TFixedCellClickEvent = procedure (Sender: TObject; ACol, ARow: Longint) of object;
   TFixedCellCheckEvent = procedure (Sender: TObject; ACol, ARow: Longint;
     var Enabled: Boolean) of object;
+{$IFNDEF VER80}
   TInplaceEditStyle = (ieSimple, ieEllipsis, iePickList);
   TEditAlignEvent = procedure (Sender: TObject; ACol, ARow: Longint;
     var Alignment: TAlignment) of object;
@@ -37,6 +37,7 @@ type
     PickList: TStrings) of object;
   TEditStyleEvent = procedure (Sender: TObject; ACol, ARow: Longint;
     var Style: TInplaceEditStyle) of object;
+{$ENDIF}
 
   TRxDrawGrid = class(TDrawGrid)
   private
@@ -58,10 +59,12 @@ type
     FOnFixedCellClick: TFixedCellClickEvent;
     FOnCheckButton: TFixedCellCheckEvent;
     FOnChangeFocus: TNotifyEvent;
+{$IFNDEF VER80}
     FOnGetEditAlign: TEditAlignEvent;
     FOnEditButtonClick: TNotifyEvent;
     FOnGetPicklist: TPicklistEvent;
     FOnGetEditStyle: TEditStyleEvent;
+{$ENDIF}
     function GetStorage: TFormPlacement;
     procedure SetStorage(Value: TFormPlacement);
     procedure IniSave(Sender: TObject);
@@ -75,7 +78,9 @@ type
     procedure WMLButtonDblClk(var Message: TWMLButtonDblClk); message WM_LBUTTONDBLCLK;
     procedure WMKillFocus(var Msg: TWMKillFocus); message WM_KILLFOCUS;
     procedure WMSetFocus(var Msg: TWMSetFocus); message WM_SETFOCUS;
+{$IFNDEF VER80}
     procedure WMRButtonUp(var Message: TWMMouse); message WM_RBUTTONUP;
+{$ENDIF}
   protected
     function CanEditAcceptKey(Key: Char): Boolean; override;
     function CanEditShow: Boolean; override;
@@ -102,11 +107,13 @@ type
     procedure DoFixedCellClick(ACol, ARow: Longint); dynamic;
     procedure CheckFixedCellButton(ACol, ARow: Longint;
       var Enabled: Boolean); dynamic;
+{$IFNDEF VER80}
     procedure EditButtonClick; dynamic;
     function GetEditAlignment(ACol, ARow: Longint): TAlignment; dynamic;
     function GetEditStyle(ACol, ARow: Longint): TInplaceEditStyle;
       {$IFDEF RX_D6} reintroduce; {$ELSE} dynamic; {$ENDIF} // Polaris
     procedure GetPicklist(ACol, ARow: Longint; Picklist: TStrings); dynamic;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -139,24 +146,31 @@ type
     property OnGetEditLimit: TEditLimitEvent read FOnGetEditLimit write FOnGetEditLimit;
     property OnEditChange: TNotifyEvent read FOnEditChange write FOnEditChange;
     property OnShowEditor: TEditShowEvent read FOnShowEditor write FOnShowEditor;
+{$IFNDEF VER80}
     property OnGetEditAlign: TEditAlignEvent read FOnGetEditAlign write FOnGetEditAlign;
     property OnGetEditStyle: TEditStyleEvent read FOnGetEditStyle write FOnGetEditStyle;
     property OnGetPicklist: TPicklistEvent read FOnGetPicklist write FOnGetPicklist;
     property OnEditButtonClick: TNotifyEvent read FOnEditButtonClick write FOnEditButtonClick;
+{$ENDIF}
   end;
 
 implementation
 
-uses
-  SysUtils, rxVCLUtils, rxMaxMin, Consts, rxAppUtils;
+uses SysUtils, RxVCLUtils, RxMaxMin, Consts, RxAppUtils;  // Polaris
 
 const
+{$IFNDEF VER80}
   MaxCustomExtents = MaxListSize;
+{$ELSE}
+  MaxCustomExtents = 65520 div SizeOf(Integer);
+{$ENDIF}
   MaxShortInt = High(ShortInt);
 
 type
   PIntArray = ^TIntArray;
   TIntArray = array[0..MaxCustomExtents] of Integer;
+
+{$IFNDEF VER80}
 
 { TRxInplaceEdit }
 
@@ -612,6 +626,13 @@ begin
   inherited;
 end;
 
+{$ELSE}
+
+type
+  TRxInplaceEdit = class(TInplaceEdit);
+
+{$ENDIF}
+
 { TRxDrawGrid }
 
 constructor TRxDrawGrid.Create(AOwner: TComponent);
@@ -708,8 +729,16 @@ begin
 end;
 
 procedure TRxDrawGrid.InvalidateCol(ACol: Longint);
+{$IFDEF VER80}
+var
+  I: Longint;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   inherited InvalidateCol(ACol);
+{$ELSE}
+  for I := 0 to RowCount - 1 do inherited InvalidateCell(ACol, I);
+{$ENDIF}
 end;
 
 procedure TRxDrawGrid.InvalidateRow(ARow: Longint);
@@ -991,10 +1020,12 @@ procedure TRxDrawGrid.DrawCell(ACol, ARow: Longint; ARect: TRect;
   AState: TGridDrawState);
 var
   Down: Boolean;
+{$IFNDEF VER80}
   TempRect: TRect;
   FrameFlags1, FrameFlags2: DWORD;
 const
   EdgeFlag: array[Boolean] of UINT = (BDR_RAISEDINNER, BDR_SUNKENINNER);
+{$ENDIF}
 begin
   if FDefaultDrawing or (csDesigning in ComponentState) then
     with Canvas do begin
@@ -1033,6 +1064,7 @@ begin
     end;
   end;
   if FDefaultDrawing and (gdFixed in AState) and Ctl3D then begin
+{$IFNDEF VER80}
     FrameFlags1 := 0;
     FrameFlags2 := 0;
     if goFixedVertLine in Options then begin
@@ -1054,6 +1086,26 @@ begin
       DrawEdge(Canvas.Handle, TempRect, EdgeFlag[Down], FrameFlags1);
       DrawEdge(Canvas.Handle, TempRect, EdgeFlag[Down], FrameFlags2);
     end;
+{$ELSE}
+    with Canvas do begin
+      Pen.Color := clBtnHighlight;
+      if FFixedCellsButtons then begin
+        if Down then begin
+          Pen.Color := clBtnShadow;
+          with ARect do begin
+            PolyLine([Point(Left, Bottom - 1), Point(Left, Top),
+              Point(Right, Top)]);
+            Inc(Left, 2); Inc(Top, 2);
+          end;
+        end
+        else Frame3D(Canvas, ARect, clBtnHighlight, clBtnShadow, 1);
+      end
+      else begin
+        Polyline([Point(ARect.Left, ARect.Bottom - 1), ARect.TopLeft,
+          Point(ARect.Right, ARect.Top)]);
+      end;
+    end;
+{$ENDIF}
   end;
   if FDefaultDrawing and not (csDesigning in ComponentState) and
     (gdFocused in AState) and
@@ -1063,6 +1115,7 @@ begin
     DrawFocusRect(Canvas.Handle, ARect);
 end;
 
+{$IFNDEF VER80}
 procedure TRxDrawGrid.WMRButtonUp(var Message: TWMMouse);
 begin
   if not (FGridState in [gsColMoving, gsRowMoving]) then
@@ -1070,10 +1123,14 @@ begin
   else if not (csNoStdEvents in ControlStyle) then
     with Message do MouseUp(mbRight, KeysToShiftState(Keys), XPos, YPos);
 end;
+{$ENDIF}
 
 procedure TRxDrawGrid.WMLButtonDblClk(var Message: TWMLButtonDblClk);
 var
   Cell: TGridCoord;
+{$IFDEF VER80}
+  Form: TForm;
+{$ENDIF}
 begin
   if FFixedCellsButtons then begin
     with Message do
@@ -1081,9 +1138,16 @@ begin
     if ((Cell.X >= 0) and (Cell.X < FixedCols)) or
       ((Cell.Y >= 0) and (Cell.Y < FixedRows)) then
     begin
+{$IFNDEF VER80}
       SendCancelMode(Self);
+{$ELSE}
+      Form := GetParentForm(Self);
+      if Form <> nil then Form.SendCancelMode(Self);
+{$ENDIF}
       if csCaptureMouse in ControlStyle then MouseCapture := True;
+{$IFNDEF VER80}
       if not (csNoStdEvents in ControlStyle) then
+{$ENDIF}
         with Message do
           MouseDown(mbLeft, KeysToShiftState(Keys) - [ssDouble], XPos, YPos);
       Exit;
@@ -1112,9 +1176,15 @@ end;
 
 function TRxDrawGrid.CreateEditor: TInplaceEdit;
 begin
+{$IFNDEF VER80}
   Result := TRxInplaceEdit.Create(Self);
+{$ELSE}
+  Result := inherited CreateEditor;
+{$ENDIF}
   TEdit(Result).OnChange := EditChanged;
 end;
+
+{$IFNDEF VER80}
 
 function TRxDrawGrid.GetEditAlignment(ACol, ARow: Longint): TAlignment;
 begin
@@ -1137,5 +1207,7 @@ procedure TRxDrawGrid.EditButtonClick;
 begin
   if Assigned(FOnEditButtonClick) then FOnEditButtonClick(Self);
 end;
+
+{$ENDIF}
 
 end.

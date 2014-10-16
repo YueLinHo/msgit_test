@@ -8,14 +8,17 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxClipMon;
+unit RxClipMon;
 
 interface
 
 {$I RX.INC}
+{$IFDEF RX_D6}
+{$WARN SYMBOL_PLATFORM OFF}  // Polaris
+{$ENDIF}
 
-uses
-  Windows, Messages, SysUtils, Classes;
+uses Messages, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  SysUtils, Classes;
 
 type
   TClipboardMonitor = class(TComponent)
@@ -43,8 +46,7 @@ procedure LoadClipboardFromStream(Format: Word; Stream: TStream; Size: Longint);
 
 implementation
 
-uses
-  Forms, Clipbrd;
+uses Forms, Clipbrd;
 
 { Stream routines }
 

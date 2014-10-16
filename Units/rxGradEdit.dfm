@@ -5,10 +5,13 @@ object GradCaptionsEditor: TGradCaptionsEditor
   Caption = 'Caption Editor'
   ClientHeight = 210
   ClientWidth = 393
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
+  OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
   PixelsPerInch = 96
@@ -52,7 +55,7 @@ object GradCaptionsEditor: TGradCaptionsEditor
     object Label1: TLabel
       Left = 12
       Top = 21
-      Width = 66
+      Width = 69
       Height = 13
       Caption = 'Caption &Text: '
       FocusControl = CaptionText
@@ -60,7 +63,7 @@ object GradCaptionsEditor: TGradCaptionsEditor
     object Label3: TLabel
       Left = 12
       Top = 46
-      Width = 71
+      Width = 74
       Height = 13
       Caption = '&Inactive Color: '
       FocusControl = CaptionInactiveColor
@@ -68,7 +71,7 @@ object GradCaptionsEditor: TGradCaptionsEditor
     object Label2: TLabel
       Left = 12
       Top = 70
-      Width = 69
+      Width = 72
       Height = 13
       Caption = 'Caption &Font:  '
       FocusControl = CaptionInactiveColor
@@ -87,7 +90,7 @@ object GradCaptionsEditor: TGradCaptionsEditor
       Top = 43
       Width = 133
       Height = 21
-      ItemHeight = 13
+      ItemHeight = 0
       TabOrder = 1
       OnDblClick = CaptionInactiveColorDblClick
       OnExit = ControlExit
@@ -178,24 +181,21 @@ object GradCaptionsEditor: TGradCaptionsEditor
     end
   end
   object GradientCaption: TRxGradientCaption
-    StartColor = clWindowText
-    FormCaption = 'Caption Editor'
     Captions = <>
+    FormCaption = 'Caption Editor'
     Left = 16
     Top = 172
   end
   object FontDialog: TFontDialog
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = []
-    MinFontSize = 0
-    MaxFontSize = 0
     Left = 72
     Top = 172
   end
   object ColorDialog: TColorDialog
-    Ctl3D = True
     Left = 100
     Top = 172
   end
@@ -205,6 +205,7 @@ object GradCaptionsEditor: TGradCaptionsEditor
     UseRegistry = True
     StoredProps.Strings = (
       'ColorDialog.CustomColors')
+    StoredValues = <>
     Left = 44
     Top = 172
   end

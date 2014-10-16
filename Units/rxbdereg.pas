@@ -27,9 +27,8 @@ unit RxBDEReg;
 
 interface
 
-uses
-  Classes, SysUtils, DB, DBTables,
-  {$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
+uses Classes, SysUtils, DB, DBTables,
+     {$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 { Register data aware custom controls }
 
@@ -37,15 +36,16 @@ procedure Register;
 
 implementation
 
- {$R *.D32}
+{$R *.dcr}
 
-uses
-  TypInfo, rxDBLists, RXLConst, rxDBQBE, rxDBFilter, rxDBIndex, rxDBPrgrss,
-  RxLogin, rxDBSecur, RXQuery, rxVCLUtils, rxDbExcpt, RxDsgn,
-  {$IFDEF DCS} rxSelDSFrm, {$ENDIF} {$IFDEF RX_MIDAS} RxRemLog, {$ENDIF}
-  {$IFDEF RX_D3} rxQBndDlg, {$ELSE}
-  rxQBindDlg, {$ENDIF}
-  Consts, LibHelp, rxMemTable;
+uses TypInfo, RxDBLists, RXResConst, RxDBQBE, RxDBFilter, RxDBIndex, RxDBPrgrss,
+  RxLogin, RxDBSecur, RXQuery, RxVCLUtils, RxDBExcpt, RxDsgn,
+  {$IFDEF DCS} RxSelDSFrm, {$ENDIF} {$IFDEF RX_MIDAS} RxRemLog, {$ENDIF}
+  {$IFDEF RX_D3} RxQBndDlg, {$ELSE}
+  {$IFDEF VER80} RxQBndDlg, {$ELSE} QBindDlg, {$ENDIF} {$ENDIF}
+  Consts, LibHelp, RxMemTable;
+
+{$IFNDEF VER80}
 
 { TSessionNameProperty }
 
@@ -60,6 +60,8 @@ begin
   Sessions.GetSessionNames(List);
 end;
 
+{$ENDIF}
+
 { TDatabaseNameProperty }
 
 type
@@ -69,9 +71,12 @@ type
   end;
 
 procedure TDatabaseNameProperty.GetValueList(List: TStrings);
+{$IFNDEF VER80}
 var
   S: TSession;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   if (GetComponent(0) is TDBDataSet) then
     (GetComponent(0) as TDBDataSet).DBSession.GetDatabaseNames(List)
   else if (GetComponent(0) is TSQLScript) then begin
@@ -79,6 +84,9 @@ begin
     if S = nil then S := Session;
     S.GetDatabaseNames(List);
   end;
+{$ELSE}
+  Session.GetDatabaseNames(List);
+{$ENDIF}
 end;
 
 { TTableNameProperty }
@@ -92,8 +100,13 @@ type
 
 procedure TTableNameProperty.GetValueList(List: TStrings);
 begin
+{$IFNDEF VER80}
   (GetComponent(0) as TCustomTableItems).DBSession.GetTableNames((GetComponent(0)
     as TCustomTableItems).DatabaseName, '', True, False, List);
+{$ELSE}
+  Session.GetTableNames((GetComponent(0) as TCustomTableItems).DatabaseName,
+    '', True, False, List);
+{$ENDIF}
 end;
 
 {$IFNDEF RX_D4}
@@ -123,7 +136,11 @@ var
 begin
   Params := TParams(Pointer(GetOrdValue));
   if Params.Count > 0 then
+{$IFNDEF VER80}
     Result := Format('(%s)', [GetPropInfo.Name])
+{$ELSE}
+    Result := Format('(%s)', [GetPropInfo^.Name])
+{$ENDIF}
   else
     Result := ResStr(srNone);
 end;
@@ -153,15 +170,23 @@ begin
     List := TParams.Create;
     try
       List.Assign(Params);
-      if EditQueryParams(Query, List) and not
-        List.IsEqual(Params) then
+      if EditQueryParams(Query, List) {$IFNDEF VER80} and not
+        List.IsEqual(Params) {$ENDIF} then
       begin
+{$IFNDEF VER80}
         Modified;
+{$ELSE}
+        if Designer <> nil then Designer.Modified;
+{$ENDIF}
         Query.Close;
         for I := 0 to PropCount - 1 do begin
           Params := TParams(GetOrdProp(GetComponent(I),
             TypInfo.GetPropInfo(GetComponent(I).ClassInfo,
+{$IFNDEF VER80}
             GetPropInfo.Name)));
+{$ELSE}
+            GetPropInfo^.Name)));
+{$ENDIF}
           Params.AssignValues(List);
         end;
       end;
@@ -189,8 +214,13 @@ var
 begin
   Security := GetComponent(0) as TDBSecurity;
   if Security.Database <> nil then begin
+{$IFNDEF VER80}
     Security.Database.Session.GetTableNames(Security.Database.DatabaseName,
       '*.*', True, False, List);
+{$ELSE}
+    Session.GetTableNames(Security.Database.DatabaseName, '*.*',
+      True, False, List);
+{$ENDIF}
   end;
 end;
 
@@ -242,6 +272,8 @@ end;
 { Designer registration }
 
 procedure Register;
+const
+  srRXDBAware = 'RX DBAware';
 begin
 {$IFDEF RX_D4}
   { Database Components are excluded from the STD SKU }
@@ -249,20 +281,20 @@ begin
 {$ENDIF}
 
 { Data aware components and controls }
-  RegisterComponents(LoadStr(srRXDBAware), [TRxQuery, TSQLScript,
+  RegisterComponents(srRXDBAware, [TRxQuery, TSQLScript, TRxDBGridSorter,
     TMemoryTable, TQBEQuery, TRxDBFilter, TDBIndexCombo, TDBProgress, 
     TDBSecurity]);
 {$IFDEF RX_MIDAS}
 { MIDAS components }
-  RegisterComponents(LoadStr(srRXDBAware), [TRxRemoteLogin]);
+  RegisterComponents(srRXDBAware, [TRxRemoteLogin]);
   RegisterNonActiveX([TRxRemoteLogin], axrComponentOnly);
 {$ENDIF}
 { Database lists }
-  RegisterComponents(LoadStr(srRXDBAware), [TBDEItems, TDatabaseItems,
+  RegisterComponents(srRXDBAware, [TBDEItems, TDatabaseItems,
     TTableItems]);
 {$IFNDEF CBUILDER}
  {$IFDEF USE_OLD_DBLISTS}
-  RegisterComponents(LoadStr(srRXDBAware), [TDatabaseList, TLangDrivList,
+  RegisterComponents(srRXDBAware, [TDatabaseList, TLangDrivList,
     TTableList, TStoredProcList, TFieldList, TIndexList]);
  {$ENDIF USE_OLD_DBLISTS}
 {$ENDIF CBUILDER}
@@ -297,12 +329,17 @@ begin
 
   RegisterPropertyEditor(TypeInfo(string), TSQLScript, 'DatabaseName',
     TDatabaseNameProperty);
+{$IFNDEF VER80}
   RegisterPropertyEditor(TypeInfo(string), TCustomBDEItems, 'SessionName',
     TSessionNameProperty);
   RegisterPropertyEditor(TypeInfo(string), TSQLScript, 'SessionName',
     TSessionNameProperty);
   RegisterPropertyEditor(TypeInfo(string), TDBProgress, 'SessionName',
     TSessionNameProperty);
+{$ELSE}
+  DbErrorIntercept;
+{$ENDIF}
+
 end;
 
 end.

@@ -7,17 +7,17 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxTimLstEd;
+unit RxTimLstEd;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Windows, SysUtils,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} SysUtils,
   Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  Grids, Menus, RXCtrls, rxVCLUtils, rxPlacemnt, rxTimerLst,
-  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors {$ELSE} LibIntf, DsgnWnds, DsgnIntf {$ENDIF}; // Polaris
+  Grids, Menus, RXCtrls, RxVCLUtils, RxPlacemnt, RxTimerLst,
+  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors, Types 
+  {$ELSE} LibIntf, DsgnWnds, DsgnIntf {$ENDIF}; // Polaris
 
 type
   TTimerItemsEditor = class(TDesignWindow)
@@ -112,12 +112,13 @@ type
 
 implementation
 
-uses
-  Consts, RxConst, RxLConst, RxDsgn;
+uses Consts, {$IFNDEF VER80} RxConst, {$ENDIF} RxResConst, RxDsgn;
 
 {$R *.DFM}
 
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 {$IFDEF RX_D4}
 type
@@ -204,7 +205,7 @@ end;
 function TTimersCollectionEditor.GetVerb(Index: Integer): string;
 begin
   case Index of
-    0: Result := LoadStr(srTimerDesigner);
+    0: Result := RxLoadStr(srTimerDesigner);
   end;
 end;
 
@@ -226,12 +227,25 @@ end;
 function TTimerItemsEditor.UniqueName(Component: TComponent): string;
 var
   Temp: string;
+{$IFDEF VER80}
+  I: Integer;
+  Comp: TComponent;
+{$ENDIF}
 begin
   if (Component <> nil) then Temp := Component.ClassName
   else Temp := TRxTimerEvent.ClassName;
   if (UpCase(Temp[1]) = 'T') and (Length(Temp) > 1) then
     System.Delete(Temp, 1, 1);
+{$IFNDEF VER80}
   Result := Designer.UniqueName(Temp);
+{$ELSE}
+  I := 1;
+  repeat
+    Result := Temp + IntToStr(I);
+    Comp := OwnerForm.FindComponent(Result);
+    Inc(I);
+  until (Comp = nil) or (Comp = Component);
+{$ENDIF}
 end;
 
 function TTimerItemsEditor.GetEditState: TEditState;
@@ -267,7 +281,7 @@ var
   Empty: Boolean;
 begin
   if CheckCollection then begin
-    Caption := Format(LoadStr(srTimerEvents), [TimersCollection.Name]);
+    Caption := Format(RxLoadStr(srTimerEvents), [TimersCollection.Name]);
     Empty := TimersCollection.Count = 0;
   end
   else Empty := True;
@@ -413,10 +427,12 @@ procedure TTimerItemsEditor.FormCreate(Sender: TObject);
 begin
   TimersCollection := nil;
   if NewStyleControls then Font.Style := [];
+{$IFNDEF VER80}
   with FormStorage do begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
+{$ENDIF}
 end;
 
 procedure TTimerItemsEditor.FormResize(Sender: TObject);
@@ -460,7 +476,7 @@ begin
       Item.Free;
       raise;
     end
-  else raise Exception.CreateRes(srEventNotCreate);
+  else raise Exception.Create(RxLoadStr(srEventNotCreate));
 end;
 
 procedure TTimerItemsEditor.CutClick(Sender: TObject);

@@ -8,14 +8,14 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxQBndDlg;
+unit RxQBndDlg;
 
 interface
 
 {$I RX.INC}
 
 uses
-  SysUtils, Windows, 
+  SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, DB
   {$IFNDEF RX_D4}, DBTables {$ENDIF};
 
@@ -54,8 +54,7 @@ function EditQueryParams(DataSet: TDataSet; List: TParams;
 
 implementation
 
-uses
-  DbConsts, {$IFDEF RX_D3} BdeConst, {$ENDIF} rxVclUtils;
+uses DbConsts, {$IFDEF RX_D3} BdeConst, {$ENDIF} RxVCLUtils;
 
 {$R *.DFM}
 
@@ -311,11 +310,17 @@ end;
 
 procedure TQueryParamsDialog.FormCreate(Sender: TObject);
 begin
+{$IFDEF VER80}
   Font.Style := [fsBold];
+{$ENDIF}
 end;
 
 initialization
   FillFieldTypes;
+{$IFNDEF VER80}
 finalization
   DoneQBind;
+{$ELSE}
+  AddExitProc(DoneQBind);
+{$ENDIF}
 end.

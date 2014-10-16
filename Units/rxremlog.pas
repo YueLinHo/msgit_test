@@ -16,8 +16,7 @@ interface
 {$IFDEF RX_D3}
 {$IFDEF RX_MIDAS}
 
-uses
-  SysUtils, Windows, Messages, Classes, Graphics, Controls, Forms,
+uses SysUtils, Windows, Messages, Classes, Graphics, Controls, Forms,
   Dialogs, RxLogin, DBClient;
 
 { TRxRemoteLogin }
@@ -73,7 +72,8 @@ implementation
 {$IFDEF RX_MIDAS}
 
 uses
-  IniFiles, Registry, rxAppUtils, rxVclUtils {$IFDEF RX_D4}, MConnect {$ENDIF};
+  IniFiles, Registry,
+  RxAppUtils, RxVclUtils {$IFDEF RX_D4}, MConnect {$ENDIF}; // Polaris
 
 const
   keyLoginSection  = 'Remote Login';

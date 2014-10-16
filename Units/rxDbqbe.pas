@@ -7,7 +7,7 @@
 {                                                       }
 {*******************************************************}
 
-unit rxDBQBE;
+unit RxDBQBE;
 
 {*************************************************************************}
 { The Delphi TQBEQuery component.                                         }
@@ -23,8 +23,10 @@ unit rxDBQBE;
 interface
 
 uses
-  SysUtils, Windows, Bde,
-  Classes, Controls, DB, DBTables;
+  SysUtils, {$IFNDEF VER80} Windows, Bde, {$ELSE} WinTypes, WinProcs,
+  DbiErrs, DbiTypes, DbiProcs, {$ENDIF} Classes,
+  {$IFDEF RX_D18}System.AnsiStrings,{$ENDIF}
+  Controls, DB, DBTables;
 
 const
   DefQBEStartParam = '#';
@@ -42,8 +44,12 @@ type
     FParams: TParams;
     FStartParam: Char;
     FAuxiliaryTables: Boolean;
+{$IFNDEF VER80}
     FText: string;
     FRowsAffected: Integer;
+{$ELSE}
+    FText: PChar;
+{$ENDIF}
 {$IFDEF RX_D3}
     FConstrained: Boolean;
 {$ENDIF}
@@ -56,8 +62,8 @@ type
     procedure CreateParams(List: TParams; const Value: PChar);
     procedure FreeStatement;
     function GetQueryCursor(GenHandle: Boolean): HDBICur;
-    procedure GetStatementHandle(QBEText: PChar);
-    procedure PrepareQBE(Value: PChar);
+    procedure GetStatementHandle(QBEText: PAnsiChar);
+    procedure PrepareQBE(Value: PAnsiChar);
     procedure QueryChanged(Sender: TObject);
     procedure SetQuery(Value: TStrings);
     procedure SetParamsList(Value: TParams);
@@ -68,7 +74,9 @@ type
     procedure ReadParamData(Reader: TReader);
     procedure WriteParamData(Writer: TWriter);
 {$ENDIF}
+{$IFNDEF VER80}
     function GetRowsAffected: Integer;
+{$ENDIF}
 {$IFDEF RX_D5}
   protected
     { IProviderSupport }
@@ -105,8 +113,12 @@ type
     property ParamCount: Word read GetParamsCount;
     property Prepared: Boolean read FPrepared write SetPrepare;
     property StmtHandle: HDBIStmt read FStmtHandle;
+{$IFNDEF VER80}
     property Text: string read FText;
     property RowsAffected: Integer read GetRowsAffected;
+{$ELSE}
+    property Text: PChar read FText;
+{$ENDIF}
   published
 {$IFDEF RX_D5}
     property AutoRefresh;
@@ -121,26 +133,27 @@ type
     property Params: TParams read FParams write SetParamsList {$IFDEF RX_D4} stored False {$ENDIF};
     property RequestLive: Boolean read FRequestLive write FRequestLive default False;
     property UpdateMode;
+{$IFNDEF VER80}
     property UpdateObject;
   {$IFDEF RX_D3}
     property Constrained: Boolean read FConstrained write FConstrained default False;
     property Constraints stored ConstraintsStored;
   {$ENDIF}
+{$ENDIF}
   end;
 
 implementation
 
-uses
-  DBConsts, {$IFDEF RX_D3} BDEConst, {$ENDIF} rxDBUtils, rxBdeUtils;
+uses DBConsts, {$IFDEF RX_D3} BDEConst, {$ENDIF} RxDBUtils, RxBdeUtils, RxStrUtils;
 
 function NameDelimiter(C: Char): Boolean;
 begin
-  Result := C in [' ', ',', ';', ')', '.', #13, #10];
+  Result := CharInSet(C, [' ', ',', ';', ')', '.', #13, #10]);
 end;
 
 function IsLiteral(C: Char): Boolean;
 begin
-  Result := C in ['''', '"'];
+  Result := CharInSet(C, ['''', '"']);
 end;
 
 { TQBEQuery }
@@ -154,7 +167,11 @@ begin
   FStartParam := DefQBEStartParam;
   FParamCheck := True;
   FAuxiliaryTables:= True;
+{$IFDEF VER80}
+  FText := nil;
+{$ELSE}
   FRowsAffected := -1;
+{$ENDIF}
   FRequestLive := False;
 end;
 
@@ -163,6 +180,9 @@ begin
   Destroying;
   Disconnect;
   QBE.Free;
+{$IFDEF VER80}
+  StrDispose(FText);
+{$ENDIF}
   FParams.Free;
   inherited Destroy;
 end;
@@ -221,13 +241,17 @@ end;
 
 procedure TQBEQuery.SetQuery(Value: TStrings);
 begin
+{$IFNDEF VER80}
   if QBE.Text <> Value.Text then begin
+{$ENDIF}
     Disconnect;
     TStringList(QBE).OnChange := nil;
     QBE.Assign(Value);
     TStringList(QBE).OnChange := QueryChanged;
     QueryChanged(nil);
+{$IFNDEF VER80}
   end;
+{$ENDIF}
 end;
 
 procedure TQBEQuery.QueryChanged(Sender: TObject);
@@ -238,7 +262,12 @@ begin
   if not (csReading in ComponentState) then begin
 {$ENDIF RX_D4}
     Disconnect;
+  {$IFNDEF VER80}
     FText := QBE.Text;
+  {$ELSE}
+    StrDispose(FText);
+    FText := QBE.GetText;
+  {$ENDIF}
     if ParamCheck or (csDesigning in ComponentState) then begin
       List := TParams.Create{$IFDEF RX_D4}(Self){$ENDIF};
       try
@@ -344,35 +373,46 @@ end;
 procedure TQBEQuery.SetPrepared(Value: Boolean);
 var
   TempQBE: TStrings;
-  AText: PChar;
+  AText: PAnsiChar;
 begin
   if Handle <> nil then _DBError(SDataSetOpen);
   if (Value <> Prepared) or (ParamCount > 0) then begin
     if Value then begin
+{$IFNDEF VER80}
       FRowsAffected := -1;
+{$ENDIF}
       if ParamCount > 0 then begin
         TempQBE := TStringList.Create;
         try
           TempQBE.Assign(QBE);
           ReplaceParams(TempQBE);
-          AText := PChar(TempQBE.Text);
+{$IFNDEF VER80}
+          AText := PAnsiChar(AnsiString(TempQBE.Text));
+{$ELSE}
+          AText := TempQBE.GetText;
+{$ENDIF}
           try
             FreeStatement;
-            if StrLen(AText) > 1 then PrepareQBE(AText)
+            if {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrLen(AText) > 1 then PrepareQBE(AText)
             else _DBError(SEmptySQLStatement);
           finally
+{$IFDEF VER80}
+            StrDispose(AText);
+{$ENDIF}
           end;
         finally
           TempQBE.Free;
         end;
       end
       else begin
-        if StrLen(PChar(Text)) > 1 then PrepareQBE(PChar(Text))
+        if StrLen(PChar(Text)) > 1 then PrepareQBE(PAnsiChar(AnsiString(Text)))
         else _DBError(SEmptySQLStatement);
       end;
     end
     else begin
+{$IFNDEF VER80}
       FRowsAffected := RowsAffected;
+{$ENDIF}
       FreeStatement;
     end;
     FPrepared := Value;
@@ -540,15 +580,16 @@ begin
   end;
 end;
 
-procedure TQBEQuery.PrepareQBE(Value: PChar);
+procedure TQBEQuery.PrepareQBE(Value: PAnsiChar);
 begin
   GetStatementHandle(Value);
 end;
 
-procedure TQBEQuery.GetStatementHandle(QBEText: PChar);
+procedure TQBEQuery.GetStatementHandle(QBEText: PAnsiChar);
 const
   DataType: array[Boolean] of LongInt = (Ord(wantCanned), Ord(wantLive));
 begin
+{$IFNDEF VER80}
   Check(DbiQAlloc(DBHandle, qrylangQBE, FStmtHandle));
   try
     Check(DBiSetProp(hDbiObj(StmtHandle), stmtLIVENESS,
@@ -566,6 +607,21 @@ begin
     FStmtHandle := nil;
     raise;
   end;
+{$ELSE}
+  if Local then begin
+    while not CheckOpen(DbiQPrepare(DBHandle, qrylangQBE, QBEText,
+      FStmtHandle)) do {Retry};
+    Check(DBiSetProp(hDbiObj(StmtHandle), stmtLIVENESS, DataType[RequestLive]));
+  end
+  else begin
+    if RequestLive then
+      Check(DbiQPrepareExt(DBHandle, qrylangQBE, QBEText, qprepFORUPDATE, FStmtHandle))
+    else Check(DbiQPrepare(DBHandle, qrylangQBE, QBEText, FStmtHandle));
+  end;
+  Check(DBiSetProp(hDbiObj(StmtHandle), stmtAUXTBLS, Longint(FAuxiliaryTables)));
+  if FBlankAsZero then
+    Check(DbiSetProp(hDbiObj(StmtHandle), stmtBLANKS, LongInt(True)));
+{$ENDIF}
 end;
 
 function TQBEQuery.GetQBEText: PChar;
@@ -592,6 +648,7 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 function TQBEQuery.GetRowsAffected: Integer;
 var
   Length: Word;
@@ -602,6 +659,7 @@ begin
     else
   else Result := FRowsAffected;
 end;
+{$ENDIF}
 
 {$IFDEF RX_D5}
 

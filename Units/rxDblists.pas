@@ -5,9 +5,10 @@
 {         Copyright (c) 1995, 1996 AO ROSNO             }
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
+{ Revision for unicode by JB.                           }
 {*******************************************************}
 
-unit rxDBLists;
+unit RxDBLists;
 
 {$I RX.INC}
 {$N+,P+,S-}
@@ -15,32 +16,43 @@ unit rxDBLists;
 interface
 
 uses
-  SysUtils, Classes, DB, DBTables, rxDBUtils, rxBdeUtils,
+  SysUtils, Classes, DB, DBTables, RxDBUtils, RxBdeUtils,
+  {$IFDEF RX_D18}System.AnsiStrings,{$ENDIF}
+{$IFNDEF VER80} 
   Windows, Bde;
+{$ELSE}
+  WinTypes, WinProcs, DbiTypes, DbiProcs, DbiErrs;
+{$ENDIF}
 
 type
 
 { TBDEItems }
 
-  TBDEItemType = (bdDatabases, bdDrivers, bdLangDrivers, bdUsers, bdRepositories);
+  TBDEItemType = (bdDatabases, bdDrivers, bdLangDrivers, bdUsers 
+    {$IFNDEF VER80}, bdRepositories {$ENDIF});
 
   TCustomBDEItems = class(TBDEDataSet)
   private
     FItemType: TBDEItemType;
+{$IFNDEF VER80}
     FSessionName: string;
     FSessionLink: TDatabase;
     function GetDBSession: TSession;
     procedure SetSessionName(const Value: string);
+{$ENDIF}
     procedure SetItemType(Value: TBDEItemType);
   protected
+{$IFNDEF VER80}
     function GetRecordCount: {$IFNDEF RX_D3} Longint {$ELSE}
       Integer; override {$ENDIF};
     procedure OpenCursor {$IFDEF RX_D3}(InfoQuery: Boolean){$ENDIF}; override;
     procedure CloseCursor; override;
+{$ENDIF}
     function CreateHandle: HDBICur; override;
     property ItemType: TBDEItemType read FItemType write SetItemType
       default bdDatabases;
   public
+{$IFNDEF VER80}
   {$IFDEF RX_D3}
     function Locate(const KeyFields: string; const KeyValues: Variant;
       Options: TLocateOptions): Boolean; override;
@@ -51,6 +63,7 @@ type
   {$ENDIF}
   published
     property SessionName: string read FSessionName write SetSessionName;
+{$ENDIF}
   end;
 
   TBDEItems = class(TCustomBDEItems)
@@ -61,6 +74,7 @@ type
 { TDBListDataSet }
 
   TDBListDataSet = class(TDBDataSet)
+{$IFNDEF VER80}
   protected
     function GetRecordCount: {$IFNDEF RX_D3} Longint {$ELSE}
       Integer; override {$ENDIF};
@@ -71,11 +85,13 @@ type
   {$ELSE}
     property RecordCount: Longint read GetRecordCount;
   {$ENDIF}
+{$ENDIF}
   end;
 
 { TDatabaseItems }
 
-  TDBItemType = (dtTables, dtStoredProcs, dtFiles, dtFunctions);
+  TDBItemType = (dtTables, dtStoredProcs, dtFiles {$IFNDEF VER80},
+    dtFunctions {$ENDIF});
 
   TCustomDatabaseItems = class(TDBListDataSet)
   private
@@ -198,7 +214,7 @@ type
 
 implementation
 
-uses DBConsts, {$IFDEF RX_D3} BDEConst, {$ENDIF} RxDConst;
+uses DBConsts, {$IFDEF RX_D3} BDEConst, {$ENDIF} RxResConst;
 
 { Utility routines }
 
@@ -208,6 +224,7 @@ begin
   Check(DbiGetRecordCount(DataSet.Handle, Result));
 end;
 
+{$IFNDEF VER80}
 type
   TSessionLink = class(TDatabase)
   private
@@ -234,6 +251,7 @@ begin
   end;
   inherited Destroy;
 end;
+{$ENDIF}
 
 { TCustomBDEItems }
 
@@ -252,10 +270,13 @@ begin
     bdDrivers: Check(DbiOpenDriverList(Result));
     bdLangDrivers: Check(DbiOpenLdList(Result));
     bdUsers: Check(DbiOpenUserList(Result));
+{$IFNDEF VER80}
     bdRepositories: Check(DbiOpenRepositoryList(Result));
+{$ENDIF}
   end;
 end;
 
+{$IFNDEF VER80}
 function TCustomBDEItems.GetDBSession: TSession;
 begin
   Result := Sessions.FindSession(SessionName);
@@ -301,11 +322,14 @@ begin
     FSessionLink := nil;
   end;
 end;
+{$ENDIF}
 
+{$IFNDEF VER80}
 function TCustomBDEItems.GetRecordCount: {$IFNDEF RX_D3} Longint {$ELSE} Integer {$ENDIF};
 begin
   Result := dsGetRecordCount(Self);
 end;
+{$ENDIF}
 
 {$IFDEF RX_D3}
 function TCustomBDEItems.Locate(const KeyFields: string;
@@ -335,10 +359,12 @@ begin
 end;
 {$ENDIF RX_D3}
 
+{$IFNDEF VER80}
 function TDBListDataSet.GetRecordCount: {$IFNDEF RX_D3} Longint {$ELSE} Integer {$ENDIF};
 begin
   Result := dsGetRecordCount(Self);
 end;
+{$ENDIF}
 
 { TCustomDatabaseItems }
 
@@ -398,23 +424,25 @@ end;
 
 function TCustomDatabaseItems.CreateHandle: HDBICur;
 var
-  WildCard: PChar;
-  Pattern: array[0..DBIMAXTBLNAMELEN] of Char;
+  WildCard: PAnsiChar;
+  Pattern: array[0..DBIMAXTBLNAMELEN] of AnsiChar;
 begin
   WildCard := nil;
   if FileMask <> '' then
-    WildCard := AnsiToNative(DBLocale, FileMask, Pattern, SizeOf(Pattern) - 1);
+    WildCard := AnsiToNative(DBLocale, AnsiString(FileMask), Pattern, SizeOf(Pattern) - 1);
   case FItemType of
     dtTables: Check(DbiOpenTableList(DBHandle, FExtended, FSystemItems, WildCard, Result));
     dtStoredProcs:
       if DataBase.IsSQLBased then
         Check(DbiOpenSPList(DBHandle, FExtended, FSystemItems, nil, Result))
-      else DatabaseError(LoadStr(SLocalDatabase));
+      else DatabaseError(RxLoadStr(SLocalDatabase));
     dtFiles: Check(DbiOpenFileList(DBHandle, WildCard, Result));
+{$IFNDEF VER80}
     dtFunctions:
       if DataBase.IsSQLBased then
         Check(DbiOpenFunctionList(DBHandle, DBIFUNCOpts(FExtended), @Result))
-      else DatabaseError(LoadStr(SLocalDatabase));
+      else DatabaseError(RxLoadStr(SLocalDatabase));
+{$ENDIF}
   end;
 end;
 
@@ -493,12 +521,16 @@ end;
 
 function TCustomTableItems.CreateHandle: HDBICur;
 var
-  STableName: PChar;
+  STableName: PAnsiChar;
 begin
   if FTableName = '' then _DBError(SNoTableName);
+{$IFDEF RX_D12}
+  STableName := {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}AnsiStrAlloc(Length(FTableName) + 1);
+{$ELSE}
   STableName := StrAlloc(Length(FTableName) + 1);
+{$ENDIF}
   try
-    AnsiToNative(DBLocale, FTableName, STableName, Length(FTableName));
+    AnsiToNative(DBLocale, AnsiString(FTableName), STableName, Length(FTableName));
     case FItemType of
       dtFields:
         while not CheckOpen(DbiOpenFieldList(DBHandle, STableName, nil,
@@ -520,7 +552,7 @@ begin
           Result)) do {Retry};
     end;
   finally
-    StrDispose(STableName);
+    {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrDispose(STableName);
   end;
 end;
 
@@ -528,13 +560,17 @@ end;
 
 constructor TDatabaseDesc.Create(const DatabaseName: string);
 var
-  Buffer: PChar;
+  Buffer: PAnsiChar;
 begin
+{$IFDEF RX_D12}
+  Buffer := {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrPCopy({$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}AnsiStrAlloc(Length(AnsiString(DatabaseName)) + 1), AnsiString(DatabaseName));
+{$ELSE}
   Buffer := StrPCopy(StrAlloc(Length(DatabaseName) + 1), DatabaseName);
+{$ENDIF}
   try
     Check(DbiGetDatabaseDesc(Buffer, @FDescription));
   finally
-    StrDispose(Buffer);
+    {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrDispose(Buffer);
   end;
 end;
 
@@ -542,13 +578,17 @@ end;
 
 constructor TDriverDesc.Create(const DriverType: string);
 var
-  Buffer: PChar;
+  Buffer: PAnsiChar;
 begin
+{$IFDEF RX_D12}
+  Buffer := {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrPCopy({$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}AnsiStrAlloc(Length(AnsiString(DriverType)) + 1), AnsiString(DriverType));
+{$ELSE}
   Buffer := StrPCopy(StrAlloc(Length(DriverType) + 1), DriverType);
+{$ENDIF}
   try
     Check(DbiGetDriverDesc(Buffer, FDescription));
   finally
-    StrDispose(Buffer);
+    {$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrDispose(Buffer);
   end;
 end;
 

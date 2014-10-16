@@ -13,11 +13,10 @@ unit RxDBComb;
 
 interface
 
-uses
-  Windows, DbCtrls, VDBConsts,
+uses {$IFNDEF VER80} Windows, DbCtrls, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Menus, Graphics, Classes, Controls, DB, 
-  {$IFNDEF RX_D3} DBTables, {$ENDIF}
-  StdCtrls, DBConsts;
+  {$IFNDEF RX_D3} DBTables, {$ENDIF} StdCtrls, DBConsts,
+  {$IFDEF RX_D6} VDBConsts,{$ENDIF} RxStrUtils; // Polaris
 
 type
 
@@ -26,7 +25,9 @@ type
   TCustomDBComboBox = class(TCustomComboBox)
   private
     FDataLink: TFieldDataLink;
+{$IFNDEF VER80}
     FPaintControl: TPaintControl;
+{$ENDIF}
     procedure DataChange(Sender: TObject);
     procedure EditingChange(Sender: TObject);
     function GetDataField: string;
@@ -36,13 +37,20 @@ type
     procedure SetDataField(const Value: string);
     procedure SetDataSource(Value: TDataSource);
     procedure SetEditReadOnly;
+{$IFNDEF RX_D6} // Polaris
+    procedure SetItems(const Value: TStrings);  // Polaris  const added
+{$ENDIF}
     procedure SetReadOnly(Value: Boolean);
     procedure UpdateData(Sender: TObject);
     function GetComboText: string; virtual;
     procedure SetComboText(const Value: string); virtual;
     procedure CMExit(var Message: TCMExit); message CM_EXIT;
+{$IFNDEF VER80}
     procedure CMGetDataLink(var Message: TMessage); message CM_GETDATALINK;
     procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
+{$ELSE}
+    function GetStyle: TComboBoxStyle;
+{$ENDIF}
   protected
     procedure Change; override;
     procedure Click; override;
@@ -56,10 +64,15 @@ type
     procedure Loaded; override;
     procedure Notification(AComponent: TComponent;
       Operation: TOperation); override;
-    procedure SetStyle(Value: TComboBoxStyle); override;
+    procedure SetStyle(Value: TComboBoxStyle); {$IFNDEF VER80} override {$ELSE} virtual {$ENDIF};
+{$IFDEF RX_D6} // Polaris
     procedure SetItems(const Value: TStrings); override;
+{$ENDIF}
     procedure WndProc(var Message: TMessage); override;
     property ComboText: string read GetComboText write SetComboText;
+{$IFDEF VER80}
+    property Style: TComboBoxStyle read GetStyle write SetStyle default csDropDown;
+{$ENDIF}
     property DataField: string read GetDataField write SetDataField;
     property DataSource: TDataSource read GetDataSource write SetDataSource;
     property ReadOnly: Boolean read GetReadOnly write SetReadOnly default False;
@@ -115,10 +128,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property ItemHeight;
     property Items;
     property ParentColor;
@@ -147,7 +162,9 @@ type
     property OnKeyPress;
     property OnKeyUp;
     property OnMeasureItem;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -159,26 +176,31 @@ type
 
 implementation
 
-uses
-  rxDBUtils;
+uses RxDBUtils, SysUtils;
 
 { TCustomDBComboBox }
 
 constructor TCustomDBComboBox.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   FDataLink := TFieldDataLink.Create;
   FDataLink.Control := Self;
   FDataLink.OnDataChange := DataChange;
   FDataLink.OnUpdateData := UpdateData;
   FDataLink.OnEditingChange := EditingChange;
+{$IFNDEF VER80}
   FPaintControl := TPaintControl.Create(Self, 'COMBOBOX');
+{$ENDIF}
 end;
 
 destructor TCustomDBComboBox.Destroy;
 begin
+{$IFNDEF VER80}
   FPaintControl.Free;
+{$ENDIF}
   FDataLink.OnDataChange := nil;
   FDataLink.OnUpdateData := nil;
   FDataLink.Free;
@@ -270,6 +292,9 @@ end;
 
 procedure TCustomDBComboBox.DropDown;
 begin
+{$IFDEF VER80}
+  FDataLink.Edit;
+{$ENDIF}
   inherited DropDown;
 end;
 
@@ -284,7 +309,9 @@ begin
   if not (FDataLink.DataSourceFixed and (csLoading in ComponentState)) then
 {$ENDIF}
     FDataLink.DataSource := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
 end;
 
 function TCustomDBComboBox.GetDataField: string;
@@ -324,7 +351,7 @@ end;
 procedure TCustomDBComboBox.KeyPress(var Key: Char);
 begin
   inherited KeyPress(Key);
-  if (Key in [#32..#255]) and (FDataLink.Field <> nil) and
+  if CharInSet(Key, [#32..#255]) and (FDataLink.Field <> nil) and
     not FDataLink.Field.IsValidChar(Key) then
   begin
     MessageBeep(0);
@@ -337,6 +364,9 @@ begin
       begin
         FDataLink.Reset;
         SelectAll;
+{$IFDEF VER80}
+        Key := #0;
+{$ENDIF}
       end;
   end;
 end;
@@ -349,7 +379,7 @@ end;
 procedure TCustomDBComboBox.SetEditReadOnly;
 begin
   if (Style in [csDropDown, csSimple]) and HandleAllocated then
-    SendMessage(EditHandle,
+    SendMessage({$IFNDEF VER80} EditHandle {$ELSE} FEditHandle {$ENDIF},
       EM_SETREADONLY, Ord(not FDataLink.Editing), 0);
 end;
 
@@ -367,10 +397,12 @@ begin
       CB_SHOWDROPDOWN:
         if Message.WParam <> 0 then FDataLink.Edit
         else if not FDataLink.Editing then DataChange(Self); {Restore text}
+{$IFNDEF VER80}
       WM_CREATE,
       WM_WINDOWPOSCHANGED,
       CM_FONTCHANGED:
         FPaintControl.DestroyHandle;
+{$ENDIF}
     end;
   inherited WndProc(Message);
 end;
@@ -381,7 +413,11 @@ begin
   if not (csDesigning in ComponentState) then
     case Message.Msg of
       WM_LBUTTONDOWN:
+{$IFNDEF VER80}
         if (Style = csSimple) and (ComboWnd <> EditHandle) then
+{$ELSE}
+        if (Style = csSimple) and (ComboWnd <> FEditHandle) then
+{$ENDIF}
           if not FDataLink.Edit then Exit;
     end;
   inherited ComboWndProc(Message, ComboWnd, ComboProc);
@@ -399,6 +435,7 @@ begin
   inherited;
 end;
 
+{$IFNDEF VER80}
 procedure TCustomDBComboBox.CMGetDatalink(var Message: TMessage);
 begin
   Message.Result := Longint(FDataLink);
@@ -437,6 +474,7 @@ begin
   end
   else inherited;
 end;
+{$ENDIF}
 
 function TCustomDBComboBox.GetPaintText: string;
 begin
@@ -446,16 +484,33 @@ end;
 
 procedure TCustomDBComboBox.SetItems(const Value: TStrings);
 begin
+  {$IFNDEF RX_D6}
+  Items.Assign(Value);
+  {$ELSE}
   inherited SetItems(Value);
-//  Items.Assign(Value);
+  {$ENDIF}
   DataChange(Self);
 end;
 
+{$IFDEF VER80}
+function TCustomDBComboBox.GetStyle: TComboBoxStyle;
+begin
+  Result := inherited Style;
+end;
+{$ENDIF}
+
 procedure TCustomDBComboBox.SetStyle(Value: TComboBoxStyle);
 begin
+{$IFNDEF VER80}
   if (Value = csSimple) and Assigned(FDatalink) and FDatalink.DatasourceFixed then
     _DBError(SNotReplicatable);
   inherited SetStyle(Value);
+{$ELSE}
+  if Value = csSimple then ControlStyle := ControlStyle - [csFixedHeight]
+  else ControlStyle := ControlStyle + [csFixedHeight];
+  inherited Style := Value;
+  RecreateWnd;
+{$ENDIF}
 end;
 
 {$IFDEF RX_D4}

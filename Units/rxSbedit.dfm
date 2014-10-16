@@ -7,9 +7,11 @@ object SpeedbarEditor: TSpeedbarEditor
   Caption = 'Speedbar Designer'
   ClientHeight = 277
   ClientWidth = 437
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = [fsBold]
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -36,16 +38,17 @@ object SpeedbarEditor: TSpeedbarEditor
     0003FE000007FC00000FFC00001FFC000003FC000001FC000001C00000018000
     0001000000010000000100000001000000010000000100000001000000010000
     00010000000100000001000000030000000700001FFF00003FFF80007FFFBA00}
-  PixelsPerInch = 96
+  OldCreateOrder = True
   OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
+  PixelsPerInch = 96
   TextHeight = 13
   object SectionNameLabel: TLabel
     Left = 180
     Top = 10
-    Width = 86
+    Width = 83
     Height = 13
     Caption = '&Section name: '
     FocusControl = SectionName
@@ -96,9 +99,9 @@ object SpeedbarEditor: TSpeedbarEditor
       DefaultColWidth = 147
       DefaultRowHeight = 15
       FixedCols = 0
+      RowCount = 1
       FixedRows = 0
       Options = [goDrawFocusSelected, goRowSelect]
-      RowCount = 1
       ScrollBars = ssVertical
       TabOrder = 2
       OnDragDrop = SectionListDragDrop
@@ -125,7 +128,7 @@ object SpeedbarEditor: TSpeedbarEditor
       Enabled = False
       Glyph.Data = {
         F6000000424DF600000000000000760000002800000010000000100000000100
-        0400000000008000000000000000000000000000000000000000000000000000
+        0400000000008000000000000000000000001000000000000000000000000000
         80000080000000808000800000008000800080800000C0C0C000808080000000
         FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00DDDDDDDDDDDD
         DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD00000DD
@@ -145,7 +148,7 @@ object SpeedbarEditor: TSpeedbarEditor
       Enabled = False
       Glyph.Data = {
         F6000000424DF600000000000000760000002800000010000000100000000100
-        0400000000008000000000000000000000000000000000000000000000000000
+        0400000000008000000000000000000000001000000000000000000000000000
         80000080000000808000800000008000800080800000C0C0C000808080000000
         FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00DDDDDDDDDDDD
         DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD0DDDDDDDDDDDDDD040DDD
@@ -195,11 +198,11 @@ object SpeedbarEditor: TSpeedbarEditor
       DefaultColWidth = 215
       DefaultRowHeight = 26
       FixedCols = 0
+      RowCount = 1
       FixedRows = 0
       Options = [goDrawFocusSelected, goRowSelect]
       ParentCtl3D = False
       PopupMenu = PopupMenu
-      RowCount = 1
       ScrollBars = ssVertical
       TabOrder = 0
       OnDblClick = ButtonsListDblClick
@@ -226,18 +229,18 @@ object SpeedbarEditor: TSpeedbarEditor
     Top = 78
     object CutMenu: TMenuItem
       Caption = 'Cut'
+      ShortCut = 8238
       OnClick = CutMenuClick
-      ShortCutText = 'Shift+Del'
     end
     object CopyMenu: TMenuItem
       Caption = 'Copy'
+      ShortCut = 16429
       OnClick = CopyMenuClick
-      ShortCutText = 'Ctrl+Ins'
     end
     object PasteMenu: TMenuItem
       Caption = 'Paste'
+      ShortCut = 8237
       OnClick = PasteMenuClick
-      ShortCutText = 'Shift+Ins'
     end
   end
   object FormPlacement1: TFormPlacement

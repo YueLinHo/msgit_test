@@ -8,15 +8,17 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxClipIcon;
+unit RxClipIcon;
 
 {$I RX.INC}
 {$P+,W-,R-}
+{$IFDEF RX_D6}
+{$WARN SYMBOL_PLATFORM OFF}  // Polaris
+{$ENDIF}
 
 interface
 
-uses
-  Windows,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   SysUtils, Classes, Graphics, Controls;
 
 { Icon clipboard routines }
@@ -36,12 +38,12 @@ procedure DrawRealSizeIcon(Canvas: TCanvas; Icon: TIcon; X, Y: Integer);
 
 implementation
 
-uses
-  Consts, Clipbrd, rxVCLUtils;
+uses Consts, Clipbrd, RxVCLUtils;
 
 { Icon clipboard routines }
 
 function CreateBitmapFromIcon(Icon: TIcon; BackColor: TColor): TBitmap;
+{$IFNDEF VER80}
 var
   Ico: HIcon;
   W, H: Integer;
@@ -52,7 +54,8 @@ begin
     Result := TBitmap.Create;
     try
       Result.Width := W; Result.Height := H;
-      with Result.Canvas do begin
+      with Result.Canvas do
+      begin
         Brush.Color := BackColor;
         FillRect(Rect(0, 0, W, H));
         DrawIconEx(Handle, 0, 0, Ico, W, H, 0, 0, DI_NORMAL);
@@ -64,6 +67,10 @@ begin
   finally
     DestroyIcon(Ico);
   end;
+{$ELSE}
+begin
+  Result := VclUtils.CreateBitmapFromIcon(Icon, BackColor);
+{$ENDIF}
 end;
 
 procedure CopyIconToClipboard(Icon: TIcon; BackColor: TColor);
@@ -81,7 +88,8 @@ begin
     try
       Icon.SaveToStream(Stream);
       Palette := 0;
-      with Clipboard do begin
+      with Clipboard do
+      begin
         Open;
         try
           Clear;
@@ -90,7 +98,8 @@ begin
           if Palette <> 0 then SetClipboardData(CF_PALETTE, Palette);
           Data := GlobalAlloc(HeapAllocFlags, Stream.Size);
           try
-            if Data <> 0 then begin
+            if Data <> 0 then
+            begin
               Buffer := GlobalLock(Data);
               try
                 Stream.Seek(0, 0);
@@ -123,7 +132,8 @@ var
   Buffer: Pointer;
 begin
   if not Clipboard.HasFormat(CF_ICON) then Exit;
-  with Clipboard do begin
+  with Clipboard do
+  begin
     Open;
     try
       Data := GetClipboardData(CF_ICON);
@@ -190,6 +200,8 @@ begin
   raise EOutOfResources.Create(ResStr(SOutOfResources));
 end;
 
+{$IFNDEF VER80}
+
 function WidthBytes(I: Longint): Longint;
 begin
   Result := ((I + 31) div 32) * 4;
@@ -251,7 +263,8 @@ var
 begin
   IconSize.X := GetSystemMetrics(SM_CXICON);
   IconSize.Y := GetSystemMetrics(SM_CYICON);
-  with BI do begin
+  with BI do
+  begin
     biHeight := biHeight shr 1; { Size in record is doubled }
     biSizeImage := WidthBytes(Longint(biWidth) * biBitCount) * biHeight;
     NumColors := GetDInColors(biBitCount);
@@ -270,8 +283,9 @@ begin
     finally
       DeleteObject(Temp);
     end;
-    with BI do begin
-      Inc(Longint(Bits), biSizeImage);
+    with BI do
+    begin
+      Inc({$IFDEF WIN64}nativeint{$ELSE}Longint{$ENDIF}(Bits), biSizeImage);
       biBitCount := 1;
       biSizeImage := WidthBytes(Longint(biWidth) * biBitCount) * biHeight;
       biClrUsed := 2;
@@ -331,14 +345,18 @@ begin
       current device. It is not meant to absolutely match Windows
       (known broken) algorithm }
     C2 := 0;
-    for N := 0 to ImageCount - 1 do begin
+    for N := 0 to ImageCount - 1 do
+    begin
       C1 := List^[N].Colors;
-      if C1 = Colors then begin
+      if C1 = Colors then
+      begin
         Index := N;
         Break;
       end
-      else if Index = -1 then begin
-        if C1 <= Colors then begin
+      else if Index = -1 then
+      begin
+        if C1 <= Colors then
+        begin
           Index := N;
           C2 := List^[N].Colors;
         end;
@@ -390,19 +408,23 @@ var
   IconInfo: TIconInfo;
   BM: Windows.TBitmap;
 begin
-  if GetIconInfo(Icon, IconInfo) then begin
+  if GetIconInfo(Icon, IconInfo) then
+  begin
     try
-      if IconInfo.hbmColor <> 0 then begin
+      if IconInfo.hbmColor <> 0 then
+      begin
         GetObject(IconInfo.hbmColor, SizeOf(BM), @BM);
         W := BM.bmWidth;
         H := BM.bmHeight;
       end
-      else if IconInfo.hbmMask <> 0 then begin { Monochrome icon }
+      else if IconInfo.hbmMask <> 0 then
+      begin { Monochrome icon }
         GetObject(IconInfo.hbmMask, SizeOf(BM), @BM);
         W := BM.bmWidth;
         H := BM.bmHeight shr 1; { Size in record is doubled }
       end
-      else begin
+      else
+      begin
         W := GetSystemMetrics(SM_CXICON);
         H := GetSystemMetrics(SM_CYICON);
       end;
@@ -411,13 +433,25 @@ begin
       if IconInfo.hbmMask <> 0 then DeleteObject(IconInfo.hbmMask);
     end;
   end
-  else begin
+  else
+  begin
     W := GetSystemMetrics(SM_CXICON);
     H := GetSystemMetrics(SM_CYICON);
   end;
 end;
 
+{$ELSE}
+
+procedure GetIconSize(Icon: HICON; var W, H: Integer);
+begin
+  W := GetSystemMetrics(SM_CXICON);
+  H := GetSystemMetrics(SM_CYICON);
+end;
+
+{$ENDIF}
+
 function CreateRealSizeIcon(Icon: TIcon): HIcon;
+{$IFNDEF VER80}
 var
   Mem: TMemoryStream;
   CI: TCursorOrIcon;
@@ -436,9 +470,14 @@ begin
   finally
     Mem.Free;
   end;
+{$ELSE}
+begin
+  Result := CopyIcon(hInstance, Icon.Handle);
+{$ENDIF}
 end;
 
 procedure DrawRealSizeIcon(Canvas: TCanvas; Icon: TIcon; X, Y: Integer);
+{$IFNDEF VER80}
 var
   Ico: HIcon;
   W, H: Integer;
@@ -450,6 +489,10 @@ begin
   finally
     DestroyIcon(Ico);
   end;
+{$ELSE}
+begin
+  Canvas.Draw(X, Y, Icon);
+{$ENDIF}
 end;
 
 { Module initialization part }

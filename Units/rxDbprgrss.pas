@@ -7,7 +7,7 @@
 {                                                       }
 {*******************************************************}
 
-unit rxDBPrgrss;
+unit RxDBPrgrss;
 
 interface
 
@@ -15,16 +15,19 @@ interface
 {$T-}
 
 uses
-  Classes, Bde, 
-  Controls, DB, DBTables, RxTimer
-  {$IFDEF VER180}, DBCommonTypes{$ENDIF};
+  Classes, {$IFNDEF VER80} Bde, {$ELSE} DbiTypes, DbiProcs, {$ENDIF}
+  {$IFDEF RX_D17}System.Types,{$ENDIF}
+  {$IFDEF RX_D18}System.AnsiStrings,{$ENDIF}
+  Controls, DB, DBTables, RxTimer {$IFDEF RX_D10}, DBCommonTypes{$ENDIF};
 
 type
   TOnMessageChange = procedure(Sender: TObject; const Msg: string) of object;
   TOnPercentChange = procedure(Sender: TObject; PercentDone: Integer) of object;
   TOnProgressEvent = procedure(Sender: TObject; var AbortQuery: Boolean) of object;
+{$IFNDEF VER80}
   TOnTraceEvent = procedure(Sender: TObject; Flag: TTraceFlag;
     const Msg: string) of object;
+{$ENDIF}
 
 { TDBProgress }
 
@@ -42,6 +45,7 @@ type
     FOnMessageChange: TOnMessageChange;
     FOnPercentChange: TOnPercentChange;
     FOnProgress: TOnProgressEvent;
+{$IFNDEF VER80}
     FTraceFlags: TTraceFlags;
     FTraceCallback: TObject;
     FTrace: Boolean;
@@ -55,6 +59,7 @@ type
     procedure SetSessionName(const Value: string);
     procedure Activate;
     procedure Deactivate;
+{$ENDIF}
     procedure FreeTimer;
     procedure StartTimer;
     procedure TimerExpired(Sender: TObject);
@@ -77,10 +82,12 @@ type
     property WaitCursor: TCursor read FWaitCursor write FWaitCursor default crHourGlass;
     property MessageControl: TControl read FMessageControl write SetMessageControl;
     property Gauge: TControl read FGauge write SetGauge;
+{$IFNDEF VER80}
     property SessionName: string read FSessionName write SetSessionName;
     property Trace: Boolean read FTrace write SetTrace default False;
     property TraceFlags: TTraceFlags read FTraceFlags write SetTraceFlags default [];
     property OnTrace: TOnTraceEvent read FOnTrace write FOnTrace;
+{$ENDIF}
     property OnMessageChange: TOnMessageChange read FOnMessageChange write FOnMessageChange;
     property OnPercentChange: TOnPercentChange read FOnPercentChange write FOnPercentChange;
     property OnProgress: TOnProgressEvent read FOnProgress write FOnProgress;
@@ -116,10 +123,8 @@ type
 
 implementation
 
-uses
-  Windows,
-  Forms, SysUtils, StdCtrls, Dialogs,
-  rxMaxMin, RxPrgrss, rxBdeUtils;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, Str16, {$ENDIF}
+  Forms, SysUtils, StdCtrls, Dialogs, RxMaxMin, RxPrgrss, RxBdeUtils;
 
 const
   cbQRYPROGRESS = cbRESERVED4;
@@ -127,8 +132,8 @@ const
 { TDBCallback }
 
 function BdeCallBack(CallType: CBType; Data: Longint;
-  CBInfo: Pointer): CBRType;
-  stdcall;
+  {$IFDEF VER80} var {$ENDIF} CBInfo: Pointer): CBRType;
+  {$IFNDEF VER80} stdcall; {$ELSE} export; {$ENDIF}
 begin
   if Data <> 0 then begin
     Result := TDBCallback(Data).Invoke(CallType, CBInfo);
@@ -143,8 +148,13 @@ begin
   FOwner := AOwner;
   FCBType := CBType;
   FCallbackEvent := CallbackEvent;
+{$IFNDEF VER80}
   DbiGetCallBack(nil, FCBType, @FOldCBData, @FOldCBBufLen, @FOldCBBuf,
     pfDBICallBack(FOldCBFunc));
+{$ELSE}
+  DbiGetCallBack(nil, FCBType, FOldCBData, FOldCBBufLen, FOldCBBuf,
+    @FOldCBFunc);
+{$ENDIF}
   FChain := Chain;
   if not Assigned(FOldCBFunc) then FOldCBBufLen := 0;
   if not Assigned(FOldCBFunc) or (FChain in [dcChain, dcReplace]) then begin
@@ -175,7 +185,11 @@ begin
   Result := cbrUSEDEF;
   if CallType = FCBType then
   try
+{$IFNDEF VER80}
     Result := FCallbackEvent(CBInfo);
+{$ELSE}
+    Result := FCallbackEvent(@CBInfo);
+{$ENDIF}
   except
     Application.HandleException(Self);
   end;
@@ -190,7 +204,9 @@ const
 
 procedure SetWaitCursor;
 begin
+{$IFNDEF VER80}
   if (GetCurrentThreadID = MainThreadID) then
+{$ENDIF}
     Screen.Cursor := TDBProgress(ProgressList.Items[
       ProgressList.Count - 1]).WaitCursor;
 end;
@@ -213,6 +229,8 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
+
 { TSessionLink }
 
 type
@@ -233,6 +251,8 @@ begin
   inherited Destroy;
 end;
 
+{$ENDIF}
+
 { TDBProgress }
 
 constructor TDBProgress.Create(AOwner: TComponent);
@@ -244,8 +264,10 @@ end;
 
 destructor TDBProgress.Destroy;
 begin
+{$IFNDEF VER80}
   FOnTrace := nil;
   Trace := False;
+{$ENDIF}
   Active := False;
   FreeTimer;
   FTimer.Free;
@@ -258,7 +280,9 @@ begin
   FStreamedValue := True;
   try
     SetActive(FActive);
+{$IFNDEF VER80}
     SetTrace(FTrace);
+{$ENDIF}
   finally
     FStreamedValue := False;
   end;
@@ -318,7 +342,9 @@ begin
     if not (csDesigning in ComponentState) then begin
       if Value then AddProgress(Self) else RemoveProgress(Self);
       if (FGenProgressCallback = nil) and Value then begin
+{$IFNDEF VER80}
         Activate;
+{$ENDIF}
         FGenProgressCallback := TDBCallback.Create(Self, cbGENPROGRESS,
           Max(SizeOf(CBPROGRESSDesc), SizeOf(DBIPATH) + SizeOf(Integer) * 4),
           GenProgressCallback, dcChain);
@@ -326,18 +352,24 @@ begin
           SizeOf(DBIQryProgress), QryProgressCallback, dcChain);
       end
       else if not Value and (FGenProgressCallback <> nil) then begin
+{$IFNDEF VER80}
         Sessions.CurrentSession := GetDBSession;
+{$ENDIF}
         FGenProgressCallback.Free;
         FGenProgressCallback := nil;
         FQryProgressCallback.Free;
         FQryProgressCallback := nil;
         FreeTimer;
+{$IFNDEF VER80}
         if not Trace then Deactivate;
+{$ENDIF}
       end;
     end;
     FActive := Value;
   end;
 end;
+
+{$IFNDEF VER80}
 
 procedure TDBProgress.Activate;
 var
@@ -450,20 +482,26 @@ begin
       else Exit;
     end;
     if (CurFlag in TraceFlags) then
-      FOnTrace(Self, CurFlag, StrPas(PTraceDesc(CBInfo)^.pszTrace));
+      FOnTrace(Self, CurFlag, string({$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrPas(PTraceDesc(CBInfo)^.pszTrace)));
   end;
 end;
+
+{$ENDIF}
 
 procedure TDBProgress.SetMessageControl(Value: TControl);
 begin
   FMessageControl := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
 end;
 
 procedure TDBProgress.SetGauge(Value: TControl);
 begin
   FGauge := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
 end;
 
 procedure TDBProgress.Notification(AComponent: TComponent; AOperation: TOperation);
@@ -490,7 +528,7 @@ begin
     if AbortOp then Result := cbrABORT;
   end;
   if CallInfo^.iPercentDone >= 0 then SetPercent(CallInfo^.iPercentDone)
-  else SetMessage(StrPas(CallInfo^.szMsg));
+  else SetMessage(string({$IFDEF RX_D18}System.AnsiStrings.{$ENDIF}StrPas(CallInfo^.szMsg)));
 end;
 
 function TDBProgress.QryProgressCallback(CBInfo: Pointer): CBRType;

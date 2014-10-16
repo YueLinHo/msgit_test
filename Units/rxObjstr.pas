@@ -8,14 +8,13 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxObjStr;
+unit RxObjStr;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Classes;
+uses {$IFDEF VER80} WinTypes, WinProcs, {$ENDIF} SysUtils, Classes;
 
 type
 
@@ -45,17 +44,67 @@ type
 { THugeList class }
 
 const
+{$IFNDEF VER80}
   MaxHugeListSize = MaxListSize;
+{$ELSE}
+  MaxHugeListSize = (MaxLongint div SizeOf(Pointer)) - 4;
+{$ENDIF}
 
 type
+{$IFNDEF VER80}
   THugeList = class(TList);
+{$ELSE}
+  THugeList = class(TObject)
+  private
+    FList: TMemoryStream;
+    FCount: Longint;
+    FCapacity: Longint;
+  protected
+    function Get(Index: Longint): Pointer;
+    procedure Grow; virtual;
+    procedure Put(Index: Longint; Item: Pointer);
+    procedure SetCapacity(NewCapacity: Longint);
+    procedure SetCount(NewCount: Longint);
+  public
+    destructor Destroy; override;
+    function Add(Item: Pointer): Longint;
+    procedure Clear;
+    procedure Delete(Index: Longint);
+    procedure Exchange(Index1, Index2: Longint);
+    function Expand: THugeList;
+    function First: Pointer;
+    function IndexOf(Item: Pointer): Longint;
+    procedure Insert(Index: Longint; Item: Pointer);
+    function Last: Pointer;
+    procedure Move(CurIndex, NewIndex: Longint);
+    function Remove(Item: Pointer): Longint;
+    procedure Pack;
+    property Capacity: Longint read FCapacity write SetCapacity;
+    property Count: Longint read FCount write SetCount;
+    property Items[Index: Longint]: Pointer read Get write Put; default;
+  end;
+{$ENDIF}
+
+{$IFNDEF VER80}
+
+{ TSortCollection }
+
+type
+  TItemSortCompare = function (Item1, Item2: TCollectionItem): Integer of object;
+
+  TSortCollection = class(TCollection)
+  protected
+    procedure QuickSort(L, R: Integer; Compare: TItemSortCompare); virtual;
+  public
+    procedure Sort(Compare: TItemSortCompare);
+  end;
+
+{$ENDIF}
 
 implementation
 
-uses
-  Consts,
-  {$IFDEF RX_D6} RTLConsts, {$ENDIF} // Polaris
-  rxStrUtils;
+uses {$IFDEF VER80} VCLUtils, {$ENDIF} Consts,
+     {$IFDEF RX_D6} RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
 { TObjectStrings }
 
@@ -171,7 +220,7 @@ begin
 {$IFDEF RX_D3}
     Error(SSortedListError, 0);
 {$ELSE}
-    raise EListError.Create(LoadStr(SSortedListError));
+    raise EListError.Create({LoadStr(}SSortedListError{)});
 {$ENDIF}
   if Count > 0 then begin
     BeginUpdate;
@@ -182,5 +231,219 @@ begin
     end;
   end;
 end;
+
+{$IFDEF VER80}
+
+{ THugeList }
+
+function ReturnAddr: Pointer; assembler;
+asm
+        MOV     AX,[BP].Word[2]
+        MOV     DX,[BP].Word[4]
+end;
+
+procedure ListError(Index: Longint);
+begin
+  raise EListError.Create({LoadStr(}SListIndexError{)} +
+    Format(' (%d)', [Index])) at ReturnAddr;
+end;
+
+destructor THugeList.Destroy;
+begin
+  Clear;
+end;
+
+function THugeList.Add(Item: Pointer): Longint;
+begin
+  Result := FCount;
+  if Result = FCapacity then Grow;
+  FList.Position := Result * SizeOf(Pointer);
+  FList.WriteBuffer(Item, SizeOf(Pointer));
+  Inc(FCount);
+end;
+
+procedure THugeList.Clear;
+begin
+  SetCount(0);
+  SetCapacity(0);
+end;
+
+procedure THugeList.Delete(Index: Longint);
+begin
+  if (Index < 0) or (Index >= FCount) then ListError(Index);
+  Dec(FCount);
+  if Index < FCount then
+    HugeMove(FList.Memory, Index, Index + 1, FCount - Index);
+end;
+
+function THugeList.Get(Index: Longint): Pointer;
+begin
+  if (Index < 0) or (Index >= FCount) then ListError(Index);
+  FList.Position := Index * SizeOf(Pointer);
+  FList.ReadBuffer(Result, SizeOf(Pointer));
+end;
+
+procedure THugeList.Put(Index: Longint; Item: Pointer);
+begin
+  if (Index < 0) or (Index >= FCount) then ListError(Index);
+  FList.Position := Index * SizeOf(Pointer);
+  FList.WriteBuffer(Item, SizeOf(Pointer));
+end;
+
+procedure THugeList.Exchange(Index1, Index2: Longint);
+var
+  Item: Pointer;
+begin
+  Item := Get(Index1);
+  Put(Index1, Get(Index2));
+  Put(Index2, Item);
+end;
+
+function THugeList.Expand: THugeList;
+begin
+  if FCount = FCapacity then Grow;
+  Result := Self;
+end;
+
+function THugeList.First: Pointer;
+begin
+  Result := Get(0);
+end;
+
+procedure THugeList.Grow;
+var
+  Delta: Longint;
+begin
+  if FCapacity > 8 then Delta := 16
+  else if FCapacity > 4 then Delta := 8
+  else Delta := 4;
+  SetCapacity(FCapacity + Delta);
+end;
+
+function THugeList.IndexOf(Item: Pointer): Longint;
+begin
+  Result := 0;
+  while (Result < FCount) and (Get(Result) <> Item) do
+    Inc(Result);
+  if Result = FCount then Result := -1;
+end;
+
+procedure THugeList.Insert(Index: Longint; Item: Pointer);
+begin
+  if (Index < 0) or (Index > FCount) then ListError(Index);
+  if FCount = FCapacity then Grow;
+  if Index < FCount then
+    HugeMove(FList.Memory, Index + 1, Index, FCount - Index);
+  FList.Position := Index * SizeOf(Pointer);
+  FList.WriteBuffer(Item, SizeOf(Pointer));
+  Inc(FCount);
+end;
+
+function THugeList.Last: Pointer;
+begin
+  Result := Get(FCount - 1);
+end;
+
+procedure THugeList.Move(CurIndex, NewIndex: Longint);
+var
+  Item: Pointer;
+begin
+  if CurIndex <> NewIndex then begin
+    if (NewIndex < 0) or (NewIndex >= FCount) then ListError(NewIndex);
+    Item := Get(CurIndex);
+    Delete(CurIndex);
+    Insert(NewIndex, Item);
+  end;
+end;
+
+function THugeList.Remove(Item: Pointer): Longint;
+begin
+  Result := IndexOf(Item);
+  if Result <> -1 then Delete(Result);
+end;
+
+procedure THugeList.Pack;
+var
+  I: Longint;
+begin
+  for I := FCount - 1 downto 0 do
+    if Items[I] = nil then Delete(I);
+end;
+
+procedure THugeList.SetCapacity(NewCapacity: Longint);
+var
+  NewList: TMemoryStream;
+begin
+  if (NewCapacity < FCount) or (NewCapacity > MaxHugeListSize) then
+    ListError(NewCapacity);
+  if NewCapacity <> FCapacity then begin
+    if NewCapacity = 0 then NewList := nil
+    else begin
+      NewList := TMemoryStream.Create;
+      NewList.SetSize(NewCapacity * SizeOf(Pointer));
+      if FCount <> 0 then begin
+        FList.Position := 0;
+        FList.ReadBuffer(NewList.Memory^, FCount * SizeOf(Pointer));
+      end;
+    end;
+    if FCapacity <> 0 then FList.Free;
+    FList := NewList;
+    FCapacity := NewCapacity;
+  end;
+end;
+
+procedure THugeList.SetCount(NewCount: Longint);
+begin
+  if (NewCount < 0) or (NewCount > MaxHugeListSize) then
+    ListError(NewCount);
+  if NewCount > FCapacity then SetCapacity(NewCount);
+  FCount := NewCount;
+end;
+
+{$ENDIF}
+
+{$IFNDEF VER80}
+
+{ TSortCollection }
+
+procedure TSortCollection.QuickSort(L, R: Integer; Compare: TItemSortCompare);
+var
+  I, J: Integer;
+  P, P1, P2: TCollectionItem;
+begin
+  repeat
+    I := L;
+    J := R;
+    P := Items[(L + R) shr 1];
+    repeat
+      while Compare(Items[I], P) < 0 do Inc(I);
+      while Compare(Items[J], P) > 0 do Dec(J);
+      if I <= J then begin
+        P1 := Items[I];
+        P2 := Items[J];
+        P1.Index := J;
+        P2.Index := I;
+        Inc(I);
+        Dec(J);
+      end;
+    until I > J;
+    if L < J then QuickSort(L, J, Compare);
+    L := I;
+  until I >= R;
+end;
+
+procedure TSortCollection.Sort(Compare: TItemSortCompare);
+begin
+  if Count > 0 then begin
+    BeginUpdate;
+    try
+      QuickSort(0, Count - 1, Compare);
+    finally
+      EndUpdate;
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 end.

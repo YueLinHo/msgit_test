@@ -7,14 +7,13 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxTimerlst;
+unit RxTimerLst;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Windows,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes;
 
 const
@@ -48,8 +47,12 @@ type
     procedure TimerWndProc(var Msg: TMessage);
     procedure UpdateTimer;
   protected
+{$IFNDEF VER80}
     procedure GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
       Root: TComponent {$ENDIF}); override;
+{$ELSE}
+    procedure WriteComponents(Writer: TWriter); override;
+{$ENDIF}
     procedure DoTimer(Event: TRxTimerEvent); dynamic;
     function NextHandle: Longint; virtual;
   public
@@ -89,13 +92,22 @@ type
     procedure SetRepeatCount(Value: Integer);
     procedure SetEnabled(Value: Boolean);
     procedure SetInterval(Value: Longint);
+{$IFDEF VER80}
+    procedure SetParentList(Value: TRxTimerList);
+{$ENDIF}
   protected
+{$IFNDEF VER80}
     procedure SetParentComponent(Value: TComponent); override;
+{$ELSE}
+    procedure ReadState(Reader: TReader); override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function HasParent: Boolean; override;
+{$IFNDEF VER80}
     function GetParentComponent: TComponent; override;
+{$ENDIF}
     property AsSeconds: Cardinal read GetAsSeconds write SetAsSeconds;
     property Handle: Longint read FHandle;
     property ExecCount: Integer read FExecCount;
@@ -110,8 +122,7 @@ type
 
 implementation
 
-uses
-  Consts, Controls, Forms, SysUtils, rxVCLUtils, rxMaxMin;
+uses Consts, Controls, Forms, SysUtils, RxVCLUtils, RxMaxMin;
 
 const
   MinInterval = 100; { 0.1 sec }
@@ -119,6 +130,9 @@ const
   MaxTimerInterval: Longint = High(Longint);
 {$ELSE}
   MaxTimerInterval: Longint = High(Cardinal);
+{$ENDIF}
+{$IFDEF VER80}
+  INVALID_HANDLE_VALUE = 0;
 {$ENDIF}
   Registered: Boolean = False;
 
@@ -143,10 +157,20 @@ begin
   inherited Destroy;
 end;
 
+{$IFDEF VER80}
+procedure TRxTimerEvent.SetParentList(Value: TRxTimerList);
+begin
+  if FParentList <> nil then FParentList.RemoveItem(Self);
+  if Value <> nil then Value.AddItem(Self);
+end;
+{$ENDIF}
+
 function TRxTimerEvent.HasParent: Boolean;
 begin
   Result := True;
 end;
+
+{$IFNDEF VER80}
 
 function TRxTimerEvent.GetParentComponent: TComponent;
 begin
@@ -159,6 +183,17 @@ begin
   if (Value <> nil) and (Value is TRxTimerList) then
     TRxTimerList(Value).AddItem(Self);
 end;
+
+{$ELSE}
+
+procedure TRxTimerEvent.ReadState(Reader: TReader);
+begin
+  inherited ReadState(Reader);
+  if Reader.Parent is TRxTimerList then
+    SetParentList(TRxTimerList(Reader.Parent));
+end;
+
+{$ENDIF}
 
 procedure TRxTimerEvent.SetEnabled(Value: Boolean);
 begin
@@ -287,6 +322,7 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 procedure TRxTimerList.GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
   Root: TComponent {$ENDIF});
 var
@@ -296,6 +332,19 @@ begin
   for I := 0 to FEvents.Count - 1 do
     Proc(TRxTimerEvent(FEvents[I]));
 end;
+{$ELSE}
+procedure TRxTimerList.WriteComponents(Writer: TWriter);
+var
+  I: Integer;
+  Item: TRxTimerEvent;
+begin
+  inherited WriteComponents(Writer);
+  for I := 0 to FEvents.Count - 1 do begin
+    Item := TRxTimerEvent(FEvents[I]);
+    if Item.Owner = Writer.Root then Writer.WriteComponent(Item);
+  end;
+end;
+{$ENDIF}
 
 procedure TRxTimerList.Sort;
 var

@@ -8,14 +8,13 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxStrLEdit;
+unit RxStrLEdit;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Windows, Classes,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} Classes, 
   Graphics, Forms, Controls, Buttons, Dialogs, StdCtrls, ExtCtrls,
   {$IFDEF RX_D6} DesignIntf, VCLEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
@@ -46,8 +45,7 @@ implementation
 
 {$R *.DFM}
 
-uses
-  SysUtils, LibHelp;
+uses SysUtils, LibHelp;
 
 { TStrListEditDlg }
 

@@ -8,40 +8,42 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxDateUtil;
+unit RxDateUtil;
 
 {$I RX.INC}
 {$B-,V-,R-,Q-}
 
 interface
 
-function CurrentYear: Word;
-function IsLeapYear(AYear: Integer): Boolean;
+uses SysUtils;
+
+function CurrentYear: Word; {$IFDEF RX_D9}inline;{$ENDIF}
+function IsLeapYear(AYear: Integer): Boolean; {$IFDEF RX_D9}inline;{$ENDIF}
 function DaysPerMonth(AYear, AMonth: Integer): Integer;
-function FirstDayOfPrevMonth: TDateTime;
-function LastDayOfPrevMonth: TDateTime;
-function FirstDayOfNextMonth: TDateTime;
-function ExtractDay(ADate: TDateTime): Word;
-function ExtractMonth(ADate: TDateTime): Word;
-function ExtractYear(ADate: TDateTime): Word;
-function IncDate(ADate: TDateTime; Days, Months, Years: Integer): TDateTime;
-function IncDay(ADate: TDateTime; Delta: Integer): TDateTime;
-function IncMonth(ADate: TDateTime; Delta: Integer): TDateTime;
-function IncYear(ADate: TDateTime; Delta: Integer): TDateTime;
+function FirstDayOfPrevMonth: TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function LastDayOfPrevMonth: TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function FirstDayOfNextMonth: TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function ExtractDay(ADate: TDateTime): Word; {$IFDEF RX_D9}inline;{$ENDIF}
+function ExtractMonth(ADate: TDateTime): Word; {$IFDEF RX_D9}inline;{$ENDIF}
+function ExtractYear(ADate: TDateTime): Word; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncDate(ADate: TDateTime; Days, Months, Years: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncDay(ADate: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncMonth(ADate: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncYear(ADate: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
 function ValidDate(ADate: TDateTime): Boolean;
-procedure DateDiff(Date1, Date2: TDateTime; var Days, Months, Years: Word);
-function MonthsBetween(Date1, Date2: TDateTime): Double;
-function DaysInPeriod(Date1, Date2: TDateTime): Longint;
+procedure DateDiff(Date1, Date2: TDateTime; var Days, Months, Years: Word); {$IFDEF RX_D9}inline;{$ENDIF}
+function MonthsBetween(Date1, Date2: TDateTime): Double; {$IFDEF RX_D9}inline;{$ENDIF}
+function DaysInPeriod(Date1, Date2: TDateTime): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
   { Count days between Date1 and Date2 + 1, so if Date1 = Date2 result = 1 }
-function DaysBetween(Date1, Date2: TDateTime): Longint;
+function DaysBetween(Date1, Date2: TDateTime): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
   { The same as previous but if Date2 < Date1 result = 0 }
 
-function IncTime(ATime: TDateTime; Hours, Minutes, Seconds, MSecs: Integer): TDateTime;
-function IncHour(ATime: TDateTime; Delta: Integer): TDateTime;
-function IncMinute(ATime: TDateTime; Delta: Integer): TDateTime;
-function IncSecond(ATime: TDateTime; Delta: Integer): TDateTime;
-function IncMSec(ATime: TDateTime; Delta: Integer): TDateTime;
-function CutTime(ADate: TDateTime): TDateTime; { Set time to 00:00:00:00 }
+function IncTime(ATime: TDateTime; Hours, Minutes, Seconds, MSecs: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncHour(ATime: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncMinute(ATime: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncSecond(ATime: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function IncMSec(ATime: TDateTime; Delta: Integer): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF}
+function CutTime(ADate: TDateTime): TDateTime; {$IFDEF RX_D9}inline;{$ENDIF} { Set time to 00:00:00:00 }
 
 type
   TDateOrder = (doMDY, doDMY, doYMD);
@@ -49,16 +51,20 @@ type
   TDaysOfWeek = set of TDayOfWeekName;
 
 { String to date conversions }
-function GetDateOrder(const DateFormat: string): TDateOrder;
-function MonthFromName(const S: string; MaxLen: Byte): Byte;
+function GetDateOrder(const DateFormat: string): TDateOrder; {$IFDEF RX_D9}inline;{$ENDIF}
+function MonthFromName(const S: string; MaxLen: Byte): Byte; {$IFDEF RX_D9}inline;{$ENDIF}
 function StrToDateDef(const S: string; Default: TDateTime): TDateTime;
 function StrToDateFmt(const DateFormat, S: string): TDateTime;
 function StrToDateFmtDef(const DateFormat, S: string; Default: TDateTime): TDateTime;
-function DefDateFormat(FourDigitYear: Boolean): string;
-function DefDateMask(BlanksChar: Char; FourDigitYear: Boolean): string;
+function DefDateFormat(FourDigitYear: Boolean): string; {$IFDEF RX_D9}inline;{$ENDIF}
+function DefDateMask(BlanksChar: Char; FourDigitYear: Boolean): string; {$IFDEF RX_D9}inline;{$ENDIF}
 
-function FormatLongDate(Value: TDateTime): string;
-function FormatLongDateTime(Value: TDateTime): string;
+{$IFNDEF VER80}
+function FormatLongDate(Value: TDateTime): string; {$IFDEF RX_D9}inline;{$ENDIF}
+function FormatLongDateTime(Value: TDateTime): string; {$IFDEF RX_D9}inline;{$ENDIF}
+{$ENDIF}
+
+function IsEasterMonday(const ADate: TDateTime): Boolean;
 
 const
   DefaultDateOrder = doDMY;
@@ -72,14 +78,18 @@ function FourDigitYear: Boolean;
 
 const
   CenturyOffset: Byte = 60;
+{$IFNDEF VER80}
   NullDate: TDateTime = {-693594} 0;
+{$ELSE}
+  NullDate: TDateTime = 0;
+{$ENDIF}
 
 implementation
 
 uses
-  SysUtils, Windows, Consts,
-  {$IFDEF RX_D6} SysConst, {$ENDIF} // Polaris
-  rxStrUtils;
+  {$IFNDEF VER80} Windows, {$ENDIF}
+  Consts, RxResConst,
+  {$IFDEF RX_D6} SysConst,{$ENDIF} RxStrUtils;  // Polaris
 
 function IsLeapYear(AYear: Integer): Boolean;
 begin
@@ -300,8 +310,8 @@ begin
   Result := Trunc(ADate);
 end;
 
-function CurrentYear: Word; {$IFNDEF WIN32} assembler; {$ENDIF}
-{$IFDEF WIN32}
+function CurrentYear: Word; {$IFDEF VER80} assembler; {$ENDIF}
+{$IFNDEF VER80}
 var
   SystemTime: TSystemTime;
 begin
@@ -338,7 +348,7 @@ begin
   I := Pos;
   N := 0;
   while (I <= Length(S)) and (Longint(I - Pos) < MaxLength) and
-    (S[I] in ['0'..'9']) and (N < 1000) do
+    CharInSet(S[I], ['0'..'9']) and (N < 1000) do
   begin
     N := N * 10 + (Ord(S[I]) - Ord('0'));
     Inc(I);
@@ -363,8 +373,8 @@ end;
 {$IFDEF RX_D3}
 procedure ScanToNumber(const S: string; var Pos: Integer);
 begin
-  while (Pos <= Length(S)) and not (S[Pos] in ['0'..'9']) do begin
-    if S[Pos] in LeadBytes then Inc(Pos);
+  while (Pos <= Length(S)) and not CharInSet(S[Pos], ['0'..'9']) do begin
+    if CharInSet(S[Pos], LeadBytes) then Inc(Pos);
     Inc(Pos);
   end;
 end;
@@ -416,12 +426,12 @@ begin
   Y := 0; M := 0; D := 0;
   DateOrder := GetDateOrder(DateFormat);
 {$IFDEF RX_D3}
-  if ShortDateFormat[1] = 'g' then { skip over prefix text }
+  if {$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat[1] = 'g' then { skip over prefix text }
     ScanToNumber(S, Pos);
 {$ENDIF RX_D3}
-  if not (ScanNumber(S, MaxInt, Pos, N1) and ScanChar(S, Pos, DateSeparator) and
+  if not (ScanNumber(S, MaxInt, Pos, N1) and ScanChar(S, Pos, {$IFDEF RX_D15}FormatSettings.{$ENDIF}DateSeparator) and
     ScanNumber(S, MaxInt, Pos, N2)) then Exit;
-  if ScanChar(S, Pos, DateSeparator) then begin
+  if ScanChar(S, Pos, {$IFDEF RX_D15}FormatSettings.{$ENDIF}DateSeparator) then begin
     if not ScanNumber(S, MaxInt, Pos, N3) then Exit;
     case DateOrder of
       doMDY: begin Y := N3; M := N1; D := N2; end;
@@ -439,20 +449,20 @@ begin
       M := N1; D := N2;
     end;
   end;
-  ScanChar(S, Pos, DateSeparator);
+  ScanChar(S, Pos, {$IFDEF RX_D15}FormatSettings.{$ENDIF}DateSeparator);
   ScanBlanks(S, Pos);
 {$IFDEF RX_D3}
-  if SysLocale.FarEast and (System.Pos('ddd', ShortDateFormat) <> 0) then
+  if SysLocale.FarEast and (System.Pos('ddd', {$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat) <> 0) then
   begin { ignore trailing text }
-    if ShortTimeFormat[1] in ['0'..'9'] then  { stop at time digit }
+    if CharInSet({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortTimeFormat[1], ['0'..'9']) then  { stop at time digit }
       ScanToNumber(S, Pos)
     else  { stop at time prefix }
       repeat
         while (Pos <= Length(S)) and (S[Pos] <> ' ') do Inc(Pos);
         ScanBlanks(S, Pos);
       until (Pos > Length(S)) or
-        (AnsiCompareText(TimeAMString, Copy(S, Pos, Length(TimeAMString))) = 0) or
-        (AnsiCompareText(TimePMString, Copy(S, Pos, Length(TimePMString))) = 0);
+        (AnsiCompareText({$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeAMString, Copy(S, Pos, Length({$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeAMString))) = 0) or
+        (AnsiCompareText({$IFDEF RX_D15}FormatSettings.{$ENDIF}TimePMString, Copy(S, Pos, Length({$IFDEF RX_D15}FormatSettings.{$ENDIF}TimePMString))) = 0);
   end;
 {$ENDIF RX_D3}
   Result := IsValidDate(Y, M, D) and (Pos > Length(S));
@@ -462,9 +472,9 @@ function MonthFromName(const S: string; MaxLen: Byte): Byte;
 begin
   if Length(S) > 0 then
     for Result := 1 to 12 do begin
-      if (Length(LongMonthNames[Result]) > 0) and
+      if (Length({$IFDEF RX_D15}FormatSettings.{$ENDIF}LongMonthNames[Result]) > 0) and
         (AnsiCompareText(Copy(S, 1, MaxLen),
-        Copy(LongMonthNames[Result], 1, MaxLen)) = 0) then Exit;
+        Copy({$IFDEF RX_D15}FormatSettings.{$ENDIF}LongMonthNames[Result], 1, MaxLen)) = 0) then Exit;
     end;
   Result := 0;
 end;
@@ -472,7 +482,7 @@ end;
 procedure ExtractMask(const Format, S: string; Ch: Char; Cnt: Integer;
   var I: Integer; Blank, Default: Integer);
 var
-  Tmp: string[20];
+  Tmp: string;
   J, L: Integer;
 begin
   I := Default;
@@ -484,7 +494,7 @@ begin
   if J <= 0 then Exit;
   Tmp := '';
   while (UpCase(Format[J]) = Ch) and (J <= L) do begin
-    if S[J] <> ' ' then Tmp := Tmp + S[J];
+    if S[J] <> ' ' then Tmp := Tmp + Char(S[J]);
     Inc(J);
   end;
   if Tmp = '' then I := Blank
@@ -534,13 +544,13 @@ end;
 function StrToDateFmt(const DateFormat, S: string): TDateTime;
 begin
   if not InternalStrToDate(DateFormat, S, Result) then
-    raise EConvertError.CreateFmt({$IFDEF RX_D3} SInvalidDate {$ELSE}
-      LoadStr(SInvalidDate) {$ENDIF}, [S]);
+    raise EConvertError.CreateFmt({$IFDEF RX_D3} {$IFDEF RX_D16}SysConst.{$ENDIF}SInvalidDate {$ELSE}
+      {LoadStr(}SInvalidDate{)} {$ENDIF}, [S]);
 end;
 
 function StrToDateDef(const S: string; Default: TDateTime): TDateTime;
 begin
-  if not InternalStrToDate(ShortDateFormat, S, Result) then
+  if not InternalStrToDate({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat, S, Result) then
     Result := Trunc(Default);
 end;
 
@@ -553,14 +563,14 @@ end;
 function DefDateFormat(FourDigitYear: Boolean): string;
 begin
   if FourDigitYear then begin
-    case GetDateOrder(ShortDateFormat) of
+    case GetDateOrder({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY: Result := 'MM/DD/YYYY';
       doDMY: Result := 'DD/MM/YYYY';
       doYMD: Result := 'YYYY/MM/DD';
     end;
   end
   else begin
-    case GetDateOrder(ShortDateFormat) of
+    case GetDateOrder({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY: Result := 'MM/DD/YY';
       doDMY: Result := 'DD/MM/YY';
       doYMD: Result := 'YY/MM/DD';
@@ -571,13 +581,13 @@ end;
 function DefDateMask(BlanksChar: Char; FourDigitYear: Boolean): string;
 begin
   if FourDigitYear then begin
-    case GetDateOrder(ShortDateFormat) of
+    case GetDateOrder({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY, doDMY: Result := '!99/99/9999;1;';
       doYMD: Result := '!9999/99/99;1;';
     end;
   end
   else begin
-    case GetDateOrder(ShortDateFormat) of
+    case GetDateOrder({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat) of
       doMDY, doDMY: Result := '!99/99/99;1;';
       doYMD: Result := '!99/99/99;1;';
     end;
@@ -585,7 +595,7 @@ begin
   if Result <> '' then Result := Result + BlanksChar;
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 
 function FormatLongDate(Value: TDateTime): string;
 var
@@ -601,7 +611,7 @@ begin
   end;
 {$ENDIF}
   SetString(Result, Buffer, GetDateFormat(GetThreadLocale, DATE_LONGDATE,
-    @SystemTime, nil, Buffer, SizeOf(Buffer) - 1));
+    @SystemTime, nil, Buffer, {$IFDEF UNICODE}Length{$ELSE}SizeOf{$ENDIF}(Buffer) - 1));
   Result := TrimRight(Result);
 end;
 
@@ -612,7 +622,7 @@ begin
   else Result := '';
 end;
 
-{$ENDIF WIN32}
+{$ENDIF}
 
 {$IFNDEF USE_FOUR_DIGIT_YEAR}
 function FourDigitYear: Boolean;
@@ -621,8 +631,34 @@ begin
 end;
 {$ENDIF}
 
+function IsEasterMonday(const ADate: TDateTime): Boolean;
+  function GetEasterMonday(const Year: Integer): TDateTime;
+  var
+    i: integer;
+    r1,r2,r3,r4,r5,r6: Double;
+  begin {GetEasterMonday}
+    r1 := Year mod 19;
+    r2 := Year mod  4;
+    r3 := Year mod  7;
+    r5 := 19*r1 + 24;
+    r4 := r5 - (int (r5/30) * 30);
+    r6 := (5 + 2*r2 + 4*r3 + 6*r4);
+    i := Trunc ((r6 - (int (r6/7) * 7)) + r4 + 22);
+
+    if i <= 31 then
+      Result := EncodeDate(Year, 3, i) + 1
+    else
+    begin
+      if i - 31 >= 26 then i := 19 else Dec (i, 31);
+      Result := EncodeDate(Year, 4, i) + 1;
+    end;
+  end; {GetEasterMonday}
+begin
+  Result := GetEasterMonday(ExtractYear(ADate)) = Trunc(ADate);
+end;
+
 {$IFDEF USE_FOUR_DIGIT_YEAR}
 initialization
-  FourDigitYear := Pos('YYYY', AnsiUpperCase(ShortDateFormat)) > 0;
+  FourDigitYear := Pos('YYYY', AnsiUpperCase({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat)) > 0;
 {$ENDIF}
 end.

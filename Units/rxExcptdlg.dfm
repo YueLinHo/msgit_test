@@ -6,17 +6,20 @@ object RxErrorDialog: TRxErrorDialog
   BorderStyle = bsDialog
   ClientHeight = 252
   ClientWidth = 380
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   FormStyle = fsStayOnTop
-  PixelsPerInch = 96
+  OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyUp = FormKeyUp
   OnShow = FormShow
+  PixelsPerInch = 96
   TextHeight = 13
   object BasicPanel: TPanel
     Left = 0
@@ -29,8 +32,8 @@ object RxErrorDialog: TRxErrorDialog
     object ErrorText: TLabel
       Left = 53
       Top = 10
-      Width = 227
-      Height = 88
+      Width = 3
+      Height = 13
       Align = alClient
       WordWrap = True
     end

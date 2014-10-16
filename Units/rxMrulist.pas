@@ -7,16 +7,15 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxMRUList;
+unit RxMRUList;
 
 {$I RX.INC}
 {$R-,B-}
 
 interface
 
-uses
-  SysUtils, Classes, Menus, IniFiles, Registry,
-  rxPlacemnt;
+uses SysUtils, Classes, Menus, IniFiles {$IFNDEF VER80}, Registry {$ENDIF},
+  RxPlacemnt;
 
 type
   TRecentStrings = class;
@@ -92,8 +91,10 @@ type
     procedure Clear;
     procedure Remove(const RecentName: string);
     procedure UpdateRecentMenu;
+{$IFNDEF VER80}
     procedure LoadFromRegistry(Ini: TRegIniFile; const Section: string);
     procedure SaveToRegistry(Ini: TRegIniFile; const Section: string);
+{$ENDIF}
     procedure LoadFromIni(Ini: TIniFile; const Section: string);
     procedure SaveToIni(Ini: TIniFile; const Section: string);
     property Strings: TStrings read FList;
@@ -136,9 +137,7 @@ type
 
 implementation
 
-uses
-  Controls,
-  rxMaxMin, rxAppUtils;
+uses Controls, RxMaxMin, RxAppUtils;  // Polaris
 
 const
   siRecentItem = 'Item_%d';
@@ -318,12 +317,13 @@ begin
       if FShowAccelChar then begin
         L := Cardinal(I) + FStartAccel;
         if L < 10 then
-          C := '&' + Char(Ord('0') + L)
-        else if L <= (Ord('Z') + 10) then
-          C := '&' + Char(L + Ord('A') - 10)
+          C := AnsiChar('&') + AnsiChar(Ord('0') + L)
+        else
+        if L <= (Ord('Z') + 10) then
+          C := AnsiChar('&') + AnsiChar(L + Ord('A') - 10)
         else
           C := ' ';
-        Item.Caption := C + AccelDelimChars[FAccelDelimiter] + Item.Caption;
+        Item.Caption := string(C) + AccelDelimChars[FAccelDelimiter] + Item.Caption;
       end;
       Item.Tag := I;
       AddMenuItem(Item);
@@ -350,7 +350,9 @@ procedure TMRUManager.SetRecentMenu(Value: TMenuItem);
 begin
   ClearRecentMenu;
   FRecentMenu := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
   UpdateRecentMenu;
 end;
 
@@ -445,6 +447,7 @@ begin
     DoWriteItem(Ini, Section, I, FList[I], Longint(FList.Objects[I]));
 end;
 
+{$IFNDEF VER80}
 procedure TMRUManager.LoadFromRegistry(Ini: TRegIniFile; const Section: string);
 begin
   InternalLoad(Ini, Section);
@@ -454,6 +457,7 @@ procedure TMRUManager.SaveToRegistry(Ini: TRegIniFile; const Section: string);
 begin
   InternalSave(Ini, Section);
 end;
+{$ENDIF}
 
 procedure TMRUManager.LoadFromIni(Ini: TIniFile; const Section: string);
 begin

@@ -4,6 +4,7 @@
 {                                                       }
 {         Copyright (c) 1998 Master-Bank                }
 {                                                       }
+{ Patched by Polaris Software                           }
 {*******************************************************}
 
 unit RxDsgn;
@@ -12,11 +13,10 @@ unit RxDsgn;
 
 interface
 
-uses
-  Windows, Classes, SysUtils,
-  RTLConsts, DesignIntf, DesignEditors, VCLEditors, Controls, Graphics,
-  ExtCtrls, Menus, Forms;
-
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, {$ENDIF} Classes, SysUtils,
+  Controls, Graphics, ExtCtrls, Menus, Forms,
+  {$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
+  
 type
 {$IFNDEF RX_D4}
   IDesigner = TDesigner;
@@ -66,15 +66,13 @@ type
 
 implementation
 
-uses
-  Consts, Dialogs,
-  RxCConst, rxFileUtil, rxVclUtils, RxPrgrss;
+uses Consts, Dialogs, RxResConst, RxFileUtil, RxVCLUtils, RxPrgrss;
 
 { TFilenameProperty }
 
 function TFilenameProperty.GetFilter: string;
 begin
-  Result := LoadStr(SDefaultFilter);
+  Result := RxLoadStr(SDefaultFilter);
 end;
 
 procedure TFilenameProperty.Edit;
@@ -98,7 +96,7 @@ end;
 
 function TFilenameProperty.GetAttributes: TPropertyAttributes;
 begin
-  Result := [paDialog, paRevertable];
+  Result := [paDialog {$IFNDEF VER80}, paRevertable {$ENDIF}];
 end;
 
 { TDirnameProperty }
@@ -114,7 +112,7 @@ end;
 
 function TDirnameProperty.GetAttributes: TPropertyAttributes;
 begin
-  Result := [paDialog,paRevertable];
+  Result := [paDialog {$IFNDEF VER80}, paRevertable {$ENDIF}];
 end;
 
 { TProgressControlProperty }
@@ -123,7 +121,11 @@ procedure TProgressControlProperty.CheckComponent(const AName: string);
 var
   Component: TComponent;
 begin
+{$IFNDEF VER80}
   Component := Designer.GetComponent(AName);
+{$ELSE}
+  Component := Designer.Form.FindComponent(AName);
+{$ENDIF}
   if (Component <> nil) and (Component is TControl) and
     SupportsProgressControl(TControl(Component)) and Assigned(FProc) then
     FProc(AName);

@@ -7,16 +7,14 @@
 {                                                       }
 {*******************************************************}
 
-unit rxAnimate;
+unit RxAnimate;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Messages, Windows,
-  SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, Menus,
-  RxTimer;
+uses Messages, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, Menus, RxTimer;
 
 type
 
@@ -71,6 +69,10 @@ type
     FOnFrameChanged: TNotifyEvent;
     FOnStart: TNotifyEvent;
     FOnStop: TNotifyEvent;
+{$IFNDEF RX_D10}
+    FOnMouseExit: TNotifyEvent;
+    FOnMouseEnter: TNotifyEvent;
+{$ENDIF}
 {$IFDEF RX_D3}
     FAsyncDrawing: Boolean;
 {$ENDIF}
@@ -100,6 +102,10 @@ type
     procedure TimerExpired(Sender: TObject);
     function TransparentStored: Boolean;
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
+{$IFNDEF RX_D10}
+    procedure CMMouseEnter(var message: TMessage); message CM_MOUSEENTER;
+    procedure CMMouseLeave(var message: TMessage); message CM_MOUSELEAVE;
+{$ENDIF}
   protected
 {$IFDEF RX_D4}
     function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
@@ -158,7 +164,9 @@ type
     property OnDragOver;
     property OnDragDrop;
     property OnEndDrag;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
@@ -169,6 +177,16 @@ type
     property OnFrameChanged: TNotifyEvent read FOnFrameChanged write FOnFrameChanged;
     property OnStart: TNotifyEvent read FOnStart write FOnStart;
     property OnStop: TNotifyEvent read FOnStop write FOnStop;
+{$IFDEF RX_D9}
+    property OnMouseActivate;
+{$ENDIF}
+{$IFNDEF RX_D10}
+    property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
+    property OnMouseLeave: TNotifyEvent read FOnMouseExit write FOnMouseExit;
+{$ELSE}
+    property OnMouseEnter;
+    property OnMouseLeave;
+{$ENDIF}
   end;
 
 {$IFDEF RX_D3}
@@ -177,8 +195,7 @@ procedure HookBitmap;
 
 implementation
 
-uses
-  RxConst, {$IFDEF RX_D3} RxHook, {$ENDIF} rxVCLUtils;
+uses RxConst, {$IFDEF RX_D3} RxHook, {$ENDIF} RxVCLUtils;
 
 {$IFDEF RX_D3}
 
@@ -227,7 +244,7 @@ begin
   InitializeCriticalSection(FLock);
 {$ENDIF}
   ControlStyle := ControlStyle + [csClickEvents, csCaptureMouse, csOpaque,
-    csReplicatable, csDoubleClicks];
+    {$IFNDEF VER80} csReplicatable, {$ENDIF} csDoubleClicks];
   Height := 105;
   Width := 105;
   ParentColor := True;
@@ -809,5 +826,19 @@ begin
   AdjustSize;
 {$ENDIF}
 end;
+
+{$IFNDEF RX_D10}
+procedure TAnimatedImage.CMMouseEnter(var message: TMessage);
+begin
+  inherited;
+  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);
+end;
+
+procedure TAnimatedImage.CMMouseLeave(var message: TMessage);
+begin
+  inherited;
+  if Assigned(FOnMouseExit) then FOnMouseExit(Self);
+end;
+{$ENDIF}
 
 end.

@@ -7,15 +7,16 @@
 {                                                       }
 {*******************************************************}
 
-unit RXSplit;
+unit RxSplit;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Classes, Windows, 
-  Controls, ExtCtrls, Forms, Graphics, rxVCLUtils;
+uses Classes, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Controls, ExtCtrls, Forms, Graphics,
+  {$IFDEF RX_D17}System.Types,{$ENDIF}
+  RxVCLUtils;
 
 type
 
@@ -89,7 +90,7 @@ type
     property BorderStyle;
     property Enabled;
     property Color;
-    property Ctl3D default False;
+    property Ctl3D {$IFNDEF VER80} default False {$ENDIF};
     property Cursor read GetCursor stored False;
     property TopLeftLimit: Integer read FTopLeftLimit write FTopLeftLimit default 20;
     property BottomRightLimit: Integer read FBottomRightLimit write FBottomRightLimit default 20;
@@ -108,12 +109,38 @@ type
     property OnMouseMove;
     property OnMouseUp;
     property OnResize;
+{$IFDEF RX_D6}
+    property AutoSize;
+    property BevelEdges;
+    property BevelKind;
+    property Caption;
+    property UseDockManager default True;
+    property DockSite;
+    property FullRepaint;
+    property Locked;
+    {$IFDEF RX_D7}
+    property ParentBackground default False;
+    {$ENDIF}
+    {$IFDEF RX_D9}
+    property VerticalAlignment;
+    property OnAlignInsertBefore;
+    property OnAlignPosition;
+    {$ENDIF}
+    property OnCanResize;
+    property OnConstrainedResize;
+    property OnDockDrop;
+    property OnDockOver;
+    property OnGetSiteInfo;
+    {$IFDEF RX_D9}
+    property OnMouseActivate;
+    {$ENDIF}
+    property OnUnDock;
+{$ENDIF}
   end;
 
 implementation
 
-uses
-  SysUtils;
+uses SysUtils;
 
 const
   InverseThickness = 2;
@@ -142,7 +169,12 @@ begin
   FControlFirst := nil;
   FControlSecond := nil;
   ParentCtl3D := False;
+{$IFNDEF VER80}
   Ctl3D := False;
+{$ENDIF}
+{$IFDEF RX_D7}
+  ParentBackground := False;
+{$ENDIF}
 end;
 
 procedure TRxSplitter.Loaded;
@@ -452,7 +484,9 @@ begin
     if (Value = Self) or (Value is TForm) then FControlFirst := nil
     else begin
       FControlFirst := Value;
+{$IFNDEF VER80}
       if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
     end;
     UpdateState;
   end;
@@ -464,7 +498,9 @@ begin
     if (Value = Self) or (Value is TForm) then FControlSecond := nil
     else begin
       FControlSecond := Value;
+{$IFNDEF VER80}
       if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
     end;
     UpdateState;
   end;

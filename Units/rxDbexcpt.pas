@@ -9,7 +9,7 @@
 {                                                       }
 {*******************************************************}
 
-unit rxDBExcpt;
+unit RxDBExcpt;
 
 {$I RX.INC}
 
@@ -17,6 +17,7 @@ interface
 
 uses
   SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs,
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
   StdCtrls, ExtCtrls, DB, {$IFDEF RX_D3} DBTables, {$ENDIF} RXCtrls;
 
 type
@@ -73,9 +74,8 @@ procedure DbErrorIntercept;
 
 implementation
 
-uses
-  Windows, BDE, Consts,
-  RxDConst, RxCConst, rxVCLUtils;
+uses {$IFNDEF VER80} Windows, BDE, {$ELSE} WinProcs, WinTypes, DbiErrs,
+  RxStr16, {$ENDIF} Consts, RxResConst, RxVCLUtils;
 
 {$R *.DFM}
 
@@ -147,14 +147,14 @@ begin
     if Value then begin
       DetailsPanel.Height := DetailsHeight;
       ClientHeight := DetailsPanel.Height + BasicPanel.Height;
-      DetailsBtn.Caption := '<< &' + LoadStr(SDetails);
+      DetailsBtn.Caption := '<< &' + RxLoadStr(SDetails);
       CurItem := 0;
       ShowError;
     end
     else begin
       ClientHeight := BasicPanel.Height;
       DetailsPanel.Height := 0;
-      DetailsBtn.Caption := '&' + LoadStr(SDetails) + ' >>';
+      DetailsBtn.Caption := '&' + RxLoadStr(SDetails) + ' >>';
     end;
     DetailsPanel.Enabled := Value;
     Details := Value;
@@ -174,16 +174,19 @@ end;
 
 procedure TRxBdeErrorDlg.FormCreate(Sender: TObject);
 begin
+{$IFDEF VER80}
+  BorderIcons := [];
+{$ENDIF}
   DetailsHeight := DetailsPanel.Height;
   Icon.Handle := LoadIcon(0, IDI_EXCLAMATION);
   IconImage.Picture.Icon := Icon;
   { Load string resources }
-  Caption := LoadStr(SDBExceptCaption);
-  BDELabel.Caption := LoadStr(SBDEErrorLabel);
-  NativeLabel.Caption := LoadStr(SServerErrorLabel);
-  Next.Caption := LoadStr(SNextButton) + ' >';
-  Back.Caption := '< ' + LoadStr(SPrevButton);
-  OKBtn.Caption := ResStr(SOKButton);
+  Caption := RxLoadStr(SDBExceptCaption);
+  BDELabel.Caption := RxLoadStr(SBDEErrorLabel);
+  NativeLabel.Caption := RxLoadStr(SServerErrorLabel);
+  Next.Caption := RxLoadStr(SNextButton) + ' >';
+  Back.Caption := '< ' + RxLoadStr(SPrevButton);
+  OKBtn.Caption := SOKButton;
   { Set exception handler }
   FPrevOnException := Application.OnException;
   Application.OnException := ShowException;

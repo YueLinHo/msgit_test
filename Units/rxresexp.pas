@@ -7,17 +7,16 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-'NOTE: This expert is currently broken' +
-'      I tried to convert it to using the ToolsAPI but never finished'
 unit RxResExp;
 
 interface
 
 {$I RX.INC}
 
-{$ifdef rx_d7}
-  {$define use_toolsapi}
-{$endif}
+{$IFDEF RX_D7}
+  // for ExptIntf     whats instead this unit?
+  {$WARN UNIT_DEPRECATED OFF}
+{$ENDIF}
 
 {$IFNDEF RX_D3}
   ERROR! This unit is intended for Delphi 3.0 or higher only!
@@ -27,13 +26,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  IniFiles, ComCtrls, EditIntf,
-{$IFDEF use_toolsapi}
-  ToolsApi,
-{$ELSE}
-  ExptIntf, ToolIntf,
-{$ENDIF}
-  Menus, StdCtrls, rxPlacemnt
+  IniFiles, ComCtrls, EditIntf, ExptIntf, ToolIntf, Menus, StdCtrls, RxPlacemnt
+  {$IFDEF RX_D6}, Types{$ENDIF}
   {$IFDEF RX_D4}, ImgList {$ENDIF};
 
 type
@@ -47,28 +41,17 @@ type
     ResType: string;
   end;
 
-{$IFDEF use_toolsapi}
-  TAddInNotifier = class(TNotifierObject, IOTAIDENotifier)
-{$else}
   TAddInNotifier = class(TIAddInNotifier)
-{$endif}
   private
     FProjectResources: TRxProjectResExpert;
   public
     constructor Create(AProjectResources: TRxProjectResExpert);
-{$IFDEF use_toolsapi}
-    procedure FileNotification(NotifyCode: TOTAFileNotification;
-      const FileName: string; var Cancel: Boolean);
-    procedure BeforeCompile(const Project: IOTAProject; var Cancel: Boolean); overload;
-    procedure AfterCompile(Succeeded: Boolean); overload;
-{$else}
     procedure FileNotification(NotifyCode: TFileNotification;
       const FileName: string; var Cancel: Boolean); override;
 {$IFDEF RX_D3}
     procedure EventNotification(NotifyCode: TEventNotification;
       var Cancel: Boolean); override;
 {$ENDIF}
-{$endif}
   end;
 
   TProjectNotifier = class(TIModuleNotifier)
@@ -115,19 +98,8 @@ type
     function EnableRenameDelete: Boolean;
   end;
 
-{$ifdef use_toolsapi}
-  TIMenuItemIntf = TMenuItem;
-{$endif}
-
-{$ifdef use_toolsapi}
-  TRxProjectResExpert = class(TNotifierObject, IOTAWizard)
-{$else}
   TRxProjectResExpert = class(TIExpert)
-{$endif}
   private
-{$ifdef use_toolsapi}
-    FNotifierIdx: integer;
-{$endif}
     ProjectResourcesItem: TIMenuItemIntf;
     AddInNotifier: TAddInNotifier;
     ProjectNotifier: TProjectNotifier;
@@ -137,8 +109,6 @@ type
     FResFileName: string;
     FProjectName: string;
     FLockCount: Integer;
-    procedure RegisterNotifier;
-    procedure UnregisterNotifier;
     procedure FindChildren(ResFile: TIResourceFile; Entry: TResourceEntry);
     procedure LoadProjectResInfo;
     procedure ClearProjectResInfo;
@@ -149,39 +119,24 @@ type
     procedure LoadDesktop(const FileName: string);
     procedure SaveDesktop(const FileName: string);
 {$ENDIF}
-{$ifdef use_toolsapi}
-    procedure ProjectResourcesClick(Sender: TObject);
-{$else}
     procedure ProjectResourcesClick(Sender: TIMenuItemIntf);
-{$endif}
-    procedure CreateResourcesMenuItem;
   public
     constructor Create;
     destructor Destroy; override;
-    function GetName: string; {$ifndef use_toolsapi}override; {$endif}
-    function GetAuthor: string;  {$ifndef use_toolsapi}override; {$endif}
- {$ifndef use_toolsapi}
+    function GetName: string; override;
+    function GetAuthor: string; override;
     function GetComment: string; override;
     function GetPage: string; override;
     function GetGlyph: HICON; override;
-    function GetStyle: TExpertStyle; override;
     function GetMenuText: string; override;
-{$endif}
-{$ifdef use_toolsapi}
-    function GetState: TWizardState;
-{$else}
     function GetState: TExpertState; override;
-{$endif}
     function GetStyle: TExpertStyle; override;
-    function GetIDString: string; {$ifndef use_toolsapi}override; {$endif}
-    procedure Execute; {$ifndef use_toolsapi}override; {$endif}
+    function GetIDString: string; override;
+    procedure Execute; override;
     procedure BeginUpdate;
     procedure EndUpdate;
     procedure MarkModified;
-{$ifdef use_toolsapi}
-{$else}
     function GetResFile: TIResourceFile;
-{$endif}
     function UniqueName(ResFile: TIResourceFile; ResType: PChar;
       var Index: Integer): string;
     procedure CheckRename(ResFile: TIResourceFile; ResType, NewName: PChar);
@@ -259,11 +214,10 @@ procedure RegisterResourceExpert;
 
 implementation
 
-uses
-  Consts, rxVCLUtils, rxStrUtils, rxMaxMin, rxPictEdit;
+uses Consts, RxVCLUtils, RxStrUtils, RxMaxMin, RxPictEdit;
 
 {$R *.DFM}
-{$R *.R32}
+{$R *.RES}
 {$D-}
 
 {$I RXRESEXP.INC}
@@ -276,11 +230,7 @@ const
 
 procedure RegisterResourceExpert;
 begin
-{$ifdef use_toolsapi}
-  RegisterPackageWizard(TRxProjectResExpert.Create);
-{$else}
   RegisterLibraryExpert(TRxProjectResExpert.Create);
-{$endif}
 end;
 
 { TInputBox }
@@ -430,7 +380,7 @@ begin
   Result := False;
   if (Length(Ident) = 0) then Exit;
   for I := 1 to Length(Ident) do
-    if not (Ident[I] in AlphaNumeric) then Exit;
+    if not CharInSet(Ident[I], AlphaNumeric) then Exit;
   Result := True;
 end;
 
@@ -565,10 +515,8 @@ end;
 
 const
   ResImages: array[TResourceType] of Integer = (2, 4, 4, 5, 3, 3, 2, 8, 4, 2);
-{$ifndef use_toolsapi}
   AllMenuFlags = [mfInvalid, mfEnabled, mfVisible, mfChecked, mfBreak,
     mfBarBreak, mfRadioItem];
-{$endif}
 
 const
   MOVEABLE    = $0010;
@@ -882,14 +830,12 @@ end;
 
 procedure EnableMenuItem(Expert: TRxProjectResExpert;
   AEnable: Boolean);
-var
-  pri: TIMenuItemIntf;
 begin
-  pri := Expert.ProjectResourcesItem;
-  if (Expert.FResFileName <> '') and AEnable then
-    pri.Enabled := true // SetFlags(AllMenuFlags, GetFlags + [mfEnabled])
-  else
-    pri.Enabled := false; // SetFlags(AllMenuFlags, GetFlags - [mfEnabled]);
+  with Expert.ProjectResourcesItem do
+    if (Expert.FResFileName <> '') and AEnable then
+      SetFlags(AllMenuFlags, GetFlags + [mfEnabled])
+    else
+      SetFlags(AllMenuFlags, GetFlags - [mfEnabled]);
 end;
 
 constructor TAddInNotifier.Create(AProjectResources: TRxProjectResExpert);
@@ -897,32 +843,6 @@ begin
   inherited Create;
   FProjectResources := AProjectResources;
 end;
-
-{$IFDEF use_toolsapi}
-procedure TAddInNotifier.FileNotification(NotifyCode: TOTAFileNotification;
-      const FileName: string; var Cancel: Boolean);
-begin
-  if FProjectResources = nil then Exit;
-  case NotifyCode of
-    ofnFileOpened:
-      begin
-        FProjectResources.OpenProject(FileName);
-        EnableMenuItem(FProjectResources, True);
-      end;
-  end;
-end;
-
-procedure TAddInNotifier.BeforeCompile(const Project: IOTAProject; var Cancel: Boolean);
-begin
-  // nothing to do here, but must be implemented
-end;
-
-procedure TAddInNotifier.AfterCompile(Succeeded: Boolean);
-begin
-  // nothing to do here, but must be implemented
-end;
-
-{$else}
 
 procedure TAddInNotifier.FileNotification(NotifyCode: TFileNotification;
   const FileName: string; var Cancel: Boolean);
@@ -940,7 +860,7 @@ begin
     fnProjectDesktopSave:
       FProjectResources.SaveDesktop(FileName);
 {$ENDIF}
-  end;
+  end;  
 end;
 
 {$IFDEF RX_D3}
@@ -950,7 +870,6 @@ begin
   { Nothing to do here but needs to be overridden anyway }
 end;
 {$ENDIF}
-{$endif}
 
 { TProjectNotifier }
 
@@ -1242,53 +1161,7 @@ end;
 
 { TRxProjectResExpert }
 
-{$ifdef use_toolsapi}
-
-procedure TRxProjectResExpert.CreateResourcesMenuItem;
-var
-  MainMenu: TMainMenu;
-  ViewMenu: TMenuItem;
-  NTAServices: INTAServices;
-begin
-  if not Supports(BorlandIDEServices, INTAServices, NTAServices) then
-    exit;
-  MainMenu := NTAServices.GetMainMenu;
-  if not Assigned(MainMenu) then
-    exit;
-  ViewMenu := MainMenu.Owner.FindComponent('ViewsMenu') as TMenuItem;
-  if not Assigned(ViewMenu) then
-    exit;
-  ProjectResourcesItem := TMenuItem.Create(MainMenu.Owner);
-  ProjectResourcesItem.Name := 'ViewPrjResourceItem';
-  ProjectResourcesItem.Caption := sMenuItemCaption;
-  ProjectResourcesItem.OnClick := ProjectResourcesClick;
-  ViewMenu.Insert(1, ProjectResourcesItem);
-end;
-
-procedure TRxProjectResExpert.RegisterNotifier;
-var
-  OTAServices: IOTAServices;
-begin
-  if not Supports(BorlandIDEServices, IOTAServices, OTAServices) then
-    exit;
-  FNotifierIdx := OTAServices.AddNotifier(AddInNotifier);
-end;
-
-procedure TRxProjectResExpert.UnRegisterNotifier;
-var
-  OTAServices: IOTAServices;
-begin
-  if FNotifierIdx <> 0 then begin
-    if not Supports(BorlandIDEServices, IOTAServices, OTAServices) then
-      exit;
-    OTAServices.RemoveNotifier(FNotifierIdx);
-    FNotifierIdx := 0;
-  end;
-end;
-
-{$else}
-
-procedure TRxProjectResExpert.CreateResourcesMenuItem;
+constructor TRxProjectResExpert.Create;
 var
   MainMenu: TIMainMenuIntf;
   ProjSrcMenu: TIMenuItemIntf;
@@ -1297,41 +1170,35 @@ var
 begin
   inherited Create;
   FResourceList := TStringList.Create;
-  if not Assigned(ToolServices) then
-    exit;
-  MainMenu := ToolServices.GetMainMenu;
-  if MainMenu <> nil then
-  try
-    MenuItems := MainMenu.GetMenuItems;
-    if MenuItems <> nil then
+  if Assigned(ToolServices) then begin
+    MainMenu := ToolServices.GetMainMenu;
+    if MainMenu <> nil then
     try
-      ProjSrcMenu := MainMenu.FindMenuItem('ViewPrjSourceItem');
-      if ProjSrcMenu <> nil then
+      MenuItems := MainMenu.GetMenuItems;
+      if MenuItems <> nil then
       try
-        ViewMenu := ProjSrcMenu.GetParent;
-        if ViewMenu <> nil then
+        ProjSrcMenu := MainMenu.FindMenuItem('ViewPrjSourceItem');
+        if ProjSrcMenu <> nil then
         try
-          if (MainMenu.FindMenuItem('ViewPrjResourceItem')=nil) then // Polaris
-          ProjectResourcesItem := ViewMenu.InsertItem(
-            ProjSrcMenu.GetIndex, GetMenuText, 'ViewPrjResourceItem',
-            '', 0, 0, 0, [mfVisible], ProjectResourcesClick);
+          ViewMenu := ProjSrcMenu.GetParent;
+          if ViewMenu <> nil then     
+          try
+            if (MainMenu.FindMenuItem('ViewPrjResourceItem')=nil) then // Polaris
+              ProjectResourcesItem := ViewMenu.InsertItem(
+                ProjSrcMenu.GetIndex, GetMenuText, 'ViewPrjResourceItem',
+                '', 0, 0, 0, [mfVisible], ProjectResourcesClick);
+          finally
+            ViewMenu.Free;
+          end;
         finally
-          ViewMenu.Free;
+          ProjSrcMenu.Free;
         end;
       finally
-        ProjSrcMenu.Free;
+        MenuItems.Free;
       end;
     finally
-      MenuItems.Free;
+      MainMenu.Free;
     end;
-  finally
-    MainMenu.Free;
-  end;
-end;
-
-procedure TRxProjectResExpert.RegisterNotifier;
-begin
-  if Assigned(ToolServices) then begin
     AddInNotifier := TAddInNotifier.Create(Self);
 {$IFDEF RX_D4}
     ToolServices.AddNotifierEx(AddInNotifier);
@@ -1341,36 +1208,14 @@ begin
   end;
 end;
 
-procedure TRxProjectResExpert.UnRegisterNotifier;
-begin
-  if Assigned(ToolServices) and Assigned(AddInNotifier) then
-    ToolServices.RemoveNotifier(AddInNotifier);
-end;
-
-{$endif}
-
-constructor TRxProjectResExpert.Create;
-begin
-  inherited Create;
-  FResourceList := TStringList.Create;
-  CreateResourcesMenuItem;
-  RegisterNotifier;
-end;
-
 destructor TRxProjectResExpert.Destroy;
 begin
-  try
-    if RxResourceEditor <> nil then RxResourceEditor.Free;
-    UnregisterNotifier;
-    CloseProject;
-    ProjectResourcesItem.Free;
-    AddInNotifier.Free;
-    FResourceList.Free;
-  except
-    on e: exception do
-      ;
-    // for whatever reason there can be exceptions here, ignore them
-  end;
+  if RxResourceEditor <> nil then RxResourceEditor.Free;
+  ToolServices.RemoveNotifier(AddInNotifier);
+  CloseProject;
+  ProjectResourcesItem.Free;
+  AddInNotifier.Free;
+  FResourceList.Free;
   inherited Destroy;
 end;
 
@@ -1384,7 +1229,6 @@ begin
   Result := '';
 end;
 
-{$ifndef use_toolsapi}
 function TRxProjectResExpert.GetComment: string;
 begin
   Result := '';
@@ -1404,14 +1248,7 @@ function TRxProjectResExpert.GetMenuText: string;
 begin
   Result := sMenuItemCaption;
 end;
-{$endif}
 
-{$ifdef use_toolsapi}
-function TRxProjectResExpert.GetState: TWizardState;
-begin
-  Result := [wsEnabled];
-end;
-{$else}
 function TRxProjectResExpert.GetState: TExpertState;
 begin
   Result := [esEnabled];
@@ -1421,7 +1258,6 @@ function TRxProjectResExpert.GetStyle: TExpertStyle;
 begin
   Result := esAddIn;
 end;
-{$endif}
 
 function TRxProjectResExpert.GetIDString: string;
 begin
@@ -1443,32 +1279,12 @@ begin
   if FLockCount = 0 then UpdateProjectResInfo;
 end;
 
-{$ifdef use_toolsapi}
-function GetProjectResource(Project: IOTAProject): IOTAProjectResource;
-var
-  i: Integer;
-  Editor: IOTAEditor;
-begin
-  Result := nil;
-  for i:= 0 to (Project.GetModuleFileCount - 1) do
-  begin
-    Editor := Project.GetModuleFileEditor(i);
-    if Supports(Editor, IOTAProjectResource, Result) then
-      Break;
-  end;
-end;
-{$else}
 function TRxProjectResExpert.GetResFile: TIResourceFile;
 begin
-  Result := nil;
-  try
-    if Assigned(ProjectModule) and ProjectModule.IsProjectModule then
-      Result := ProjectModule.GetProjectResource;
-  except
-    Result := nil;
-  end;
+  if ProjectModule.IsProjectModule then
+    Result := ProjectModule.GetProjectResource
+  else Result := nil;
 end;
-{$endif}
 
 procedure TRxProjectResExpert.FindChildren(ResFile: TIResourceFile;
   Entry: TResourceEntry);
@@ -1525,7 +1341,7 @@ var
 begin
   Cnt := -1;
   try
-  ResourceFile := GetResFile;
+    ResourceFile := GetResFile;
   except
     ResourceFile := nil;
   end;
@@ -1719,21 +1535,9 @@ begin
   end;
 end;
 
-{$ifdef use_toolsapi}
-procedure TRxProjectResExpert.OpenProject(const FileName: string);
-var
-  Project: IOTAProject;
-begin
-  Project := GetActiveProject;
-//  Project.
-  { TODO -otwm : implement }
-end;
-{$else}
 procedure TRxProjectResExpert.OpenProject(const FileName: string);
 begin
   CloseProject;
-  if not Assigned(ToolServices) then
-    exit;
   ProjectModule := ToolServices.GetModuleInterface(FileName);
   if ProjectModule <> nil then begin
     ProjectNotifier := TProjectNotifier.Create(Self);
@@ -1746,7 +1550,7 @@ begin
     end;
   end;
 end;
-{$endif}
+
 procedure TRxProjectResExpert.CloseProject;
 begin
   if ProjectModule <> nil then begin
@@ -1792,43 +1596,12 @@ end;
 
 {$ENDIF}
 
-{$ifdef use_toolsapi}
-procedure TRxProjectResExpert.ProjectResourcesClick(Sender: TObject);
-var
-  Reopen: Boolean;
-  ProjectName: string;
-  ResourceFile: TIResourceFile;
-  ActiveProject: IOTAProject;
-begin
-  ResourceFile := GetResFile;
-  try
-    if Assigned(ResourceFile) then begin
-      Reopen := RxResourceEditor = nil;
-      CreateForm(TRxResourceEditor, RxResourceEditor);
-      RxResourceEditor.FExpert := Self;
-      ActiveProject := GetActiveProject;
-      if Assigned(ActiveProject) then
-      begin
-        ProjectName := ActiveProject.Filename;
-        if Reopen or (FProjectName <> ProjectName) then begin
-          if ProjectName <> '' then OpenProject(ProjectName);
-        end;
-      end;
-      RxResourceEditor.Show;
-    end;
-  finally
-    ResourceFile.Free;
-  end;
-end;
-{$else}
 procedure TRxProjectResExpert.ProjectResourcesClick(Sender: TIMenuItemIntf);
 var
   Reopen: Boolean;
   ProjectName: string;
   ResourceFile: TIResourceFile;
 begin
-  if not Assigned(ToolServices) then
-    Exit;
   ResourceFile := GetResFile;
   try
     if Assigned(ResourceFile) then begin
@@ -1845,7 +1618,6 @@ begin
     ResourceFile.Free;
   end;
 end;
-{$ENDIF}
 
 procedure TRxProjectResExpert.MarkModified;
 var
@@ -2145,26 +1917,6 @@ end;
 
 { TRxResourceEditor }
 
-{$ifdef use_toolsapi}
-function GetBaseRegistryKey: string;
-var
-  OTAServices: IOTAServices50;
-begin
-  if Supports(BorlandIDEServices, IOTAServices50, OTAServices) then
-    Result := OTAServices.GetBaseRegistryKey
-  else
-    Result := 'GetBaseRegistryKeyFailed';
-end;
-{$else}
-function GetBaseRegistryKey: string;
-begin
-  if Assigned(ToolServices) then
-    Result := ToolServices.GetBaseRegistryKey
-  else
-    Result := 'GetBaseRegistryKeyFailed';
-end;
-{$endif}
-
 procedure TRxResourceEditor.FormCreate(Sender: TObject);
 {$IFDEF RX_D4}
 var
@@ -2185,7 +1937,7 @@ begin
       NewItem.Items[I].ImageIndex := NewItem.Items[I].Tag;
 {$ENDIF RX_D4}
   with Placement do begin
-    IniFileName := GetBaseRegistryKey;
+    IniFileName := ToolServices.GetBaseRegistryKey;
     IniSection := sExpertID;
   end;
 end;

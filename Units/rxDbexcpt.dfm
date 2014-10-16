@@ -10,7 +10,7 @@ object RxBdeErrorDlg: TRxBdeErrorDlg
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   FormStyle = fsStayOnTop
   OldCreateOrder = True
@@ -31,8 +31,8 @@ object RxBdeErrorDlg: TRxBdeErrorDlg
     object ErrorText: TLabel
       Left = 49
       Top = 10
-      Width = 231
-      Height = 88
+      Width = 3
+      Height = 13
       Align = alClient
       WordWrap = True
     end
@@ -121,7 +121,7 @@ object RxBdeErrorDlg: TRxBdeErrorDlg
       Left = 214
       Top = 8
       Width = 80
-      Height = 21
+      Height = 20
       TabStop = False
       ParentColor = True
       ReadOnly = True
@@ -131,7 +131,7 @@ object RxBdeErrorDlg: TRxBdeErrorDlg
       Left = 293
       Top = 8
       Width = 80
-      Height = 21
+      Height = 20
       TabStop = False
       ParentColor = True
       ReadOnly = True
@@ -141,7 +141,7 @@ object RxBdeErrorDlg: TRxBdeErrorDlg
       Left = 214
       Top = 27
       Width = 159
-      Height = 21
+      Height = 20
       TabStop = False
       ParentColor = True
       ReadOnly = True

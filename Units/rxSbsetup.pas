@@ -7,16 +7,21 @@
 {                                                       }
 {*******************************************************}
 
-unit rxSbSetup;
+unit RxSbSetup;
 
 interface
 
 {$I RX.INC}
 
 uses
+{$IFNDEF VER80}
   Windows,
+{$ELSE}
+  WinTypes, WinProcs,
+{$ENDIF}
   SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Buttons, Grids, RxCtrls, rxSpeedBar, ExtCtrls, RxConst;
+  {$IFDEF RX_D17}System.Types,{$ENDIF}
+  StdCtrls, Buttons, Grids, RxCtrls, RxSpeedbar, ExtCtrls, RxConst;
 
 type
   TSpeedbarSetupWindow = class(TForm)
@@ -74,8 +79,7 @@ procedure ShowSpeedbarSetupWindow(Speedbar: TSpeedbar; HelpCtx: THelpContext);
 
 implementation
 
-uses
-  rxVCLUtils, rxMaxMin, Consts, RXTConst;
+uses RxVCLUtils, RxMaxMin, Consts, RXResConst;
 
 {$R *.DFM}
 
@@ -107,7 +111,9 @@ begin
   end;
   try
     if HelpCtx > 0 then Editor.HelpContext := HelpCtx;
+{$IFNDEF VER80}
     Editor.BorderIcons := [biSystemMenu];
+{$ENDIF}
     Editor.HelpBtn.Visible := (HelpCtx > 0);
     Editor.Show;
     if Editor.WindowState = wsMinimized then Editor.WindowState := wsNormal;
@@ -331,10 +337,10 @@ begin
   { Load string resources }
   CloseBtn.Caption := ResStr(SOKButton);
   HelpBtn.Caption := ResStr(SHelpButton);
-  Caption := LoadStr(SCustomizeSpeedbar);
-  CategoriesLabel.Caption := LoadStr(SSpeedbarCategories);
-  ButtonsLabel.Caption := LoadStr(SAvailButtons);
-  HintLabel.Caption := LoadStr(SSpeedbarEditHint);
+  Caption := RxLoadStr(SCustomizeSpeedbar);
+  CategoriesLabel.Caption := RxLoadStr(SSpeedbarCategories);
+  ButtonsLabel.Caption := RxLoadStr(SAvailButtons);
+  HintLabel.Caption := RxLoadStr(SSpeedbarEditHint);
 end;
 
 procedure TSpeedbarSetupWindow.FormDestroy(Sender: TObject);

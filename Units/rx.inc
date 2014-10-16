@@ -19,10 +19,10 @@
   have Delphi Desktop, Standard or Professional Edition }
 
 {.$DEFINE RX_MIDAS}
-{ RX MIDAS components }
+{ RX MIDAS components } 
 
 {.$DEFINE RX_ADO}
-{ RX ADO components }
+{ RX ADO components } 
 
 {$DEFINE USE_RX_GIF}
 { This define enables GIF image support. Deactivate this define
@@ -131,34 +131,158 @@
   {$DEFINE RX_D7}
 {$ENDIF}
 
-{$IFDEF VER160} {Delphi 8.0}
-  {$DEFINE RX_D3}
-  {$DEFINE RX_D4}
-  {$DEFINE RX_D5}
-  {$DEFINE RX_D6}
-  {$DEFINE RX_D7}
-  {$DEFINE RX_D8}
-{$ENDIF}
-
 {$IFDEF VER170} { Borland Delphi 2005 9.x }   // JB
   {$DEFINE RX_D3}
   {$DEFINE RX_D4}
   {$DEFINE RX_D5}
   {$DEFINE RX_D6}
   {$DEFINE RX_D7}
-  {$DEFINE RX_D8}
   {$DEFINE RX_D9}
 {$ENDIF}
 
-{$IFDEF VER180} { Borland Delphi 2006 10.x / Turbo Delphi }   // JB
+{$IFDEF VER180} { Borland Delphi 2006, Turbo 10.x }   // JB
   {$DEFINE RX_D3}
   {$DEFINE RX_D4}
   {$DEFINE RX_D5}
   {$DEFINE RX_D6}
   {$DEFINE RX_D7}
-  {$DEFINE RX_D8}
   {$DEFINE RX_D9}
   {$DEFINE RX_D10}
+{$ENDIF}
+
+{$IFDEF VER185} { Borland Delphi 2007 11.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+{$ENDIF}
+
+{$IFDEF VER200} { Borland Delphi 2009 12.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+{$ENDIF}
+
+{$IFDEF VER210} { Borland Delphi 2010 14.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+{$ENDIF}
+
+{$IFDEF VER220} { Borland Delphi XE 15.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+  {$DEFINE RX_D15}
+{$ENDIF}
+
+{$IFDEF VER230} { Borland Delphi XE2 16.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+  {$DEFINE RX_D15}
+  {$DEFINE RX_D16}
+{$ENDIF}
+
+{$IFDEF VER240} { Borland Delphi XE3 17.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+  {$DEFINE RX_D15}
+  {$DEFINE RX_D16}
+  {$DEFINE RX_D17}
+{$ENDIF}
+
+{$IFDEF VER250} { Borland Delphi XE4 18.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+  {$DEFINE RX_D15}
+  {$DEFINE RX_D16}
+  {$DEFINE RX_D17}
+  {$DEFINE RX_D18}
+{$ENDIF}
+
+{$IFDEF VER260} { Borland Delphi XE5 19.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+  {$DEFINE RX_D15}
+  {$DEFINE RX_D16}
+  {$DEFINE RX_D17}
+  {$DEFINE RX_D18}
+  {$DEFINE RX_D19}
+{$ENDIF}
+
+{$IFDEF VER270} { Borland Delphi XE6 20.x }   // JB
+  {$DEFINE RX_D3}
+  {$DEFINE RX_D4}
+  {$DEFINE RX_D5}
+  {$DEFINE RX_D6}
+  {$DEFINE RX_D7}
+  {$DEFINE RX_D9}
+  {$DEFINE RX_D10}
+  {$DEFINE RX_D11}
+  {$DEFINE RX_D12}
+  {$DEFINE RX_D14}
+  {$DEFINE RX_D15}
+  {$DEFINE RX_D16}
+  {$DEFINE RX_D17}
+  {$DEFINE RX_D18}
+  {$DEFINE RX_D19}
+  {$DEFINE RX_D20}
 {$ENDIF}
 
 {$DEFINE MSWINDOWS}
@@ -196,9 +320,9 @@
     {$DEFINE RX_V110}      { C++Builder 3.x or higher }
     {$IFNDEF VER110}
       {$DEFINE RX_V125}    { C++Builder 4.x or higher }
-      {$IFNDEF VER125}
+      {$IFNDEF VER125} 
         {$DEFINE RX_V130C} { C++Builder 5.x or higher }
-      {$ENDIF}
+      {$ENDIF} 
     {$ENDIF}
   {$ENDIF}
 {$ENDIF}
@@ -212,15 +336,14 @@
   {$UNDEF RX_ADO}
 {$ENDIF}
 
-{$IFDEF RX_D6}
-{$WARN SYMBOL_PLATFORM OFF}
-{$WARN SYMBOL_DEPRECATED OFF}
-{$WARN SYMBOL_PLATFORM OFF}
-{$WARN UNIT_PLATFORM OFF}
-{$WARN UNIT_DEPRECATED OFF}
-{$ENDIF RX_d6}
-
 {$IFNDEF DCS}
   {$UNDEF RX_MIDAS}
   {$UNDEF RX_ADO}
+{$ENDIF}
+
+{only for include one default language resource}
+{$DEFINE _LNG_ONE_}
+
+{$IFDEF CONDITIONALEXPRESSIONS}
+  {$WARN SYMBOL_PLATFORM OFF}
 {$ENDIF}

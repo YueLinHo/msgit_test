@@ -1,13 +1,13 @@
 object TimerItemsEditor: TTimerItemsEditor
   Left = 208
   Top = 102
-  ClientHeight = 128
-  ClientWidth = 241
+  ClientHeight = 116
+  ClientWidth = 233
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = [fsBold]
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -41,10 +41,10 @@ object TimerItemsEditor: TTimerItemsEditor
   PixelsPerInch = 96
   TextHeight = 13
   object BtnPanel: TPanel
-    Left = 155
+    Left = 147
     Top = 0
     Width = 86
-    Height = 128
+    Height = 116
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 0
@@ -77,7 +77,7 @@ object TimerItemsEditor: TTimerItemsEditor
     end
     object Panel1: TPanel
       Left = 0
-      Top = 91
+      Top = 82
       Width = 86
       Height = 34
       Align = alBottom
@@ -97,8 +97,8 @@ object TimerItemsEditor: TTimerItemsEditor
   object ClientPanel: TPanel
     Left = 0
     Top = 0
-    Width = 155
-    Height = 128
+    Width = 147
+    Height = 116
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 2
@@ -106,8 +106,8 @@ object TimerItemsEditor: TTimerItemsEditor
     object DrawGrid: TDrawGrid
       Left = 2
       Top = 2
-      Width = 151
-      Height = 121
+      Width = 143
+      Height = 112
       Align = alClient
       ColCount = 1
       DefaultRowHeight = 16

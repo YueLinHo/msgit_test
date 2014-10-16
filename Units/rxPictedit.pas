@@ -9,17 +9,17 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxPictEdit;
+unit RxPictEdit;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Windows, Messages, Classes, Graphics, Forms, Controls, Dialogs, Buttons,
-  StdCtrls, ExtCtrls, rxPlacemnt, rxClipMon,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Messages, Classes, Graphics, Forms, Controls, Dialogs, Buttons,
+  StdCtrls, ExtCtrls, RxPlacemnt, RxClipMon,
   {$IFDEF RX_D3} ExtDlgs, ComCtrls, {$ELSE} ImagPrvw, {$ENDIF} Menus,
-  rxMRUList, RXCtrls,
+  RxMRUList, RXCtrls,
   {$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 type
@@ -157,13 +157,14 @@ function EditGraphic(Graphic: TGraphic; AClass: TGraphicClass;
 
 implementation
 
-uses
-  TypInfo, SysUtils, Clipbrd, Consts, ShellApi, LibHelp, rxClipIcon, RxGraph,
-  rxVCLUtils, rxAppUtils, RxConst, RxDirFrm, rxFileUtil
+uses TypInfo, SysUtils, Clipbrd, Consts, ShellApi, LibHelp, RxClipIcon, RxGraph,
+  RxVCLUtils, RxAppUtils, RxConst, RxDirFrm, RxFileUtil  // Polaris
   {$IFDEF RX_D6} , RTLConsts {$ENDIF}; // Polaris
 
 {$B-}
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 {$R *.DFM}
 
@@ -490,12 +491,16 @@ begin
 {$ENDIF}
   FileDialog.Title := 'Load picture';
   SaveDialog.Title := 'Save picture as';
+{$IFNDEF VER80}
   Bevel.Visible := False;
   Font.Style := [];
   with FormStorage do begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
+{$ELSE}
+  if NewStyleControls then Font.Style := [];
+{$ENDIF}
   PathsMRU.RecentMenu := PathsMenu.Items;
   FIconColor := clBtnFace;
   HelpContext := hcDPictureEditor;
@@ -519,11 +524,25 @@ begin
 end;
 
 procedure TPictureEditDialog.LoadFile(const FileName: string);
+var
+  Graphic: TGraphic;
 begin
   Application.ProcessMessages;
   StartWait;
   try
     Pic.LoadFromFile(FileName);
+    if (GraphicClass <> nil) and not (Pic.Graphic is GraphicClass) then
+    begin
+      { Ensure that the correct graphic class is returned to prevent an
+        "Invalid graphic format" exception. }
+      Graphic := GraphicClass.Create;
+      try
+        Graphic.LoadFromFile(FileName);
+        Pic.Assign(Graphic);
+      finally
+        Graphic.Free;
+      end;
+    end;
   finally
     StopWait;
   end;
@@ -602,8 +621,10 @@ procedure TPictureEditDialog.ImagePaintBoxPaint(Sender: TObject);
 var
   DrawRect: TRect;
   SNone: string;
+{$IFNDEF VER80}
   Ico: HIcon;
   W, H: Integer;
+{$ENDIF}
 begin
   with TPaintBox(Sender) do begin
     Canvas.Brush.Color := Color;
@@ -620,6 +641,7 @@ begin
         end
         else begin
           with DrawRect do begin
+{$IFNDEF VER80}
             if Pic.Graphic is TIcon then begin
               Ico := CreateRealSizeIcon(Pic.Icon);
               try
@@ -630,6 +652,7 @@ begin
                 DestroyIcon(Ico);
               end;
             end else
+{$ENDIF}
             Canvas.Draw((Right + Left - Pic.Width) div 2,
               (Bottom + Top - Pic.Height) div 2, Pic.Graphic);
           end;
@@ -663,7 +686,8 @@ var
 begin
   Msg.Result := 0;
   try
-    Num := DragQueryFile(Msg.Drop, $FFFFFFFF, nil, 0);
+    Num := DragQueryFile(Msg.Drop, {$IFNDEF VER80} $FFFFFFFF {$ELSE}
+      $FFFF {$ENDIF}, nil, 0);
     if Num > 0 then begin
       DragQueryFile(Msg.Drop, 0, PChar(@AFileName), Pred(SizeOf(AFileName)));
       Application.BringToFront;

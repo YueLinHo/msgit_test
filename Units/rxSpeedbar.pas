@@ -6,19 +6,21 @@
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Revision and patched by JB.                           }
 {*******************************************************}
 
-unit rxSpeedbar;
+unit RxSpeedBar;
 
 {$I RX.INC}
 {$S-,W-,R-}
 
 interface
 
-uses Windows, Registry, 
+uses {$IFNDEF VER80} Windows, Registry, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   SysUtils, Classes, Messages, Menus, Buttons, Controls, Graphics, Forms,
   {$IFDEF RX_D4} ImgList, ActnList, {$ENDIF} ExtCtrls, Grids, IniFiles,
-  RxCtrls, rxPlacemnt;
+  {$IFDEF RX_D17}System.Types, System.UITypes,{$ENDIF}
+  RxCtrls, RxPlacemnt;
 
 const
   DefButtonWidth = 24;
@@ -75,11 +77,17 @@ type
     FOnPosChanged: TNotifyEvent;
     FOnVisibleChanged: TNotifyEvent;
     FOnCustomize: TNotifyEvent;
+{$IFNDEF RX_D10}
+    FOnMouseEnter : TNotifyEvent;
+    FOnMouseLeave : TNotifyEvent;
+{$ENDIF}
+{$IFNDEF VER80}
     FImages: TImageList;
     FImageChangeLink: TChangeLink;
     procedure ImageListChange(Sender: TObject);
     procedure SetImages(Value: TImageList);
     procedure InvalidateItem(Item: TSpeedItem; Data: Longint);
+{$ENDIF}
     function GetOrientation: TBarOrientation;
     procedure SetOrientation(Value: TBarOrientation);
     procedure ApplyOrientation(Value: TBarOrientation);
@@ -134,6 +142,10 @@ type
     procedure InternalRestoreLayout(IniFile: TObject; const Section: string);
     procedure CMVisibleChanged(var Message: TMessage); message CM_VISIBLECHANGED;
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
+{$IFNDEF RX_D10}
+    procedure CMMouseEnter(var Msg: TMessage); message CM_MOUSEENTER;
+    procedure CMMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
+{$ENDIF}
   protected
     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
     function AppendSection(Value: TSpeedbarSection): Integer; virtual;
@@ -147,11 +159,13 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState;
       X, Y: Integer); override;
     procedure DefineProperties(Filer: TFiler); override;
+{$IFNDEF VER80}
     procedure Notification(AComponent: TComponent;
       Operation: TOperation); override;
-    procedure GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
-      Root: TComponent {$ENDIF}); override;
     procedure SetChildOrder(Component: TComponent; Order: Integer); override;
+{$ELSE}
+    procedure WriteComponents(Writer: TWriter); override;
+{$ENDIF}
     procedure ForEachItem(Proc: TForEachItem; Data: Longint); virtual;
     procedure PosChanged; dynamic;
     procedure AfterCustomize; dynamic;
@@ -174,8 +188,12 @@ type
     function FindItem(Item: TSpeedItem; var Section, Index: Integer): Boolean;
     function SearchSection(const ACaption: string): Integer;
     procedure Customize(HelpCtx: THelpContext);
+{$IFNDEF VER80}
+    procedure GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
+      Root: TComponent {$ENDIF}); override;
     procedure SaveLayoutReg(IniFile: TRegIniFile);
     procedure RestoreLayoutReg(IniFile: TRegIniFile);
+{$ENDIF}
     procedure SaveLayout(IniFile: TIniFile);
     procedure RestoreLayout(IniFile: TIniFile);
     Procedure ReArrangeButtons(ByList:TStringList); //added 12.12.2001 by JB.
@@ -206,7 +224,9 @@ type
     property IniStorage: TFormPlacement read GetStorage write SetStorage;
     property Version: Integer read FVersion write FVersion default 0;
     property Wallpaper: TPicture read FWallpaper write SetWallpaper;
+{$IFNDEF VER80}
     property Images: TImageList read FImages write SetImages;
+{$ENDIF}
 {$IFDEF RX_D4}
     property BiDiMode;
     property Constraints;
@@ -223,6 +243,9 @@ type
     property DragMode;
     property Enabled;
     property Locked;
+{$IFDEF RX_D7}
+    property ParentBackground default False;
+{$ENDIF}
     property ParentColor;
     property ParentCtl3D;
     property ParentShowHint default False;
@@ -245,7 +268,9 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -254,6 +279,38 @@ type
     property OnStartDock;
 {$ENDIF}
     property OnResize;
+{$IFDEF RX_D7}
+    property Alignment;
+    property Anchors;
+    property AutoSize;
+    property BevelEdges;
+    property BevelKind;
+    property Caption;
+    property UseDockManager default True;
+    property DockSite;
+    property DragKind;
+    property FullRepaint;
+    property OnCanResize;
+    property OnConstrainedResize;
+    property OnDockDrop;
+    property OnDockOver;
+    property OnGetSiteInfo;
+    property OnUnDock;
+{$ENDIF}
+{$IFDEF RX_D9}
+    property VerticalAlignment;
+    property OnAlignInsertBefore;
+    property OnAlignPosition;
+    property OnMouseActivate;
+{$ENDIF}
+{$IFDEF RX_D10}
+    property Padding;
+    property OnMouseEnter;
+    property OnMouseLeave;
+{$ELSE}
+    property OnMouseEnter : TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
+    property OnMouseLeave : TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
+{$ENDIF}
   end;
 
 { TSpeedItem }
@@ -273,8 +330,11 @@ type
     FParent: TSpeedBar;
     FSection: Integer;
     FSectionName: string;
+    FThemedStyle: Boolean;
+{$IFNDEF VER80}
     FImageIndex: Integer;
     procedure SetImageIndex(Value: Integer);
+{$ENDIF}
 {$IFDEF RX_D4}
     function GetAction: TBasicAction;
     procedure SetAction(Value: TBasicAction);
@@ -350,6 +410,7 @@ type
     procedure WriteSection(Writer: TWriter);
     procedure ReadSectionName(Reader: TReader);
     procedure WriteSectionName(Writer: TWriter);
+    procedure SetThemedStyle(const Value: Boolean);
   protected
     procedure ReadState(Reader: TReader); override;
     procedure SetName(const Value: TComponentName); override;
@@ -360,8 +421,10 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function HasParent: Boolean; override;
+{$IFNDEF VER80}
     function GetParentComponent: TComponent; override;
     procedure SetParentComponent(Value: TComponent); override;
+{$ENDIF}
     procedure ButtonClick;
     function CheckBtnMenuDropDown: Boolean;
     procedure Click; virtual;
@@ -386,7 +449,9 @@ type
     property Cursor: TCursor read GetCursor write SetCursor default crDefault;
     property Glyph: TBitmap read GetGlyph write SetGlyph;
     property Hint: string read GetHint write SetHint;
+{$IFNDEF VER80}
     property ImageIndex: Integer read FImageIndex write SetImageIndex default -1;
+{$ENDIF}
     property Layout: TButtonLayout read GetLayout write SetLayout default blGlyphTop;
     property Margin: Integer read GetMargin write SetMargin default -1;
     property MarkDropDown: Boolean read GetMarkDropDown write SetMarkDropDown default True;
@@ -397,6 +462,7 @@ type
     property Spacing: Integer read GetSpacing write SetSpacing default 4;
     property Stored: Boolean read FStored write FStored default True;
     property Tag: Longint read GetTag write SetTag default 0;
+    property ThemedStyle: Boolean read FThemedStyle write SetThemedStyle default False;
     property Left: Integer read GetLeft write SetLeft default 0;
     property Top: Integer read GetTop write SetTop default 0;
     property Visible: Boolean read FVisible write SetVisible default False;
@@ -431,12 +497,18 @@ type
     procedure SetSpeedbar(Value: TSpeedBar);
     procedure ValidateCaption(const NewCaption: string);
   protected
+{$IFNDEF VER80}
     procedure SetParentComponent(Value: TComponent); override;
+{$ELSE}
+    procedure ReadState(Reader: TReader); override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function HasParent: Boolean; override;
+{$IFNDEF VER80}
     function GetParentComponent: TComponent; override;
+{$ENDIF}
     procedure Clear;
     procedure RemoveItem(Item: TSpeedItem);
     property Count: Integer read GetCount;
@@ -455,8 +527,10 @@ type
     FImage: TButtonImage;
     FSpacing, FMargin: Integer;
     FLayout: TButtonLayout;
+{$IFNDEF VER80}
     FImageIndex: Integer;
     FImages: TImageList;
+{$ENDIF}
     function GetCaption: TCaption;
     function GetGlyph: TBitmap;
     function GetNumGlyphs: TRxNumGlyphs;
@@ -482,8 +556,10 @@ type
     property Glyph: TBitmap read GetGlyph write SetGlyph;
     property NumGlyphs: TRxNumGlyphs read GetNumGlyphs write SetNumGlyphs;
     property Spacing: Integer read FSpacing write FSpacing;
+{$IFNDEF VER80}
     property ImageIndex: Integer read FImageIndex write FImageIndex;
     property Images: TImageList read FImages write FImages;
+{$ENDIF}
     property Margin: Integer read FMargin write FMargin;
     property Layout: TButtonLayout read FLayout write FLayout;
     property WordWrap: Boolean read GetWordWrap write SetWordWrap;
@@ -499,27 +575,19 @@ const
 
 { Utility routines for Speedbar Editors }
 
-function FindSpeedBar(const Pos: TPoint): TSpeedBar;
+function FindSpeedBar(const Pos: TPoint): TSpeedBar; {$IFDEF RX_D9}inline;{$ENDIF}
 procedure DrawCellButton(Grid: TDrawGrid; R: TRect; Item: TSpeedItem;
   Image: TButtonImage {$IFDEF RX_D4}; ARightToLeft: Boolean = False {$ENDIF});
-function NewSpeedSection(ASpeedbar: TSpeedBar; const ACaption: string): Integer;
+function NewSpeedSection(ASpeedbar: TSpeedBar; const ACaption: string): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 function NewSpeedItem(AOwner: TComponent; ASpeedbar: TSpeedBar; Section: Integer;
-  const AName: string): TSpeedItem;
+  const AName: string): TSpeedItem; {$IFDEF RX_D9}inline;{$ENDIF}
 
 implementation
 
 uses
-  Dialogs,
-  rxMaxMin, rxVCLUtils, rxAppUtils, rxStrUtils, Consts, RxConst, rxSbSetup
-     {$IFDEF RX_D6} ,RTLConsts {$ENDIF}; // Polaris
-
-{ SpeedBar exceptions }
-{$IFDEF RX_D3}
-resourcestring
-{$ELSE}
-const
-{$ENDIF}
-  SAutoSpeedbarMode = 'Cannot set this property value while Position is bpAuto';
+  Dialogs, RxMaxMin, RxVCLUtils, RxAppUtils, Consts, RxConst, RxSbSetup, // Polaris
+  RxResConst,
+  {$IFDEF RX_D6} RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
 const
   DefaultButtonSize: TPoint = (X: DefButtonWidth; Y: DefButtonHeight);
@@ -557,7 +625,8 @@ end;
 
 procedure TSpeedbarSection.Clear;
 begin
-  while FList.Count > 0 do begin
+  while FList.Count > 0 do
+  begin
     TSpeedItem(FList[0]).Free;
     FList.Delete(0);
   end;
@@ -589,11 +658,13 @@ var
   CurIndex, Count: Integer;
 begin
   CurIndex := GetIndex;
-  if CurIndex >= 0 then begin
+  if CurIndex >= 0 then
+  begin
     Count := FParent.FSections.Count;
     if Value < 0 then Value := 0;
     if Value >= Count then Value := Count - 1;
-    if Value <> CurIndex then begin
+    if Value <> CurIndex then
+    begin
       FParent.FSections.Delete(CurIndex);
       FParent.FSections.Insert(Value, Self);
     end;
@@ -615,6 +686,8 @@ begin
   if CurIndex >= 0 then Index := CurIndex;
 end;
 
+{$IFNDEF VER80}
+
 function TSpeedbarSection.GetParentComponent: TComponent;
 begin
   Result := FParent;
@@ -625,12 +698,23 @@ begin
   SpeedBar := Value as TSpeedBar;
 end;
 
+{$ELSE}
+
+procedure TSpeedbarSection.ReadState(Reader: TReader);
+begin
+  inherited ReadState(Reader);
+  if Reader.Parent is TSpeedBar then SpeedBar := TSpeedBar(Reader.Parent);
+end;
+
+{$ENDIF}
+
 procedure TSpeedbarSection.RemoveItem(Item: TSpeedItem);
 var
   I: Integer;
 begin
   I := FList.IndexOf(Item);
-  if I >= 0 then begin
+  if I >= 0 then
+  begin
     Item.FButton.Parent := nil;
     Item.FParent := nil;
     Item.FSection := -1;
@@ -642,7 +726,8 @@ procedure TSpeedbarSection.ValidateCaption(const NewCaption: string);
 var
   I: Integer;
 begin
-  if FParent <> nil then begin
+  if FParent <> nil then
+  begin
     I := FParent.SearchSection(NewCaption);
     if (I <> Index) and (I >= 0) then
       raise ESpeedbarError.Create(ResStr(SDuplicateString));
@@ -712,7 +797,8 @@ end;
 
 procedure TSpeedbarButton.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
-  if (FItem.Speedbar <> nil) then begin
+  if (FItem.Speedbar <> nil) then
+  begin
     case FItem.Speedbar.Orientation of
       boHorizontal: ATop := Max(FItem.Speedbar.FOffset.Y, ATop);
       boVertical: ALeft := Max(FItem.Speedbar.FOffset.X, ALeft);
@@ -745,13 +831,13 @@ procedure TSpeedbarButton.MouseDown(Button: TMouseButton; Shift: TShiftState;
 var
   P: TPoint;
 begin
-  if FItem.FEditing and Visible and (Button = mbLeft) and
-    (FItem.Speedbar <> nil) then
+  if FItem.FEditing and Visible and (Button = mbLeft) and (FItem.Speedbar <> nil) then
   begin
     P := ClientToScreen(Point(FItem.Speedbar.BtnWidth {div 2},
       FItem.Speedbar.BtnHeight {div 2}));
     X := P.X; Y := P.Y;
-    if FBtn = nil then begin
+    if FBtn = nil then
+    begin
       SetCursorPos(X, Y);
       FBtn := TBtnControl.Create(Self);
       FBtn.AssignSpeedItem(FItem);
@@ -766,18 +852,22 @@ var
   P: TPoint;
   R: TRect;
 begin
-  if FItem.FEditing and (FBtn <> nil) then begin
+  if FItem.FEditing and (FBtn <> nil) then
+  begin
     P := ClientToScreen(Point(X - (FBtn.Width {div 2}),
       Y - (FBtn.Height {div 2})));
     X := P.X; Y := P.Y;
-    if FItem.SpeedBar <> nil then begin
+    if FItem.SpeedBar <> nil then
+    begin
       Visible := False;
-      if (csDesigning in ComponentState) then begin
+      if (csDesigning in ComponentState) then
+      begin
         R := BoundsRect;
         InvalidateRect(FItem.Speedbar.Handle, @R, True);
       end;
       P := FItem.SpeedBar.ScreenToClient(P);
-      if PtInRect(FItem.SpeedBar.ClientRect, P) then begin
+      if PtInRect(FItem.SpeedBar.ClientRect, P) then
+      begin
         FBtn.Activate(Bounds(X, Y, FBtn.Width, FBtn.Height));
       end
       else FBtn.ReleaseHandle;
@@ -791,26 +881,32 @@ procedure TSpeedbarButton.MouseUp(Button: TMouseButton; Shift: TShiftState;
 var
   P: TPoint;
 begin
-  if FItem.FEditing and (FBtn <> nil) then begin
+  if FItem.FEditing and (FBtn <> nil) then
+  begin
     X := X - (FBtn.Width {div 2});
     Y := Y - (FBtn.Height {div 2});
     FBtn.Free;
     FBtn := nil;
     P := ClientToScreen(Point(X, Y));
-    if FItem.SpeedBar <> nil then begin
+    if FItem.SpeedBar <> nil then
+    begin
       P := FItem.SpeedBar.ScreenToClient(P);
-      if PtInRect(FItem.SpeedBar.ClientRect, P) then begin
-        if not FItem.SpeedBar.AcceptDropItem(FItem, P.X, P.Y) then begin
+      if PtInRect(FItem.SpeedBar.ClientRect, P) then
+      begin
+        if not FItem.SpeedBar.AcceptDropItem(FItem, P.X, P.Y) then
+        begin
           SendMessage(FItem.Speedbar.FEditWin, CM_SPEEDBARCHANGED, SBR_CHANGED,
             Longint(FItem.Speedbar));
         end
-        else begin
+        else
+        begin
           SendMessage(FItem.Speedbar.FEditWin, CM_SPEEDBARCHANGED, SBR_BTNSELECT,
             Longint(FItem));
           Invalidate;
         end;
       end
-      else begin
+      else
+      begin
         SendToBack;
         FItem.Visible := False;
         SendMessage(FItem.Speedbar.FEditWin, CM_SPEEDBARCHANGED, SBR_CHANGED,
@@ -829,13 +925,17 @@ end;
 procedure TSpeedbarButton.PaintGlyph(Canvas: TCanvas; ARect: TRect;
   AState: TRxButtonState; DrawMark: Boolean);
 begin
-  if (FItem.Speedbar <> nil) then begin
+{$IFNDEF VER80}
+  if (FItem.Speedbar <> nil) then
+  begin
     TRxButtonGlyph(ButtonGlyph).DrawEx(Canvas, ARect, Caption, Layout,
       Margin, Spacing, DrawMark, FItem.Speedbar.Images, FItem.FImageIndex,
       AState, {$IFDEF RX_D4} DrawTextBiDiModeFlags(Alignments[Alignment])
       {$ELSE} Alignments[Alignment] {$ENDIF});
-  end else
-  inherited PaintGlyph(Canvas, ARect, AState, DrawMark);
+  end
+  else
+{$ENDIF}
+    inherited PaintGlyph(Canvas, ARect, AState, DrawMark);
 end;
 
 procedure TSpeedbarButton.Paint;
@@ -848,7 +948,9 @@ end;
 constructor TSpeedItem.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FThemedStyle := False;
   FButton := TSpeedbarButton.Create(Self);
+  FButton.ThemedStyle := Self.ThemedStyle;
   FButton.Visible := False;
   FButton.SetBounds(0, 0, DefaultButtonSize.X, DefaultButtonSize.Y);
 {$IFDEF RX_D4}   // Polaris
@@ -863,7 +965,9 @@ begin
   FEnabled := True;
   FEditing := False;
   FParent := nil;
+{$IFNDEF VER80}
   FImageIndex := -1;
+{$ENDIF}
 end;
 
 destructor TSpeedItem.Destroy;
@@ -899,12 +1003,15 @@ begin
 {$ELSE}
   AssignStr(FCaption, Value);
 {$ENDIF}
-  if ChangeHint then begin
-    if Pos('|', Value) = 0 then begin
+  if ChangeHint then
+  begin
+    if Pos('|', Value) = 0 then
+    begin
       if Pos('|', Hint) = 0 then Hint := Value + '|'
       else Hint := Value + '|' + GetLongHint(Hint);
     end
-    else begin
+    else
+    begin
       if GetLongHint(Value) = '' then
         Hint := GetShortHint(Value) + '|' + GetLongHint(Hint)
       else Hint := Value;
@@ -926,11 +1033,13 @@ end;
 procedure TSpeedItem.SetEditing(Value: Boolean);
 begin
   FEditing := Value;
-  if FEditing then begin
+  if FEditing then
+  begin
     FButton.Enabled := True;
     FButton.Flat := False;
   end
-  else begin
+  else
+  begin
     SetEnabled(FEnabled);
     if SpeedBar <> nil then
       FButton.Flat := (sbFlatBtns in SpeedBar.Options);
@@ -944,18 +1053,20 @@ end;
 
 procedure TSpeedItem.DefineProperties(Filer: TFiler);
 
+{$IFNDEF VER80}
   function DoWrite: Boolean;
   begin
     if Assigned(Filer.Ancestor) then
       Result := GetSectionName <> TSpeedItem(Filer.Ancestor).GetSectionName
     else Result := True;
   end;
+{$ENDIF}
 
 begin
   inherited DefineProperties(Filer);
   Filer.DefineProperty('Section', ReadSection, WriteSection, False);
   Filer.DefineProperty('SectionName', ReadSectionName, WriteSectionName,
-    DoWrite);
+    {$IFNDEF VER80} DoWrite {$ELSE} True {$ENDIF});
 end;
 
 procedure TSpeedItem.ReadSectionName(Reader: TReader);
@@ -979,6 +1090,8 @@ begin
   Writer.WriteInteger(FSection);
 end;
 
+{$IFNDEF VER80}
+
 function TSpeedItem.GetParentComponent: TComponent;
 begin
   Result := FParent;
@@ -988,9 +1101,11 @@ procedure TSpeedItem.SetParentComponent(Value: TComponent);
 var
   I: Integer;
 begin
-  if not (csLoading in ComponentState) then begin
+  if not (csLoading in ComponentState) then
+  begin
     if FParent <> nil then FParent.RemoveItem(Self);
-    if (Value <> nil) and (Value is TSpeedBar) then begin
+    if (Value <> nil) and (Value is TSpeedBar) then
+    begin
       I := TSpeedBar(Value).SearchSection(FSectionName);
       if I >= 0 then FSection := I;
       TSpeedBar(Value).AddItem(FSection, Self);
@@ -1000,17 +1115,21 @@ end;
 
 procedure TSpeedItem.SetImageIndex(Value: Integer);
 begin
-  if Value <> FImageIndex then begin
+  if Value <> FImageIndex then
+  begin
     FImageIndex := Value;
     TSpeedbarButton(FButton).InvalidateGlyph;
     FButton.Invalidate;
   end;
 end;
 
+{$ENDIF}
+
 procedure TSpeedItem.ReadState(Reader: TReader);
 begin
   inherited ReadState(Reader);
-  if Reader.Parent is TSpeedBar then begin
+  if Reader.Parent is TSpeedBar then
+  begin
     if FSectionName <> '' then
       FSection := TSpeedBar(Reader.Parent).SearchSection(FSectionName);
     TSpeedBar(Reader.Parent).AddItem(Max(FSection, 0), Self);
@@ -1059,7 +1178,8 @@ end;
 
 procedure TSpeedItem.SetEnabled(Value: Boolean);
 begin
-  if ((FButton.Enabled <> Value) or (FEnabled <> Value)) then begin
+  if ((FButton.Enabled <> Value) or (FEnabled <> Value)) then
+  begin
     FEnabled := Value;
     if not FEditing then begin
       if (SpeedBar <> nil) and Value then
@@ -1071,8 +1191,7 @@ end;
 
 procedure TSpeedItem.SetVisible(Value: Boolean);
 begin
-  if (FButton.Visible <> Value) or (FVisible <> Value) or
-    (Value and (FButton.Parent = nil)) then
+  if (FButton.Visible <> Value) or (FVisible <> Value) or (Value and (FButton.Parent = nil)) then
   begin
     FVisible := Value;
     if (SpeedBar <> nil) and Value then
@@ -1360,6 +1479,12 @@ begin
   FButton.Tag := Value;
 end;
 
+procedure TSpeedItem.SetThemedStyle(const Value: Boolean);
+begin
+  FThemedStyle := Value;
+  FButton.ThemedStyle := Value;
+end;
+
 function TSpeedItem.GetDropDownMenu: TPopupMenu;
 begin
   Result := FButton.DropDownMenu;
@@ -1432,17 +1557,22 @@ begin
   FRowCount := 1;
   FEditWin := 0;
   FOptions := [sbAllowDrag, sbGrayedBtns];
-  ControlStyle := ControlStyle - [csSetCaption,
-    csReplicatable];
+  ControlStyle := ControlStyle - [csSetCaption {$IFNDEF VER80}, csReplicatable {$ENDIF}];
   ParentShowHint := False;
   ShowHint := True;
   SetFontDefault;
   inherited Align := alTop;
   FAlign := alTop;
   UpdateGridSize;
+{$IFNDEF VER80}
   FImageChangeLink := TChangeLink.Create;
   FImageChangeLink.OnChange := ImageListChange;
-  if not Registered then begin
+{$ENDIF}
+{$IFDEF RX_D7}
+  ParentBackground := False;
+{$ENDIF}
+  if not Registered then
+  begin
     RegisterClasses([TSpeedItem, TSpeedbarSection, TSpeedbarButton]);
     Registered := True;
   end;
@@ -1457,20 +1587,24 @@ begin
   FWallpaper.OnChange := nil;
   FWallpaper.Free;
   FWallpaper := nil;
-  if FEditWin <> 0 then begin
+  if FEditWin <> 0 then
+  begin
     SendMessage(FEditWin, CM_SPEEDBARCHANGED, SBR_DESTROYED, Longint(Self));
     FEditWin := 0;
   end;
   ClearSections;
   FSections.Free;
+{$IFNDEF VER80}
   FImageChangeLink.Free;
+{$ENDIF}
   inherited Destroy;
 end;
 
 procedure TSpeedBar.Loaded;
 begin
   inherited Loaded;
-  if (FReserved = 0) and FFix then begin { fix previous version error }
+  if (FReserved = 0) and FFix then
+  begin { fix previous version error }
     inherited Align := alTop;
     FAlign := alTop;
   end;
@@ -1506,23 +1640,40 @@ end;
 
 procedure TSpeedBar.ReadSections(Reader: TReader);
 var
+{$IFNDEF VER80}
   TmpList: TStrings;
   I: Integer;
+{$ELSE}
+  S: string;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   TmpList := TStringList.Create;
   try
     Reader.ReadListBegin;
     while not Reader.EndOfList do
       TmpList.AddObject(Reader.ReadString, nil);
     Reader.ReadListEnd;
-    if (Reader.Ancestor = nil) or (TmpList.Count > 0) then begin
-      for I := 0 to TmpList.Count - 1 do begin
+    if (Reader.Ancestor = nil) or (TmpList.Count > 0) then
+    begin
+      for I := 0 to TmpList.Count - 1 do
+      begin
         if SearchSection(TmpList[I]) < 0 then AddSection(TmpList[I]);
       end;
     end;
   finally
     TmpList.Free;
   end;
+{$ELSE}
+  Reader.ReadListBegin;
+  FSections.Clear;
+  while not Reader.EndOfList do
+  begin
+    S := Reader.ReadString;
+    if SearchSection(S) < 0 then AddSection(S);
+  end;
+  Reader.ReadListEnd;
+{$ENDIF}
 end;
 
 procedure TSpeedBar.WriteSections(Writer: TWriter);
@@ -1541,7 +1692,7 @@ begin
   Filer.DefineProperty('Sections', ReadSections, WriteSections, False);
   Filer.DefineProperty('NewStyle', ReadDesignStyle, WriteDesignStyle, False);
   Filer.DefineProperty('InternalVer', ReadData, WriteData,
-    Filer.Ancestor = nil);
+    {$IFNDEF VER80} Filer.Ancestor = nil {$ELSE} True {$ENDIF});
   { AllowDrag reading for backward compatibility only }
   Filer.DefineProperty('AllowDrag', ReadAllowDrag, nil, False);
 end;
@@ -1562,9 +1713,11 @@ var
   Sect: TSpeedbarSection;
 begin
   for I := 0 to FSections.Count - 1 do
-    if FSections[I] <> nil then begin
+    if FSections[I] <> nil then
+    begin
       Sect := TSpeedbarSection(FSections[I]);
-      for Idx := 0 to Sect.Count - 1 do begin
+      for Idx := 0 to Sect.Count - 1 do
+      begin
         if (Sect[Idx] <> nil) and Assigned(Proc) then
           Proc(TSpeedItem(Sect[Idx]), Data);
       end;
@@ -1605,11 +1758,15 @@ begin
 end;
 
 procedure TSpeedBar.SetFontDefault;
+{$IFNDEF VER80}
 var
   NCMetrics: TNonClientMetrics;
+{$ENDIF}
 begin
   ParentFont := False;
-  with Font do begin
+  with Font do
+  begin
+{$IFNDEF VER80}
     NCMetrics.cbSize := SizeOf(TNonClientMetrics);
     if SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, @NCMetrics, 0) then
     begin
@@ -1618,12 +1775,16 @@ begin
       Charset := DEFAULT_CHARSET;
   {$ENDIF}
     end
-    else begin
-      Name := 'MS Sans Serif';
+    else
+    begin
+{$ENDIF}
+      Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
       Size := 8;
       Style := [];
       Color := clBtnText;
+{$IFNDEF VER80}
     end;
+{$ENDIF}
   end;
 end;
 
@@ -1641,6 +1802,22 @@ begin
     ForEachItem(SetItemEnabled, 0);
 end;
 
+{$IFNDEF RX_D10}
+procedure TSpeedBar.CMMouseEnter(var Msg: TMessage);
+begin
+  if Assigned(FOnMouseEnter) then
+    FOnMouseEnter(self);
+  inherited;
+end;
+
+procedure TSpeedBar.CMMouseLeave(var Msg: TMessage);
+begin
+  if Assigned(FOnMouseLeave) then
+    FOnMouseLeave(self);
+  inherited;
+end;
+{$ENDIF}
+
 procedure TSpeedBar.WallpaperChanged(Sender: TObject);
 begin
   Invalidate;
@@ -1649,6 +1826,10 @@ end;
 procedure TSpeedBar.SetWallpaper(Value: TPicture);
 begin
   FWallpaper.Assign(Value);
+{$IFDEF RX_D7}
+  if Assigned(Value) then
+    ParentBackground := False;
+{$ENDIF}
 end;
 
 procedure TSpeedBar.ClearSections;
@@ -1662,7 +1843,8 @@ var
   List: TSpeedbarSection;
 begin
   Result := nil;
-  if (Section >= 0) and (Section < FSections.Count) then begin
+  if (Section >= 0) and (Section < FSections.Count) then
+  begin
     List := Sections[Section];
     if List <> nil then
       if (Index >= 0) and (Index < List.Count) then
@@ -1673,7 +1855,8 @@ end;
 function TSpeedBar.ItemsCount(Section: Integer): Integer;
 begin
   Result := 0;
-  if (Section >= 0) and (Section < FSections.Count) then begin
+  if (Section >= 0) and (Section < FSections.Count) then
+  begin
     if FSections[Section] <> nil then
       Result := Sections[Section].Count;
   end;
@@ -1685,8 +1868,10 @@ var
   Item: TSpeedItem;
 begin
   Sect := Sections[Section];
-  if Sect <> nil then begin
-    while Sect.Count > 0 do begin
+  if Sect <> nil then
+  begin
+    while Sect.Count > 0 do
+    begin
       Item := Sect[0];
       Item.Free;
     end;
@@ -1703,8 +1888,9 @@ var
   I: Integer;
 begin
   Sect := Sections[Section];
-  if Sect <> nil then begin
-    for I := 0 to Sect.Count - 1 do RemoveItem(TSpeedItem(Sect[I]));
+  if Sect <> nil then
+  begin
+    for I := Sect.Count - 1 downto 0 do RemoveItem(TSpeedItem(Sect[I]));
     Sect.FParent := nil;
     FSections[Section] := nil;
   end;
@@ -1715,7 +1901,8 @@ procedure TSpeedBar.RemoveItem(Item: TSpeedItem);
 var
   I, Index: Integer;
 begin
-  if FindItem(Item, I, Index) then begin
+  if FindItem(Item, I, Index) then
+  begin
     Item.FButton.Parent := nil;
     Item.FParent := nil;
     Item.FSection := -1;
@@ -1729,7 +1916,8 @@ var
 begin
   Result := -1;
   for I := 0 to FSections.Count - 1 do
-    if Sections[I].Caption = ACaption then begin
+    if Sections[I].Caption = ACaption then
+    begin
       Result := I;
       Exit;
     end;
@@ -1742,15 +1930,18 @@ var
 begin
   I := 0;
   UniqueName := Value.Caption;
-  while SearchSection(UniqueName) >= 0 do begin
+  while SearchSection(UniqueName) >= 0 do
+  begin
     Inc(I);
     UniqueName := Value.Caption + Format(' (%d)', [I]);
   end;
   Value.Caption := UniqueName;
   Result := FSections.Add(Value);
-  if Result >= 0 then begin
+  if Result >= 0 then
+  begin
     Value.FParent := Self;
-    for I := 0 to Value.Count - 1 do begin
+    for I := 0 to Value.Count - 1 do
+    begin
       Value[I].FSection := Result;
       SetItemParams(Value[I], not (csLoading in ComponentState));
     end;
@@ -1769,9 +1960,11 @@ end;
 
 procedure TSpeedBar.SetItemParams(Item: TSpeedItem; InitBounds: Boolean);
 begin
-  with Item do begin
+  with Item do
+  begin
     FParent := Self;
-    with FButton do begin
+    with FButton do
+    begin
       if InitBounds then SetBounds(0, 0, BtnWidth, BtnHeight);
       Style := FButtonStyle;
       Flat := (sbFlatBtns in Options);
@@ -1786,14 +1979,16 @@ function TSpeedBar.NewItem(AOwner: TComponent; Section: Integer;
   const AName: string): TSpeedItem;
 begin
   Result := nil;
-  if (Section >= 0) and (Section < FSections.Count) then begin
+  if (Section >= 0) and (Section < FSections.Count) then
+  begin
     Result := TSpeedItem.Create(AOwner);
     try
       Sections[Section].FList.Add(Result);
       Result.FSection := Section;
       SetItemParams(Result, True);
       if AName <> '' then
-        with Result do begin
+        with Result do
+        begin
           Name := AName;
           Caption := AName;
           FButton.Visible := False;
@@ -1810,15 +2005,18 @@ procedure TSpeedBar.AddItem(Section: Integer; Item: TSpeedItem);
 var
   I, Index: Integer;
 begin
-  if FindItem(Item, I, Index) then begin
+  if FindItem(Item, I, Index) then
+  begin
     Sections[I].FList.Delete(Index);
     if Section >= FSections.Count then Section := FSections.Count - 1;
     Sections[Section].FList.Add(Item);
     Item.FSection := Section;
     Exit;
   end;
-  if (Section >= 0) and (Item <> nil) then begin
-    if Assigned(FOnAddItem) then begin
+  if (Section >= 0) and (Item <> nil) then
+  begin
+    if Assigned(FOnAddItem) then
+    begin
       FOnAddItem(Item);
       Section := Item.FSection;
     end;
@@ -1840,9 +2038,11 @@ begin
   Result := False;
   Section := -1;
   for I := 0 to FSections.Count - 1 do
-    if FSections[I] <> nil then begin
+    if FSections[I] <> nil then
+    begin
       Index := Sections[I].FList.IndexOf(Item);
-      if Index >= 0 then begin
+      if Index >= 0 then
+      begin
         Section := I;
         Result := True;
         Exit;
@@ -1857,12 +2057,15 @@ end;
 
 procedure TSpeedBar.AlignItemToGrid(Item: TSpeedItem; Data: Longint);
 begin
-  if Item.Visible then begin
-    if GetOrientation = boVertical then begin
+  if Item.Visible then
+  begin
+    if GetOrientation = boVertical then
+    begin
       Item.Left := Trunc((Item.Left - FOffset.X) / FGridSize.X) * FGridSize.X + FOffset.X;
       Item.Top := Round((Item.Top - FOffset.Y) / FGridSize.Y) * FGridSize.Y + FOffset.Y;
     end
-    else begin
+    else
+    begin
       Item.Left := Round((Item.Left - FOffset.X) / FGridSize.X) * FGridSize.X + FOffset.X;
       Item.Top := Trunc((Item.Top - FOffset.Y) / FGridSize.Y) * FGridSize.Y + FOffset.Y;
     end;
@@ -1874,12 +2077,15 @@ var
   I, Sect: Integer;
 begin
   Result := False;
-  if FindItem(Item, Sect, I) then begin
-    if GetOrientation = boVertical then begin
+  if FindItem(Item, Sect, I) then
+  begin
+    if GetOrientation = boVertical then
+    begin
       X := Trunc((X - FOffset.X) / FGridSize.X) * FGridSize.X + FOffset.X;
       Y := Round((Y - FOffset.Y) / FGridSize.Y) * FGridSize.Y + FOffset.Y;
     end
-    else begin
+    else
+    begin
       X := Round((X - FOffset.X) / FGridSize.X) * FGridSize.X + FOffset.X;
       Y := Trunc((Y - FOffset.Y) / FGridSize.Y) * FGridSize.Y + FOffset.Y;
     end;
@@ -1919,7 +2125,8 @@ var
 
   procedure BevelLine(C: TColor; X1, Y1, X2, Y2: Integer);
   begin
-    with Canvas do begin
+    with Canvas do
+    begin
       Pen.Color := C;
       MoveTo(X1, Y1);
       LineTo(X2, Y2);
@@ -1927,7 +2134,8 @@ var
   end;
 
 begin
-  if not FLocked then begin
+  if not FLocked then
+  begin
     Rect := ClientRect;
     BevelSize := BorderWidth;
     if BevelOuter <> bvNone then Inc(BevelSize, BevelWidth);
@@ -1948,7 +2156,8 @@ begin
             BevelSize, Bottom - Top + BevelSize);
         if sbStretchBitmap in Options then
           Canvas.StretchDraw(Rect, FWallpaper.Graphic)
-        else begin
+        else
+        begin
           XCnt := (ClientWidth - 2 * BevelSize) div FWallpaper.Width;
           YCnt := (ClientHeight - 2 * BevelSize) div FWallpaper.Height;
           for X := 0 to XCnt do
@@ -1960,22 +2169,27 @@ begin
         RestoreDC(Canvas.Handle, SaveIndex);
       end;
     end;
-    if FBoundLines <> [] then begin
+    if FBoundLines <> [] then
+    begin
       C1 := clBtnShadow;
       C2 := clBtnHighlight;
-      if blTop in FBoundLines then begin
+      if blTop in FBoundLines then
+      begin
         BevelLine(C1, Rect.Left, Rect.Top, Rect.Right, Rect.Top);
         BevelLine(C2, Rect.Left, Rect.Top + 1, Rect.Right, Rect.Top + 1);
       end;
-      if blLeft in FBoundLines then begin
+      if blLeft in FBoundLines then
+      begin
         BevelLine(C1, Rect.Left, Rect.Top, Rect.Left, Rect.Bottom);
         BevelLine(C2, Rect.Left + 1, Rect.Top + Integer(blTop in FBoundLines), Rect.Left + 1, Rect.Bottom);
       end;
-      if blBottom in FBoundLines then begin
+      if blBottom in FBoundLines then
+      begin
         BevelLine(C1, Rect.Left, Rect.Bottom - 2, Rect.Right, Rect.Bottom - 2);
         BevelLine(C2, Rect.Left, Rect.Bottom - 1, Rect.Right, Rect.Bottom - 1);
       end;
-      if blRight in FBoundLines then begin
+      if blRight in FBoundLines then
+      begin
         BevelLine(C1, Rect.Right - 2, Rect.Top, Rect.Right - 2, Rect.Bottom - Integer(blBottom in FBoundLines));
         BevelLine(C2, Rect.Right - 1, Rect.Top, Rect.Right - 1, Rect.Bottom);
       end;
@@ -1985,7 +2199,8 @@ end;
 
 procedure TSpeedBar.ApplyOrientation(Value: TBarOrientation);
 begin
-  if (GetOrientation <> Value) and not (csReading in ComponentState) then begin
+  if (GetOrientation <> Value) and not (csReading in ComponentState) then
+  begin
     FLocked := True;
     try
       FOrientation := Value;
@@ -2004,9 +2219,10 @@ end;
 
 procedure TSpeedBar.SetOrientation(Value: TBarOrientation);
 begin
-  if GetOrientation <> Value then begin
+  if GetOrientation <> Value then
+  begin
     if (FPosition = bpAuto) then
-      raise ESpeedbarError.Create(SAutoSpeedbarMode);
+      raise ESpeedbarError.Create(RxLoadStr(SAutoSpeedbarMode));
     ApplyOrientation(Value);
   end;
 end;
@@ -2018,7 +2234,8 @@ begin
     case Align of
       alLeft, alRight: Result := boVertical;
       alTop, alBottom: Result := boHorizontal;
-      else Result := FOrientation;
+    else
+      Result := FOrientation;
     end;
 end;
 
@@ -2034,20 +2251,23 @@ begin
   { fix previous version error }
   if (csLoading in ComponentState) and (Value = alNone) and
     (Position = bpAuto) then FFix := True;
-  if Align <> Value then begin
+  if Align <> Value then
+  begin
     X := Width; Y := Height;
     if (FPosition = bpAuto) and (Value in [alClient, alNone]) then
-      raise ESpeedbarError.Create(SAutoSpeedbarMode);
+      raise ESpeedbarError.Create(RxLoadStr(SAutoSpeedbarMode));
     inherited Align := Value;
-    if (csLoading in ComponentState) then begin
+    if (csLoading in ComponentState) then
+    begin
       Width := X; Height := Y;
     end;
     if FPosition = bpAuto then
       case Value of
         alLeft, alRight: ApplyOrientation(boVertical);
         alTop, alBottom: ApplyOrientation(boHorizontal);
-        else if not (csLoading in ComponentState) then
-          raise ESpeedbarError.Create(SAutoSpeedbarMode);
+      else
+        if not (csLoading in ComponentState) then
+          raise ESpeedbarError.Create(RxLoadStr(SAutoSpeedbarMode));
       end;
     FAlign := inherited Align;
   end;
@@ -2084,7 +2304,8 @@ var
   P: TPoint;
   Min: Integer;
 begin
-  if FBoundLines <> [] then begin
+  if FBoundLines <> [] then
+  begin
     if blTop in FBoundLines then Inc(Rect.Top, 2);
     if blBottom in FBoundLines then Dec(Rect.Bottom, 2);
     if blLeft in FBoundLines then Inc(Rect.Left, 2);
@@ -2092,14 +2313,20 @@ begin
   end;
   inherited AlignControls(AControl, Rect);
   Min := MinButtonsOffset;
-  if FOffset.X < Min then begin
+  if FOffset.X < Min then
+  begin
     P.X := Min - FOffset.X;
     FOffset.X := Min;
-  end else P.X := 0;
-  if FOffset.Y < Min then begin
+  end
+  else
+    P.X := 0;
+  if FOffset.Y < Min then
+  begin
     P.Y := Min - FOffset.Y;
     FOffset.Y := Min;
-  end else P.Y := 0;
+  end
+  else
+    P.Y := 0;
   if not (csLoading in ComponentState) and ((P.X <> 0) or (P.Y <> 0)) then
     ForEachItem(OffsetItem, Longint(@P));
 end;
@@ -2121,7 +2348,8 @@ end;
 
 procedure TSpeedBar.SetBoundLines(Value: TBoundLines);
 begin
-  if FBoundLines <> Value then begin
+  if FBoundLines <> Value then
+  begin
     FBoundLines := Value;
     Realign;
     Invalidate;
@@ -2132,7 +2360,8 @@ procedure TSpeedBar.SetOptions(Value: TSpeedbarOptions);
 var
   FlatChanged: Boolean;
 begin
-  if FOptions <> Value then begin
+  if FOptions <> Value then
+  begin
     FlatChanged := (sbFlatBtns in FOptions) <> (sbFlatBtns in Value);
     FOptions := Value;
     ForEachItem(FlatItem, Longint(sbFlatBtns in Options));
@@ -2166,12 +2395,14 @@ var
 begin
   if Value < MinButtonsOffset then Value := MinButtonsOffset;
   P.X := 0; P.Y := 0;
-  if Index = 0 then begin
+  if Index = 0 then
+  begin
     P.X := Value - FOffset.X;
     FOffset.X := Value;
     Include(FScaleFlags, sfOffsetX);
   end
-  else if Index = 1 then begin
+  else if Index = 1 then
+  begin
     P.Y := Value - FOffset.Y;
     FOffset.Y := Value;
     Include(FScaleFlags, sfOffsetY);
@@ -2186,14 +2417,16 @@ var
 begin
   case Orientation of
     boHorizontal: Base := FButtonSize.X;
-    else {boVertical:} Base := FButtonSize.Y;
+  else
+    {boVertical:} Base := FButtonSize.Y;
   end;
   case Orientation of
     boHorizontal:
       begin
         FGridSize.X := Max(1, Min(8, Base div 3));
         while (Base mod FGridSize.X <> 0) do Inc(FGridSize.X);
-        if (FGridSize.X = Base) and (Base > 1) then begin
+        if (FGridSize.X = Base) and (Base > 1) then
+        begin
           Dec(FGridSize.X);
           while (FGridSize.X > 1) and (Base mod FGridSize.X <> 0) do
             Dec(FGridSize.X);
@@ -2204,7 +2437,8 @@ begin
       begin
         FGridSize.Y := Max(1, Min(8, Base div 3));
         while (Base mod FGridSize.Y <> 0) do Inc(FGridSize.Y);
-        if (FGridSize.Y = Base) and (Base > 1) then begin
+        if (FGridSize.Y = Base) and (Base > 1) then
+        begin
           Dec(FGridSize.Y);
           while (FGridSize.Y > 1) and (Base mod FGridSize.Y <> 0) do
             Dec(FGridSize.Y);
@@ -2240,11 +2474,13 @@ var
 begin
   NewSize.X := FButtonSize.X;
   NewSize.Y := FButtonSize.Y;
-  if Index = 0 then begin
+  if Index = 0 then
+  begin
     NewSize.X := Value;
     Include(FScaleFlags, sfBtnSizeX);
   end
-  else if Index = 1 then begin
+  else if Index = 1 then
+  begin
     NewSize.Y := Value;
     Include(FScaleFlags, sfBtnSizeY);
   end
@@ -2261,6 +2497,8 @@ begin
   ApplyButtonSize;
 end;
 
+{$IFNDEF VER80}
+
 procedure TSpeedBar.GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
   Root: TComponent {$ENDIF});
 var
@@ -2269,14 +2507,17 @@ var
   Item: TSpeedItem;
 begin
   inherited GetChildren(Proc {$IFDEF RX_D3}, Root {$ENDIF});
-  for I := 0 to FSections.Count - 1 do begin
+  for I := 0 to FSections.Count - 1 do
+  begin
     Sect := Sections[I];
     if Sect <> nil then Proc(Sect);
   end;
-  for I := 0 to FSections.Count - 1 do begin
+  for I := 0 to FSections.Count - 1 do
+  begin
     Sect := Sections[I];
     if Sect <> nil then
-      for Idx := 0 to Sect.Count - 1 do begin
+      for Idx := 0 to Sect.Count - 1 do
+      begin
         Item := Sect[Idx];
         if (Item <> nil) and (Item.Owner <> Self) then Proc(Item);
       end;
@@ -2300,7 +2541,8 @@ end;
 procedure TSpeedBar.InvalidateItem(Item: TSpeedItem; Data: Longint);
 begin
   with Item do
-    if (Button <> nil) then begin
+    if (Button <> nil) then
+    begin
       TSpeedbarButton(Button).InvalidateGlyph;
       if FImageIndex >= 0 then Button.Invalidate;
     end;
@@ -2315,12 +2557,43 @@ procedure TSpeedBar.SetImages(Value: TImageList);
 begin
   if Images <> nil then Images.UnRegisterChanges(FImageChangeLink);
   FImages := Value;
-  if FImages <> nil then begin
+  if FImages <> nil then
+  begin
     FImages.RegisterChanges(FImageChangeLink);
     FImages.FreeNotification(Self);
   end;
   ImageListChange(FImages);
 end;
+
+{$ELSE}
+
+procedure TSpeedBar.WriteComponents(Writer: TWriter);
+var
+  I, Idx: Integer;
+  Sect: TSpeedbarSection;
+  Item: TSpeedItem;
+begin
+  inherited WriteComponents(Writer);
+  for I := 0 to FSections.Count - 1 do
+  begin
+    Sect := TSpeedbarSection(FSections[I]);
+    if (Sect <> nil) and (Sect.Owner = Writer.Root) then
+      Writer.WriteComponent(Sect);
+  end;
+  for I := 0 to FSections.Count - 1 do
+  begin
+    Sect := TSpeedbarSection(FSections[I]);
+    if Sect <> nil then
+      for Idx := 0 to Sect.Count - 1 do
+      begin
+        Item := TSpeedItem(Sect[Idx]);
+        if (Item <> nil) and (Item.Owner = Writer.Root) then
+          Writer.WriteComponent(Item);
+      end;
+  end;
+end;
+
+{$ENDIF}
 
 function TSpeedBar.SearchItem(const ItemName: string): TSpeedItem;
 var
@@ -2330,12 +2603,15 @@ var
 begin
   Result := nil;
   for I := 0 to FSections.Count - 1 do
-    if FSections[I] <> nil then begin
+    if FSections[I] <> nil then
+    begin
       Sect := TSpeedbarSection(FSections[I]);
       for Idx := 0 to Sect.Count - 1 do
-        if (Sect[Idx] <> nil) then begin
+        if (Sect[Idx] <> nil) then
+        begin
           Item := TSpeedItem(Sect[Idx]);
-          if AnsiCompareText(Item.Name, ItemName) = 0 then begin
+          if AnsiCompareText(Item.Name, ItemName) = 0 then
+          begin
             Result := Item;
             Exit;
           end;
@@ -2356,11 +2632,13 @@ begin
   P := Parent.ScreenToClient(ClientToScreen(Point(X, Y)));
   W := Parent.ClientWidth;
   H := Parent.ClientHeight;
-  if P.Y <= P.X * (H / W) then begin { top or right }
+  if P.Y <= P.X * (H / W) then
+  begin { top or right }
     if P.Y >= H * (1 - P.X / W) then Result := Integer(bpRight)
     else Result := Integer(bpTop);
   end
-  else begin { left or bottom }
+  else
+  begin { left or bottom }
     if P.Y >= H * (1 - P.X / W) then Result := Integer(bpBottom)
     else Result := Integer(bpLeft);
   end;
@@ -2391,10 +2669,10 @@ var
     Control: TControl;
   begin
     Result := Parent.ClientRect;
-    for I := 0 to Parent.ControlCount - 1 do begin
+    for I := 0 to Parent.ControlCount - 1 do
+    begin
       Control := Parent.Controls[I];
-      if (Control.Visible) and (Control <> Self) and not
-        (Control.Align in [alNone, alClient]) then
+      if (Control.Visible) and (Control <> Self) and not (Control.Align in [alNone, alClient]) then
       begin
         if (Control.Align > PosToAlign[Pos]) or ((Control.Align = PosToAlign[Pos])
           and not InsertBefore(Control, Self, Control.Align)) then Continue;
@@ -2411,7 +2689,8 @@ var
 begin
   Apply := True;
   Pos := TSpeedbarPos(GetFramePos(X, Y, Apply));
-  if Apply then begin
+  if Apply then
+  begin
     Result := MaxRect;
     FPrevAlign := PosToAlign[Pos];
   end
@@ -2419,14 +2698,16 @@ begin
     Result := FPrevRect;
     Exit;
   end;
-  with Result do begin
+  with Result do
+  begin
     TopLeft := Parent.ClientToScreen(TopLeft);
     BottomRight := Parent.ClientToScreen(BottomRight);
   end;
   case GetOrientation of
     boHorizontal: W := Height;
     boVertical: W := Width;
-    else W := 0;
+  else
+    W := 0;
   end;
   case Pos of
     bpTop: Result.Bottom := Result.Top + W;
@@ -2440,7 +2721,8 @@ procedure TSpeedBar.StartDragFrame;
 var
   Rect: TRect;
 begin
-  with Rect do begin
+  with Rect do
+  begin
     TopLeft := ClientToScreen(Point(0, 0));
     BottomRight := ClientToScreen(Point(Width, Height));
   end;
@@ -2456,7 +2738,8 @@ var
   Rect: TRect;
 begin
   Rect := GetFrameRect(X, Y);
-  if not EqualRect(Rect, FPrevRect) then begin
+  if not EqualRect(Rect, FPrevRect) then
+  begin
     DrawInvertFrame(FPrevRect, DragFrameWidth);
     SetCursor(Screen.Cursors[crDragHand]);
     FPrevRect := Rect;
@@ -2472,7 +2755,8 @@ begin
   DrawInvertFrame(FPrevRect, DragFrameWidth);
   SetCursor(Screen.Cursors[Cursor]);
   FDrag := False;
-  if Align in [alLeft, alTop, alRight, alBottom] then begin
+  if Align in [alLeft, alTop, alRight, alBottom] then
+  begin
     Apply := True;
     Pos := TSpeedbarPos(GetFramePos(X, Y, Apply));
     Parent.DisableAlign;
@@ -2489,7 +2773,8 @@ end;
 function TSpeedBar.CheckResize(Shift: TShiftState; X, Y: Integer): Boolean;
 begin
   Result := False;
-  if (FEditWin <> 0) and (sbAllowResize in Options) and not FDrag then begin
+  if (FEditWin <> 0) and (sbAllowResize in Options) and not FDrag then
+  begin
     if (Align in [alTop, alBottom]) and (X > 0) and (X <= ClientWidth) then
     begin
       case Align of
@@ -2542,7 +2827,8 @@ begin
   CheckResize(Shift, X, Y);
   Cnt := 0;
   if (GetCapture = Handle) and (csLButtonDown in ControlState) then
-    if FResizing then begin
+    if FResizing then
+    begin
       P := Parent.ScreenToClient(ClientToScreen(Point(X, Y)));
       if not PointInRect(P, Parent.ClientRect) then Exit;
       case Align of
@@ -2565,9 +2851,11 @@ begin
           end;
       end;
     end
-    else if (sbAllowDrag in Options) then begin
+    else if (sbAllowDrag in Options) then
+    begin
       if FDrag then DragFrame(X, Y)
-      else begin
+      else
+      begin
         if (Abs(X - FStartDrag.X) > StartDragOffset) or
           (Abs(Y - FStartDrag.Y) > StartDragOffset) then StartDragFrame;
       end;
@@ -2577,8 +2865,10 @@ end;
 procedure TSpeedBar.MouseUp(Button: TMouseButton; Shift: TShiftState;
   X, Y: Integer);
 begin
-  if (Button = mbLeft) then begin
-    if FResizing then begin
+  if (Button = mbLeft) then
+  begin
+    if FResizing then
+    begin
       FResizing := False;
       SetCursor(Screen.Cursors[Cursor]);
     end;
@@ -2653,7 +2943,8 @@ end;
 
 procedure TSpeedBar.WriteItemLayout(Item: TSpeedItem; Data: Longint);
 begin
-  if Item.Visible and Item.Stored then begin
+  if Item.Visible and Item.Stored then
+  begin
     Inc(PIniData(Data)^.I);
     IniWriteString(PIniData(Data)^.IniFile, PIniData(Data)^.Sect,
       sBtn + IntToStr(PIniData(Data)^.I),
@@ -2708,7 +2999,8 @@ begin
     if FPrevAlign <> Align then PosChanged;
     Exit;
   end;
-  if sbAllowResize in Options then begin
+  if sbAllowResize in Options then
+  begin
     if Align in [alTop, alBottom] then
       Height := IniReadInteger(IniFile, Sect, sBarWidth, Height)
     else if Align in [alLeft, alRight] then
@@ -2719,13 +3011,17 @@ begin
     FButtonSize.X) or (IniReadInteger(IniFile, Sect, sBtnHeight,
     FButtonSize.Y) > FButtonSize.Y) then Exit;}
   Count := IniReadInteger(IniFile, Sect, sCount, 0);
-  if Count > 0 then begin
+  if Count > 0 then
+  begin
     ForEachItem(HideItem, 0);
-    for I := 1 to Count do begin
+    for I := 1 to Count do
+    begin
       S := IniReadString(IniFile, Sect, sBtn + IntToStr(I), '');
-      if S <> '' then begin
+      if S <> '' then
+      begin
         Item := SearchItem(ExtractWord(1, S, Delims));
-        if (Item <> nil) then begin
+        if (Item <> nil) then
+        begin
           Item.Left := Max(StrToIntDef(ExtractWord(2, S, Delims), Item.Left),
             FOffset.X);
           Item.Top := Max(StrToIntDef(ExtractWord(3, S, Delims), Item.Top),
@@ -2778,6 +3074,7 @@ begin
   InternalRestoreLayout(IniFile, GetDefaultSection(Self));
 end;
 
+{$IFNDEF VER80}
 procedure TSpeedBar.SaveLayoutReg(IniFile: TRegIniFile);
 begin
   InternalSaveLayout(IniFile, GetDefaultSection(Self));
@@ -2787,6 +3084,7 @@ procedure TSpeedBar.RestoreLayoutReg(IniFile: TRegIniFile);
 begin
   InternalRestoreLayout(IniFile, GetDefaultSection(Self));
 end;
+{$ENDIF}
 
 { TBtnControl }
 
@@ -2798,7 +3096,9 @@ begin
   FSpacing := 1;
   FMargin := -1;
   FLayout := blGlyphTop;
+{$IFNDEF VER80}
   FImageIndex := -1;
+{$ENDIF}
 end;
 
 destructor TBtnControl.Destroy;
@@ -2810,10 +3110,13 @@ end;
 procedure TBtnControl.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
-  with Params do begin
+  with Params do
+  begin
     Style := WS_POPUP or WS_DISABLED;
     WindowClass.Style := WindowClass.Style or CS_SAVEBITS;
+{$IFNDEF VER80}
     if NewStyleControls then ExStyle := WS_EX_TOOLWINDOW;
+{$ENDIF}
   end;
 end;
 
@@ -2827,9 +3130,11 @@ begin
   Layout := Item.Layout;
   Caption := Item.BtnCaption;
   WordWrap := Item.WordWrap;
+{$IFNDEF VER80}
   ImageIndex := Item.ImageIndex;
   if Item.Speedbar <> nil then Images := Item.Speedbar.Images
   else Images := nil;
+{$ENDIF}
   Font := Item.Font;
 {$IFDEF RX_D4}
   BiDiMode := Item.FButton.BiDiMode;
@@ -2894,9 +3199,14 @@ end;
 
 procedure TBtnControl.Paint;
 begin
+{$IFNDEF VER80}
   FImage.DrawEx(Canvas, 0, 0, Margin, Spacing, Layout, Font, Images,
     ImageIndex, {$IFDEF RX_D4} DrawTextBiDiModeFlags(Alignments[Alignment])
     {$ELSE} Alignments[Alignment] {$ENDIF});
+{$ELSE}
+  FImage.Draw(Canvas, 0, 0, Margin, Spacing, Layout, Font,
+    Alignments[Alignment]);
+{$ENDIF}
 end;
 
 procedure TBtnControl.Activate(Rect: TRect);
@@ -2933,11 +3243,13 @@ begin
   Result := nil;
   Handle := WindowFromPoint(Pos);
   Window := nil;
-  while (Handle <> 0) and (Window = nil) do begin
+  while (Handle <> 0) and (Window = nil) do
+  begin
     Window := FindControl(Handle);
     if Window = nil then Handle := GetParent(Handle);
   end;
-  if Window <> nil then begin
+  if Window <> nil then
+  begin
     if Window is TSpeedBar then Result := Window as TSpeedBar;
   end;
 end;
@@ -2947,19 +3259,29 @@ procedure DrawCellButton(Grid: TDrawGrid; R: TRect; Item: TSpeedItem;
 var
   FBar: TSpeedBar;
   AFont: TFont;
+{$IFNDEF VER80}
   ImageList: TImageList;
+{$ENDIF}
 begin
-  if Item <> nil then begin
+  if Item <> nil then
+  begin
     FBar := Item.Speedbar;
     AFont := nil;
+{$IFNDEF VER80}
     ImageList := nil;
-    if FBar <> nil then begin
+    if FBar <> nil then
+    begin
       AFont := FBar.Font;
       if Item.ImageIndex >= 0 then ImageList := FBar.Images;
     end;
     if ImageList = nil then Image.Glyph := Item.Glyph
     else Image.Glyph := nil;
-    with Image do begin
+{$ELSE}
+    Image.Glyph := Item.Glyph;
+    if FBar <> nil then AFont := FBar.Font;
+{$ENDIF}
+    with Image do
+    begin
       Alignment := Item.FButton.Alignment;
       NumGlyphs := Item.NumGlyphs;
       Caption := Item.BtnCaption;
@@ -2967,10 +3289,15 @@ begin
       if FBar <> nil then
         ButtonSize := Point(FBar.BtnWidth, FBar.BtnHeight);
     end;
+{$IFNDEF VER80}
     Image.DrawEx(Grid.Canvas, R.Left + 1, R.Top + 1, Item.Margin,
       Item.Spacing, Item.Layout, AFont, ImageList, Item.ImageIndex,
       {$IFDEF RX_D4} Item.FButton.DrawTextBiDiModeFlags(Alignments[Image.Alignment])
       {$ELSE} Alignments[Image.Alignment] {$ENDIF});
+{$ELSE}
+    Image.Draw(Grid.Canvas, R.Left + 1, R.Top + 1, Item.Margin,
+      Item.Spacing, Item.Layout, AFont, Alignments[Image.Alignment]);
+{$ENDIF}
     Inc(R.Left, Image.ButtonSize.X + 3);
     DrawCellText(Grid, 0, 0, Item.Caption, R, taLeftJustify, vaCenter
       {$IFDEF RX_D4}, ARightToLeft {$ENDIF});

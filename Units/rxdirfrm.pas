@@ -10,10 +10,11 @@ unit RxDirFrm;
 
 interface
 
-uses
-  Windows, Messages,
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls,
-  RXCtrls, rxPlacemnt;
+{$I RX.INC}
+
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} Messages,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, RXCtrls,
+  RxPlacemnt {$IFDEF RX_D6}, Types{$ENDIF};
 
 type
   TDirectoryListDialog = class(TForm)
@@ -45,8 +46,7 @@ function EditFolderList(Folders: TStrings): Boolean;
 
 implementation
 
-uses
-  rxFileUtil, rxBoxProcs, RxConst;
+uses RxFileUtil, RxBoxProcs, RxConst;
 
 {$R *.DFM}
 
@@ -137,10 +137,14 @@ end;
 
 procedure TDirectoryListDialog.FormCreate(Sender: TObject);
 begin
+{$IFNDEF VER80}
   with Storage do begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
+{$ELSE}
+  if not NewStyleControls then Font.Style := [fsBold];
+{$ENDIF}
 end;
 
 end.

@@ -7,18 +7,17 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxDataConv;
+unit RxDataConv;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows,
-  Messages, Classes, Graphics, Controls, Forms, Dialogs,
-  rxDateUtil;
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Messages, Classes, Graphics, Controls, Forms, Dialogs, RxDateUtil;
 
 type
+
   TDataType = (dtString, dtInteger, dtFloat, dtDateTime, dtDate,
     dtTime, dtBoolean);
 
@@ -28,8 +27,8 @@ type
 
   TDateTimeFormat = class(TPersistent)
   private
-    FAMString: string[7];
-    FPMString: string[7];
+    FAMString: string;
+    FPMString: string;
     FDateOrder: TDateOrder;
     FTimeFormat: TTimeFormat;
     FTimeSeparator: Char;
@@ -75,7 +74,7 @@ type
 {$ELSE}
     FData: PString;
 {$ENDIF}
-    FTextValues: array[Boolean] of string[15];
+    FTextValues: array[Boolean] of string;
     FDataType: TDataType;
     FDateTimeFormat: TDateTimeFormat;
     FFloatFormat: TFloatFormat;
@@ -140,6 +139,8 @@ type
 
 implementation
 
+uses RxStrUtils;
+
 { TDateTimeFormat }
 
 constructor TDateTimeFormat.Create;
@@ -155,10 +156,10 @@ end;
 
 procedure TDateTimeFormat.ResetDefault;
 begin
-  FAMString := TimeAMString;
-  FPMString := TimePMString;
-  FTimeSeparator := SysUtils.TimeSeparator;
-  FDateSeparator := SysUtils.DateSeparator;
+  FAMString := {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeAMString;
+  FPMString := {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimePMString;
+  FTimeSeparator := {$IFDEF RX_D15}FormatSettings.{$ELSE}SysUtils.{$ENDIF}TimeSeparator;
+  FDateSeparator := {$IFDEF RX_D15}FormatSettings.{$ELSE}SysUtils.{$ENDIF}DateSeparator;
   FDateOrder := doDMY;
   FTimeFormat := tfHHMMSS;
   FLongDate := False;
@@ -190,7 +191,7 @@ end;
 
 procedure TDateTimeFormat.SetAMString(const Value: string);
 begin
-  if Value = '' then FAMString := TimeAMString
+  if Value = '' then FAMString := {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeAMString
   else FAMString := Value;
 end;
 
@@ -201,14 +202,14 @@ end;
 
 procedure TDateTimeFormat.SetPMString(const Value: string);
 begin
-  if Value = '' then FPMString := TimePMString
+  if Value = '' then FPMString := {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimePMString
   else FPMString := Value;
 end;
 
 function TDateTimeFormat.GetDateMask: string;
 var
-  S: array[1..3] of string[7];
-  Separator: string[3];
+  S: array[1..3] of string;
+  Separator: string;
 begin
   Result := '';
   if LeadingZero then begin
@@ -235,9 +236,9 @@ end;
 
 function TDateTimeFormat.GetTimeMask: string;
 var
-  S: array[1..3] of string[7];
-  Separator: string[3];
-  AMPM: string[16];
+  S: array[1..3] of string;
+  Separator: string;
+  AMPM: string;
 begin
   Separator := '"' + TimeSeparator + '"';
   AMPM := ' ' + AMString + '/' + PMString;
@@ -339,7 +340,7 @@ end;
 
 function TConverter.GetBoolValues(Index: Integer): string;
 begin
-  Result := FTextValues[Boolean(Index)];
+  Result := string(FTextValues[Boolean(Index)]);
 end;
 
 procedure TConverter.SetBoolValues(Index: Integer; const Value: string);
@@ -384,8 +385,8 @@ function TConverter.IsValidChar(Ch: Char): Boolean;
 begin
   case FDataType of
     dtString: Result := True;
-    dtInteger: Result := Ch in ['+', '-', '0'..'9'];
-    dtFloat: Result := Ch in [DecimalSeparator, '+', '-', '0'..'9', 'E', 'e'];
+    dtInteger: Result := CharInSet(Ch, ['+', '-', '0'..'9']);
+    dtFloat: Result := CharInSet(Ch, [{$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, '+', '-', '0'..'9', 'E', 'e']);
     dtDateTime, dtDate, dtTime: Result := True;
     dtBoolean: Result := True;
     else Result := False;
@@ -402,18 +403,18 @@ end;
 
 function TConverter.GetAsBoolean: Boolean;
 var
-  S: string[15];
+  S: string;
 begin
   S := GetString;
-  Result := (Length(S) > 0) and ((S[1] in ['T', 't', 'Y', 'y']) or
-    (S = FTextValues[True]));
+  Result := (Length(S) > 0) and (CharInSet(S[1], ['T', 't', 'Y', 'y']) or
+    (S = string(FTextValues[True])));
 end;
 
 function TConverter.GetDateTime: TDateTime;
 var
   S: string;
   I: Integer;
-  DateS, TimeS: set of Char;
+  DateS, TimeS: set of AnsiChar;
 begin
   S := GetString;
   DateS := ['/', '.'] + [DateTimeFormat.DateSeparator] - 
@@ -421,8 +422,8 @@ begin
   TimeS := [':', '-'] - [DateTimeFormat.DateSeparator] + 
     [DateTimeFormat.TimeSeparator];
   for I := 1 to Length(S) do begin
-    if S[I] in DateS then S[I] := DateSeparator
-    else if S[I] in TimeS then S[I] := TimeSeparator;
+    if CharInSet(S[I], DateS) then S[I] := {$IFDEF RX_D15}FormatSettings.{$ENDIF}DateSeparator
+    else if CharInSet(S[I], TimeS) then S[I] := {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeSeparator;
   end;
   Result := StrToDateTime(S);
 end;

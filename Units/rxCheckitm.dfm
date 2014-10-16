@@ -1,11 +1,13 @@
 object CheckItemsEditor: TCheckItemsEditor
-  Left = 201
-  Top = 104
+  Left = 214
+  Top = 140
   Width = 349
-  Height = 280
+  Height = 320
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -32,21 +34,31 @@ object CheckItemsEditor: TCheckItemsEditor
     001FFC00000FFE000007FF000003C380000181C0000001800000000000000000
     000000000001000200050000000D80000063F800017FFE00637FFF00F8FFFF81
     FFFFFF1FFFFFFE3FFFFFFC7FFFFFF8FFFFFFF1FFFFFFF3FFFFFFFFFFFFFF0000}
-  PixelsPerInch = 96
-  Position = poDefaultPosOnly
+  OldCreateOrder = True
   OnCreate = FormCreate
   OnShow = FormShow
+  PixelsPerInch = 96
   TextHeight = 13
   object Panel2: TPanel
     Left = 257
     Top = 0
     Width = 84
-    Height = 253
+    Height = 286
     Align = alRight
     BevelOuter = bvNone
     Ctl3D = False
     ParentCtl3D = False
     TabOrder = 1
+    object AddListBtn: TRxSpeedButton
+      Left = 2
+      Top = 87
+      Width = 75
+      Height = 24
+      DropDownMenu = PopupStrings
+      Caption = '&As TStrings'
+      ParentShowHint = True
+      OnClick = AddListBtnClick
+    end
     object DeleteBtn: TButton
       Left = 2
       Top = 60
@@ -77,12 +89,12 @@ object CheckItemsEditor: TCheckItemsEditor
     end
     object Panel3: TPanel
       Left = 0
-      Top = 194
+      Top = 227
       Width = 84
       Height = 59
       Align = alBottom
       BevelOuter = bvNone
-      TabOrder = 7
+      TabOrder = 6
       object CancelBtn: TButton
         Left = 2
         Top = 30
@@ -103,22 +115,13 @@ object CheckItemsEditor: TCheckItemsEditor
         TabOrder = 1
       end
     end
-    object AddListBtn: TButton
-      Left = 2
-      Top = 87
-      Width = 75
-      Height = 24
-      Caption = '&Add strings'
-      TabOrder = 3
-      OnClick = AddListBtnClick
-    end
     object ClearBtn: TButton
       Left = 2
       Top = 114
       Width = 75
       Height = 24
       Caption = '&Clear all'
-      TabOrder = 4
+      TabOrder = 3
       OnClick = ClearBtnClick
     end
     object UpBtn: TButton
@@ -127,7 +130,7 @@ object CheckItemsEditor: TCheckItemsEditor
       Width = 75
       Height = 24
       Caption = 'Move &up'
-      TabOrder = 5
+      TabOrder = 4
       OnClick = UpDownBtnClick
     end
     object DownBtn: TButton
@@ -136,7 +139,7 @@ object CheckItemsEditor: TCheckItemsEditor
       Width = 75
       Height = 24
       Caption = 'Move do&wn'
-      TabOrder = 6
+      TabOrder = 5
       OnClick = UpDownBtnClick
     end
   end
@@ -144,18 +147,29 @@ object CheckItemsEditor: TCheckItemsEditor
     Left = 0
     Top = 0
     Width = 257
-    Height = 253
+    Height = 286
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 6
     Ctl3D = False
     ParentCtl3D = False
     TabOrder = 0
+    object Splitter1: TSplitter
+      Left = 6
+      Top = 226
+      Width = 245
+      Height = 3
+      Cursor = crVSplit
+      Align = alBottom
+      AutoSnap = False
+      Beveled = True
+      MinSize = 1
+    end
     object CheckList: TRxCheckListBox
       Left = 6
       Top = 6
       Width = 245
-      Height = 241
+      Height = 220
       AllowGrayed = True
       Align = alClient
       Ctl3D = True
@@ -169,6 +183,49 @@ object CheckItemsEditor: TCheckItemsEditor
       OnDragOver = CheckListDragOver
       OnKeyDown = CheckListKeyDown
       InternalVersion = 202
+      Strings = (
+        'QQQ'
+        0
+        True
+        'WWW'
+        0
+        True
+        'EEE'
+        0
+        True
+        'ZZZZ'
+        0
+        True)
+    end
+    object PanelHint: TPanel
+      Left = 6
+      Top = 229
+      Width = 245
+      Height = 51
+      Hint = 'Hint for the item selected above.'
+      Align = alBottom
+      BevelInner = bvLowered
+      BevelOuter = bvNone
+      Caption = '[ No hint ]'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+      object HintMemo: TMemo
+        Left = 1
+        Top = 1
+        Width = 243
+        Height = 49
+        Align = alClient
+        BorderStyle = bsNone
+        Lines.Strings = (
+          '1'
+          '2'
+          '3')
+        ReadOnly = True
+        TabOrder = 0
+        Visible = False
+        WordWrap = False
+      end
     end
   end
   object FormPlacement: TFormPlacement
@@ -176,13 +233,13 @@ object CheckItemsEditor: TCheckItemsEditor
     IniSection = 'RX.CheckListEditor'
     MinMaxInfo.MinTrackHeight = 280
     MinMaxInfo.MinTrackWidth = 200
-    Left = 34
-    Top = 4
+    Left = 60
+    Top = 28
   end
   object Popup: TPopupMenu
     OnPopup = PopupPopup
-    Left = 6
-    Top = 4
+    Left = 32
+    Top = 28
     object cbCheckedItem: TMenuItem
       Caption = 'cbC&hecked'
       OnClick = cbCheckedItemClick
@@ -201,6 +258,25 @@ object CheckItemsEditor: TCheckItemsEditor
     object EnabledItem: TMenuItem
       Caption = '&Enabled'
       OnClick = EnabledItemClick
+    end
+  end
+  object PopupStrings: TPopupMenu
+    MenuAnimation = [maRightToLeft, maTopToBottom]
+    Left = 32
+    Top = 57
+    object EditasStrings1: TMenuItem
+      Tag = 1
+      Caption = 'Edit as Strings'
+      GroupIndex = 1
+      RadioItem = True
+      OnClick = AddListMenuClick
+    end
+    object AddStrings1: TMenuItem
+      Caption = 'Add Strings'
+      Checked = True
+      GroupIndex = 1
+      RadioItem = True
+      OnClick = AddListMenuClick
     end
   end
 end

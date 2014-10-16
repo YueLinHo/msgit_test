@@ -7,9 +7,11 @@ object ImageForm: TImageForm
   Caption = 'Select Image'
   ClientHeight = 262
   ClientWidth = 485
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -36,10 +38,11 @@ object ImageForm: TImageForm
     01FF800001FF800001FF800001FF800001FF800001FF800001FF800001FF8000
     01FF800001FF800001FF800000FF8000007F8000003F8000011F8000018FC000
     01C7E00003E3F8000FF1F9FFDFFBFCFF9FFFFE7E3FFFFF007FFFFFC0FFFF0000}
-  PixelsPerInch = 96
+  OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  PixelsPerInch = 96
   TextHeight = 13
   object PathLabel: TLabel
     Left = 158
@@ -47,7 +50,7 @@ object ImageForm: TImageForm
     Width = 146
     Height = 15
     AutoSize = False
-    Caption = 'e:\work\rx'
+    Caption = 'C:\Windows\system32'
   end
   object ImageName: TLabel
     Left = 319
@@ -59,7 +62,7 @@ object ImageForm: TImageForm
   object Label2: TLabel
     Left = 4
     Top = 216
-    Width = 81
+    Width = 86
     Height = 13
     Caption = 'List files of &type:  '
     FocusControl = FilterCombo
@@ -67,7 +70,7 @@ object ImageForm: TImageForm
   object Label3: TLabel
     Left = 158
     Top = 216
-    Width = 36
+    Width = 37
     Height = 13
     Caption = 'Dri&ves: '
     FocusControl = DriveCombo
@@ -75,7 +78,7 @@ object ImageForm: TImageForm
   object Label4: TLabel
     Left = 4
     Top = 8
-    Width = 54
+    Width = 55
     Height = 13
     Caption = 'File &name:  '
     FocusControl = FileEdit
@@ -83,7 +86,7 @@ object ImageForm: TImageForm
   object Label5: TLabel
     Left = 158
     Top = 8
-    Width = 43
+    Width = 45
     Height = 13
     Caption = '&Folders:  '
     FocusControl = DirectoryList
@@ -98,7 +101,7 @@ object ImageForm: TImageForm
     Flat = True
     Glyph.Data = {
       66010000424D6601000000000000760000002800000014000000140000000100
-      040000000000F000000000000000000000000000000000000000000000000000
+      040000000000F000000000000000000000001000000000000000000000000000
       80000080000000808000800000008000800080800000C0C0C000808080000000
       FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00DDDDDDDDDDDD
       DDDDDDDD0000DD00DDDDDDDDDDDDDDDD0000D0000DDDDDDDDDDDDDDD0000D0F0
@@ -127,7 +130,7 @@ object ImageForm: TImageForm
     Left = 158
     Top = 233
     Width = 148
-    Height = 21
+    Height = 19
     DirList = DirectoryList
     TabOrder = 4
   end
@@ -135,7 +138,7 @@ object ImageForm: TImageForm
     Left = 4
     Top = 24
     Width = 146
-    Height = 20
+    Height = 21
     TabOrder = 0
     Text = '*.bmp;*.ico;*.wmf'
   end
@@ -160,7 +163,7 @@ object ImageForm: TImageForm
     Left = 4
     Top = 51
     Width = 146
-    Height = 162
+    Height = 148
     FileEdit = FileEdit
     FileType = [ftReadOnly, ftHidden, ftNormal]
     IntegralHeight = True
@@ -218,7 +221,7 @@ object ImageForm: TImageForm
     Cols = 11
     Picture.Data = {
       07544269746D61709E050000424D9E050000000000007600000028000000B000
-      00000F0000000100040000000000280500000000000000000000000000000000
+      00000F0000000100040000000000280500000000000000000000100000000000
       000000000000000080000080000000808000800000008000800080800000C0C0
       C000808080000000FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFF
       FF00DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD00000000000
@@ -271,6 +274,7 @@ object ImageForm: TImageForm
     IniSection = 'RX.ImagePreview'
     StoredProps.Strings = (
       'StretchCheck.Checked')
+    StoredValues = <>
     Left = 272
     Top = 6
   end

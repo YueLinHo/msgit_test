@@ -8,7 +8,7 @@ object DirectoryListDialog: TDirectoryListDialog
   ClientWidth = 350
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   PixelsPerInch = 96
   Position = poScreenCenter

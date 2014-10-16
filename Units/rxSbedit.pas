@@ -8,18 +8,23 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxSbEdit;
+unit RxSbEdit;
 
 {$I RX.INC}
 
 interface
 
 uses
-  Windows, 
+{$IFNDEF VER80}
+  Windows,
+{$ELSE}
+  WinTypes, WinProcs,
+{$ENDIF}
   SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Buttons, Grids, rxSpeedBar,
-  Menus, rxPlacemnt, RxConst, RxCtrls, rxVCLUtils,
-  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors {$ELSE} LibIntf, DsgnWnds, DsgnIntf {$ENDIF}; // Polaris
+  StdCtrls, Buttons, Grids, RxSpeedbar,
+  Menus, RxPlacemnt, RxConst, RxCtrls, RxVCLUtils,
+  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors, Types 
+  {$ELSE} LibIntf, DsgnWnds, DsgnIntf {$ENDIF}; // Polaris
 
 type
 
@@ -155,12 +160,13 @@ type
 
 implementation
 
-uses
-  TypInfo, rxMaxMin, RXLConst, RxProps, RxDsgn;
+uses TypInfo, RxMaxMin, RXResConst, RxProps, RxDsgn;
 
 {$R *.DFM}
 
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 {$IFDEF RX_D4}
 type
@@ -225,7 +231,7 @@ end;
 function TSpeedbarCompEditor.GetVerb(Index: Integer): string;
 begin
   case Index of
-    0: Result := LoadStr(srSpeedbarDesigner);
+    0: Result := RxLoadStr(srSpeedbarDesigner);
   end;
 end;
 
@@ -242,13 +248,26 @@ const
 function TSpeedbarEditor.UniqueName(Component: TComponent): string;
 var
   Temp: string;
+{$IFDEF VER80}
+  Comp: TComponent;
+  I: Integer;
+{$ENDIF}
 begin
   Result := '';
   if (Component <> nil) then Temp := Component.ClassName
   else Temp := TSpeedItem.ClassName;
   if (UpCase(Temp[1]) = 'T') and (Length(Temp) > 1) then
     System.Delete(Temp, 1, 1);
+{$IFNDEF VER80}
   Result := Designer.UniqueName(Temp);
+{$ELSE}
+  I := 1;
+  repeat
+    Result := Temp + IntToStr(I);
+    Comp := OwnerForm.FindComponent(Result);
+    Inc(I);
+  until (Comp = nil) or (Comp = Component);
+{$ENDIF}
 end;
 
 function TSpeedbarEditor.GetEditState: TEditState;
@@ -332,7 +351,7 @@ end;
 
 function TSpeedbarEditor.ConfirmDelete: Boolean;
 begin
-  Result := MessageDlg(LoadStr(srConfirmSBDelete), mtWarning, mbYesNoCancel, 0) = mrYes;
+  Result := MessageDlg(RxLoadStr(srConfirmSBDelete), mtWarning, mbYesNoCancel, 0) = mrYes;
 end;
 
 procedure TSpeedbarEditor.SaveSelection;
@@ -524,7 +543,7 @@ begin
   if CheckSpeedBar then begin
     I := 0;
     repeat
-      S := Format(LoadStr(srNewSectionName), [I]);
+      S := Format(RxLoadStr(srNewSectionName), [I]);
       Inc(I);
     until FBar.SearchSection(S) < 0;
     I := NewSpeedSection(FBar, S);
@@ -658,7 +677,7 @@ begin
       Item.Free;
       raise;
     end
-  else raise ESpeedbarError.CreateRes(srSBItemNotCreate);
+  else raise ESpeedbarError.Create(RxLoadStr(srSBItemNotCreate));
 end;
 
 procedure TSpeedbarEditor.RemoveButtonClick(Sender: TObject);
@@ -822,7 +841,7 @@ begin
   try
     for I := Candidates.Count - 1 downto 0 do begin
       PropInfo := Candidates[I];
-      if CompareText(PropInfo^.Name, 'OnClick') = 0 then begin
+      if CompareText(string(PropInfo^.Name), 'OnClick') = 0 then begin
         Method := GetMethodProp(Btn, PropInfo);
         MethodName := TFormDesigner(Designer).GetMethodName(Method);
         if MethodName = '' then begin
@@ -952,10 +971,12 @@ begin
   FBar := nil;
   FDrag := False;
   if NewStyleControls then Font.Style := [];
+{$IFNDEF VER80}
   with FormPlacement1 do begin
     UseRegistry := True;
     IniFileName := SDelphiKey;
   end;
+{$ENDIF}
 end;
 
 procedure TSpeedbarEditor.FormDestroy(Sender: TObject);

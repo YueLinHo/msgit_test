@@ -6,19 +6,20 @@
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Patched by Jaro Benes                                 }
 {*******************************************************}
 
-unit RXConst;
+unit RxConst;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Controls;
+uses Controls;
 
 const
   RX_VERSION = $0002004B;  { 2.75 }
+  RX_REVISION = '2.2012';  {last visit by patches and improvements}
 
 const
 { Command message for Speedbar editor }
@@ -71,39 +72,82 @@ const
 
 {$IFDEF VER130}
 const
-{$IFDEF BCB}
+  {$IFDEF BCB}
   SDelphiKey = 'Software\Borland\C++Builder\5.0';
-{$ELSE}
+  {$ELSE}
   SDelphiKey = 'Software\Borland\Delphi\5.0';
-{$ENDIF}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF VER140} // Polaris
 const
-  SDelphiKey = 'Software\Borland\Delphi\6.0';
+  SDelphiKey = 'Software\Borland\Delphi\6.0'; {Delphi 6}
 {$ENDIF}
 
 {$IFDEF VER150} // JB
 const
-  SDelphiKey = 'Software\Borland\Delphi\7.0';
+  SDelphiKey = 'Software\Borland\Delphi\7.0'; {Delphi 7}
 {$ENDIF}
 
 {$IFDEF VER170} // JB
 const
-  SDelphiKey = 'Software\Borland\BDS\3.0';
+  SDelphiKey = 'Software\Borland\BDS\3.0'; {Delphi 2005}
 {$ENDIF}
 
 {$IFDEF VER180} // JB
 const
-  SDelphiKey = 'Software\Borland\BDS\4.0';
+  {$IFDEF VER185} // JB
+  SDelphiKey = 'Software\Borland\BDS\5.0'; {Delphi 2007}
+  {$ELSE}
+  SDelphiKey = 'Software\Borland\BDS\4.0'; {BDS 2006}
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF VER200} // JB
+const
+  SDelphiKey = 'Software\Codegear\BDS\6.0'; {Delphi 2009}
+{$ENDIF}
+
+{$IFDEF VER210} // JB
+const
+  SDelphiKey = 'Software\Codegear\BDS\7.0';  {Delphi 2010}
+{$ENDIF}
+
+{$IFDEF VER220} // JB
+const
+  SDelphiKey = 'Software\Embarcadero\BDS\8.0'; {Delphi XE}
+{$ENDIF}
+
+{$IFDEF VER230} // JB
+const
+  SDelphiKey = 'Software\Embarcadero\BDS\9.0'; {Delphi XE2}
+{$ENDIF}
+
+{$IFDEF VER240} // JB
+const
+  SDelphiKey = 'Software\Embarcadero\BDS\10.0'; {Delphi XE3}
+{$ENDIF}
+
+{$IFDEF VER250} // JB
+const
+  SDelphiKey = 'Software\Embarcadero\BDS\11.0'; {Delphi XE4}
+{$ENDIF}
+
+{$IFDEF VER260} // JB
+const
+  SDelphiKey = 'Software\Embarcadero\BDS\12.0'; {Delphi XE5}
+{$ENDIF}
+
+{$IFDEF VER270} // JB
+const
+  SDelphiKey = 'Software\Embarcadero\BDS\14.0'; {Delphi XE6}
 {$ENDIF}
 
 implementation
 
-uses
-  Windows, Forms;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinProcs, {$ENDIF} Forms;
 
-{$R *.R32}
+{$R *.RES}
 
 initialization
   Screen.Cursors[crHand] := LoadCursor(hInstance, 'RX_HANDCUR');

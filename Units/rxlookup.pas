@@ -7,6 +7,7 @@
 {       Portions copyright (c) 1997, 1998 Master-Bank   }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Revision and component added by JB.                   }
 {*******************************************************}
 
 unit RxLookup;
@@ -15,11 +16,11 @@ interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows, DBCtrls, Messages, Classes, Controls, Forms, Graphics,
-  Menus, DB, Mask, Buttons, StdCtrls,
-  {$IFNDEF RX_D3} DBTables, {$ENDIF}
-  rxDBUtils, rxToolEdit;
+uses SysUtils, {$IFNDEF VER80} Windows, DBCtrls, {$ELSE} WinTypes, WinProcs,
+  {$ENDIF} Messages, Classes, Controls, Forms, Graphics, Menus, DB, Mask,
+  {$IFDEF RX_D6}Types, {$ENDIF}
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  {$IFNDEF RX_D3} DBTables, {$ENDIF} Buttons, StdCtrls, RxDBUtils, RxToolEdit;
 
 const
   DefFieldsDelim = ',';
@@ -84,11 +85,13 @@ type
     FListStyle: TLookupListStyle;
     FOnChange: TNotifyEvent;
     FOnGetImage: TGetImageEvent;
+{$IFNDEF VER80}
     FLookupMode: Boolean;
     procedure CheckNotFixed;
     procedure SetLookupMode(Value: Boolean);
     function GetKeyValue: Variant;
     procedure SetKeyValue(const Value: Variant);
+{$ENDIF}
     function CanModify: Boolean;
     procedure CheckNotCircular;
     procedure DataLinkActiveChanged;
@@ -166,7 +169,9 @@ type
     property TabStop default True;
     property Value: string read FValue write SetValue stored False;
     property DisplayValue: string read FDisplayValue write SetDisplayValue stored False;
+{$IFNDEF VER80}
     property KeyValue: Variant read GetKeyValue write SetKeyValue stored False;
+{$ENDIF}
     procedure SetFieldValue(Field: TField; const Value: string); // Polaris
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnGetImage: TGetImageEvent read FOnGetImage write FOnGetImage;
@@ -245,7 +250,9 @@ type
     property RowCount: Integer read FRowCount write SetRowCount stored False;
     property DisplayValue;
     property Value;
+{$IFNDEF VER80}
     property KeyValue;
+{$ENDIF}
   published
     property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle default bsSingle;
     property Align;
@@ -270,10 +277,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property IndexSwitch;
     property ItemHeight;
     property ListStyle;
@@ -305,7 +314,9 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -326,10 +337,17 @@ type
   protected
     procedure Click; override;
     procedure CreateParams(var Params: TCreateParams); override;
+{$IFDEF VER80}
+    procedure CreateWnd; override;
+{$ENDIF}
     procedure KeyPress(var Key: Char); override;
   public
     constructor Create(AOwner: TComponent); override;
   end;
+
+{$IFDEF VER80}
+  TDropDownAlign = (daLeft, daRight, daCenter);
+{$ENDIF}
 
   TRxDBLookupCombo = class(TRxLookupControl)
   private
@@ -347,6 +365,10 @@ type
     FSelMargin: Integer;
     FDisplayValues: TStrings;
     FDisplayAll: Boolean;
+{$IFDEF VER80}
+    FBtnGlyph: TBitmap;
+    FBtnDisabled: TBitmap;
+{$ENDIF}
     FOnDropDown: TNotifyEvent;
     FOnCloseUp: TNotifyEvent;
     procedure ListMouseUp(Sender: TObject; Button: TMouseButton;
@@ -364,9 +386,11 @@ type
     procedure SetDisplayAll(Value: Boolean);
     function GetDisplayValues(Index: Integer): string; 
     procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE;
+{$IFNDEF VER80}
     procedure CNKeyDown(var Message: TWMKeyDown); message CN_KEYDOWN;
     procedure CMCtl3DChanged(var Message: TMessage); message CM_CTL3DCHANGED;
     procedure CMGetDataLink(var Message: TMessage); message CM_GETDATALINK;
+{$ENDIF}
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
     procedure WMCancelMode(var Message: TMessage); message WM_CANCELMODE;
@@ -407,7 +431,9 @@ type
     property DisplayValue;
     property DisplayValues[Index: Integer]: string read GetDisplayValues;
     property Value;
+{$IFNDEF VER80}
     property KeyValue;
+{$ENDIF}
   published
     property Align;   // Polaris
     property DropDownAlign: TDropDownAlign read FDropDownAlign write FDropDownAlign default daLeft;
@@ -436,10 +462,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property IndexSwitch;
     property ItemHeight;
     property ListStyle;
@@ -473,7 +501,9 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -541,9 +571,15 @@ end;
     procedure HidePopup; override;
     procedure PopupChange; override;
     procedure PopupDropDown(DisableEdit: Boolean); override;
+{$IFNDEF VER80}
     function AcceptPopup(var Value: Variant): Boolean; override;
     procedure SetPopupValue(const Value: Variant); override;
     function GetPopupValue: Variant; override;
+{$ELSE}
+    function AcceptPopup(var Value: string): Boolean; override;
+    procedure SetPopupValue(const Value: string); override;
+    function GetPopupValue: string; override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -580,10 +616,12 @@ end;
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property MaxLength;
     property OEMConvert;
     property ParentColor;
@@ -616,7 +654,9 @@ end;
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -625,14 +665,92 @@ end;
     property OnStartDock;
 {$ENDIF}
   end;
+{   Compiled with RxLib 2.60 and better.
+    Component - both DBEdit and DBLookup. If anyone knows how to
+  make it easier to contact me at vs@balance.dp.ua.
+    I understand that it is ideologically wrong - to edit the same
+  data in two different places, but sometimes necessary.
+    You can distribute, use and modify as you wish. If you
+  improve this component (eg, add an event "manually input element
+  which is not in Lookup-table and Post ") - please send me a new
+  module.
+    Today, catching another penultimate serious bug, and decided - the world
+  work to do better. Use and enjoy, once again, perfect -
+  send ...
+    It's still raw, actually. But something might.
+ }
+
+{   Conditional DEFINE RIGHT_SPACE_ALIGN can enable property
+  "Align the right spaces to a certain width". Since it must not always.
+    Property RightSpaceAlign: if False, the alignment is not performed,
+    otherwise, any entered value catches up with spaces to the left
+    width Field.Size}
+
+{$DEFINE RIGHT_SPACE_ALIGN}
+
+  TRxDBLookupEditEx = class(TRxLookupEdit)
+  private
+    FDataLink: TFieldDataLink;
+    FAlignment: TAlignment;
+    FFocused: Boolean;
+{$IFDEF RIGHT_SPACE_ALIGN}
+    FRightSpaceAlign: boolean;
+{$ENDIF}
+    procedure DataChange(Sender: TObject);
+    procedure EditingChange(Sender: TObject);
+    function GetDataField: string;
+    function GetDataSource: TDataSource;
+    function GetField: TField;
+    // here warning - is it need - VS.
+    procedure SetDataField(const Value: string);
+    procedure SetDataSource(Value: TDataSource);
+    procedure SetFocused(Value: Boolean);
+    procedure SetReadOnly(Value: Boolean);
+    procedure UpdateData(Sender: TObject);
+    procedure WMCut(var Message: TMessage); message WM_CUT;
+    procedure WMPaste(var Message: TMessage); message WM_PASTE;
+    procedure CMEnter(var Message: TCMEnter); message CM_ENTER;
+    procedure CMExit(var Message: TCMExit); message CM_EXIT;
+    procedure CMGetDataLink(var Message: TMessage); message CM_GETDATALINK;
+  protected
+  {This is the patch. Change is only called before the first CloseUp,
+   Since the State of FDataLink changed only once (for Editing).
+   Now the rest of the CloseUp checked this box and need. called Change
+   _invisible_ * Post * the database.}
+    ChangeInvoked: boolean;
+    function GetReadOnly: Boolean; override; // to override - VS.
+    procedure Change; override;
+    function EditCanModify: Boolean; override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
+    procedure KeyPress(var Key: Char); override;
+    procedure Loaded; override;
+    procedure Notification(AComponent: TComponent;
+      Operation: TOperation); override;
+    procedure Reset; override;
+    procedure DropDown;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function AcceptPopup(var Value: Variant): Boolean; override;
+
+    property Field: TField read GetField;
+  published
+
+    property DataField: string read GetDataField write SetDataField;
+    property DataSource: TDataSource read GetDataSource write SetDataSource;
+    property ReadOnly: Boolean read GetReadOnly write SetReadOnly default False;
+{$IFDEF RIGHT_SPACE_ALIGN}
+    property RightSpaceAlign: boolean read FRightSpaceAlign write FRightSpaceAlign;
+{$ENDIF}
+  end;
 
 implementation
 
-uses
-  DBConsts, Dialogs,
-  {$IFNDEF RX_D3} BdeUtils, {$ENDIF}
-  {$IFDEF RX_D6} Variants, VDBConsts, RTLConsts, {$ENDIF} // Polaris
-  rxVCLUtils, rxMaxMin, rxClipIcon, RxStrUtils;
+uses DBConsts, Dialogs, {$IFDEF VER80} RxStr16, {$ENDIF} RxVCLUtils,
+  {$IFNDEF RX_D3} BdeUtils, {$ENDIF} RxMaxMin, RxClipIcon,
+  {$IFDEF RX_D6} Variants, VDBConsts, RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
 { TDataSourceLink }
 
@@ -682,6 +800,18 @@ end;
 
 const
   SearchTickCount: Longint = 0;
+
+{$IFDEF VER80}
+procedure GetFieldList(DataSet: TDataSet; List: TList;
+  const FieldNames: string);
+var
+  Pos: Integer;
+begin
+  Pos := 1;
+  while Pos <= Length(FieldNames) do
+    List.Add(DataSet.FieldByName(ExtractFieldName(FieldNames, Pos)));
+end;
+{$ENDIF}
 
 constructor TRxLookupControl.Create(AOwner: TComponent);
 begin
@@ -746,6 +876,7 @@ begin
   Result := (FEmptyValue <> EmptyStr);
 end;
 
+{$IFNDEF VER80}
 procedure TRxLookupControl.CheckNotFixed;
 begin
   if FLookupMode then _DBError(SPropDefByLookup);
@@ -785,6 +916,7 @@ begin
   else Self.Value := Value;
 //  Self.Value := Value;
 end;
+{$ENDIF}
 
 procedure TRxLookupControl.CheckNotCircular;
 begin
@@ -823,7 +955,9 @@ begin
     FDataField := FDataLink.DataSet.FieldByName(FDataFieldName);
     FMasterField := FDataField;
   end;
+{$IFNDEF VER80}
   SetLookupMode((FDataField <> nil) and FDataField.Lookup);
+{$ENDIF}
   DataLinkRecordChanged(nil);
 end;
 
@@ -862,7 +996,13 @@ var
 begin
   CreateParams(Params);
   SetRect(R, 0, 0, 0, 0);
+{$IFNDEF VER80}
   AdjustWindowRectEx(R, Params.Style, False, Params.ExStyle);
+{$ELSE}
+  AdjustWindowRect(R, Params.Style, False);
+  if (csFramed in ControlStyle) and Ctl3D and 
+    (Params.Style and WS_BORDER <> 0) then Inc(R.Bottom, 2);
+{$ENDIF}
   Result := R.Bottom - R.Top;
 end;
 
@@ -873,13 +1013,17 @@ end;
 
 function TRxLookupControl.GetLookupField: string;
 begin
+{$IFNDEF VER80}
   if FLookupMode then Result := '' else
+{$ENDIF}
   Result := FLookupFieldName;
 end;
 
 function TRxLookupControl.GetLookupSource: TDataSource;
 begin
+{$IFNDEF VER80}
   if FLookupMode then Result := nil else
+{$ENDIF}
   Result := FLookupLink.DataSource;
 end;
 
@@ -924,7 +1068,9 @@ end;
 procedure TRxLookupControl.ListLinkActiveChanged;
 var
   DataSet: TDataSet;
+{$IFNDEF VER80}
   ResultField: TField;
+{$ENDIF}
 begin
   FListActive := False;
   FKeyField := nil;
@@ -934,7 +1080,12 @@ begin
     CheckNotCircular;
     DataSet := FLookupLink.DataSet;
     FKeyField := DataSet.FieldByName(FLookupFieldName);
+{$IFNDEF VER80}
     DataSet.GetFieldList(FListFields, FLookupDisplay);
+{$ELSE}
+    GetFieldList(DataSet, FListFields, FLookupDisplay);
+{$ENDIF}
+{$IFNDEF VER80}
     if FLookupMode then begin
       ResultField := DataSet.FieldByName(FDataField.LookupResultField);
       if FListFields.IndexOf(ResultField) < 0 then
@@ -947,6 +1098,12 @@ begin
         FDisplayField := FListFields[FDisplayIndex]
       else FDisplayField := FListFields[0];
     end;
+{$ELSE}
+    if FListFields.Count = 0 then FListFields.Add(FKeyField);
+    if (FDisplayIndex >= 0) and (FDisplayIndex < FListFields.Count) then
+      FDisplayField := FListFields[FDisplayIndex]
+    else FDisplayField := FListFields[0];
+{$ENDIF}
     FListActive := True;
   end;
   FLocate.DataSet := FLookupLink.DataSet;
@@ -1083,7 +1240,9 @@ end;
 procedure TRxLookupControl.SetDataSource(Value: TDataSource);
 begin
   FDataLink.DataSource := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
 end;
 
 procedure TRxLookupControl.SetListStyle(Value: TLookupListStyle);
@@ -1104,7 +1263,9 @@ end;
 
 procedure TRxLookupControl.SetLookupField(const Value: string);
 begin
+{$IFNDEF VER80}
   CheckNotFixed;
+{$ENDIF}
   if FLookupFieldName <> Value then begin
     FLookupFieldName := Value;
     ListLinkActiveChanged;
@@ -1227,9 +1388,13 @@ end;
 
 procedure TRxLookupControl.SetLookupSource(Value: TDataSource);
 begin
+{$IFNDEF VER80}
   CheckNotFixed;
+{$ENDIF}
   FLookupLink.DataSource := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
   if Value <> nil then FLocate.DataSet := Value.DataSet
   else FLocate.DataSet := nil;
   if FListActive then DataLinkRecordChanged(nil);
@@ -1262,8 +1427,10 @@ procedure TRxLookupControl.DrawPicture(Canvas: TCanvas; Rect: TRect;
   Image: TGraphic);
 var
   X, Y, SaveIndex: Integer;
+{$IFNDEF VER80}
   Ico: HIcon;
   W, H: Integer;
+{$ENDIF}
 begin
   if Image <> nil then begin
     X := (Rect.Right + Rect.Left - Image.Width) div 2;
@@ -1275,6 +1442,7 @@ begin
       if Image is TBitmap then
         DrawBitmapTransparent(Canvas, X, Y, TBitmap(Image),
           TBitmap(Image).TransparentColor)
+{$IFNDEF VER80}
       else if Image is TIcon then begin
         Ico := CreateRealSizeIcon(TIcon(Image));
         try
@@ -1285,6 +1453,7 @@ begin
           DestroyIcon(Ico);
         end;
       end
+{$ENDIF}
       else Canvas.Draw(X, Y, Image);
     finally
       RestoreDC(Canvas.Handle, SaveIndex);
@@ -1370,7 +1539,11 @@ begin
   Width := 121;
   Ctl3D := True;
   FBorderStyle := bsSingle;
+{$IFNDEF VER80}
   ControlStyle := [csOpaque, csDoubleClicks];
+{$ELSE}
+  ControlStyle := [csFramed, csOpaque, csDoubleClicks];
+{$ENDIF}
   RowCount := 7;
 end;
 
@@ -1380,8 +1553,12 @@ begin
   with Params do begin
     Style := Style or WS_VSCROLL;
     if FBorderStyle = bsSingle then
+{$IFNDEF VER80}
       if NewStyleControls and Ctl3D then ExStyle := ExStyle or WS_EX_CLIENTEDGE
       else Style := Style or WS_BORDER;
+{$ELSE}
+      Style := Style or WS_BORDER;
+{$ENDIF}
   end;
 end;
 
@@ -1488,6 +1665,7 @@ begin
   if FListActive then begin
     FRecordIndex := FLookupLink.ActiveRecord;
     FRecordCount := FLookupLink.Dataset.RecordCount; // Dataset added by Alexey Kogosov (Scroll bar fix)
+
     FKeySelected := not ValueIsEmpty(FValue) or not FLookupLink.DataSet.BOF;
   end
   else begin
@@ -1900,11 +2078,17 @@ end;
 
 procedure TRxDBLookupList.CMCtl3DChanged(var Message: TMessage);
 begin
+{$IFNDEF VER80}
   if NewStyleControls and (FBorderStyle = bsSingle) then begin
     RecreateWnd;
     if not (csReading in ComponentState) then RowCount := RowCount;
   end;
   inherited;
+{$ELSE}
+  inherited;
+  Invalidate;
+  if not (csReading in ComponentState) then RowCount := RowCount;
+{$ENDIF}
 end;
 
 procedure TRxDBLookupList.CMFontChanged(var Message: TMessage);
@@ -1985,7 +2169,11 @@ constructor TRxPopupDataList.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   if AOwner is TRxLookupControl then FCombo := TRxLookupControl(AOwner);
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csNoDesignVisible, csReplicatable];
+{$ELSE}
+  ControlStyle := [csOpaque];
+{$ENDIF}
   FPopup := True;
   TabStop := False;
   ParentCtl3D := False;
@@ -1997,13 +2185,23 @@ begin
   inherited CreateParams(Params);
   with Params do begin
     Style := WS_POPUP or WS_BORDER;
+{$IFNDEF VER80}
     ExStyle := WS_EX_TOOLWINDOW;
+{$ENDIF}
 {$IFDEF RX_D4}
     AddBiDiModeExStyle(ExStyle);
 {$ENDIF}
     WindowClass.Style := CS_SAVEBITS;
   end;
 end;
+
+{$IFDEF VER80}
+procedure TRxPopupDataList.CreateWnd;
+begin
+  inherited CreateWnd;
+  if (csDesigning in ComponentState) then SetParent(nil);
+end;
+{$ENDIF}
 
 procedure TRxPopupDataList.WMMouseActivate(var Message: TMessage);
 begin
@@ -2029,7 +2227,11 @@ end;
 constructor TRxDBLookupCombo.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csReplicatable] - [csSetCaption];
+{$ELSE}
+  ControlStyle := [csFramed, csOpaque];
+{$ENDIF}
   Width := 145;
   Height := 0;
   FDataList := TRxPopupDataList.Create(Self);
@@ -2040,6 +2242,12 @@ begin
   FDropDownCount := 8;
   FDisplayValues := TStringList.Create;
   FSelImage := TPicture.Create;
+{$IFDEF VER80}
+  FBtnGlyph := TBitmap.Create;
+  { Load ComboBox button glyph }
+  FBtnGlyph.Handle := LoadBitmap(0, PChar(32738));
+  FBtnDisabled := CreateDisabledBitmap(FBtnGlyph, clBlack);
+{$ENDIF}
   Height := {GetMinHeight}21;
   FIgnoreCase := True;
   FEscapeClear := True;
@@ -2047,6 +2255,10 @@ end;
 
 destructor TRxDBLookupCombo.Destroy;
 begin
+{$IFDEF VER80}
+  FBtnDisabled.Free;
+  FBtnGlyph.Free;
+{$ENDIF}
   FSelImage.Free;
   FSelImage := nil;
   FDisplayValues.Free;
@@ -2058,8 +2270,12 @@ procedure TRxDBLookupCombo.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
   with Params do
+{$IFNDEF VER80}
     if NewStyleControls and Ctl3D then ExStyle := ExStyle or WS_EX_CLIENTEDGE
     else Style := Style or WS_BORDER;
+{$ELSE}
+    Style := Style or WS_BORDER;
+{$ENDIF}
 end;
 
 procedure TRxDBLookupCombo.CloseUp(Accept: Boolean);
@@ -2189,6 +2405,9 @@ var
   R: TRect;
 begin
   SetRect(R, 1, 1, ClientWidth - FButtonWidth - 1, ClientHeight - 1);
+{$IFDEF VER80}
+  InflateRect(R, -1, -1);
+{$ENDIF}
   InvalidateRect(Self.Handle, @R, False);
   UpdateWindow(Self.Handle);
 end;
@@ -2218,14 +2437,14 @@ end;
 procedure TRxDBLookupCombo.KeyPress(var Key: Char);
 begin
   if FListVisible then begin
-    if Key in [#13, #27] then begin
+    if CharInSet(Key, [#13, #27]) then begin
       CloseUp(Key = #13);
       Key := #0;
     end
     else FDataList.KeyPress(Key)
   end
   else begin
-    if Key in [#32..#255] then begin
+    if CharInSet(Key, [#32..#255]) then begin
       DropDown;
       if FListVisible then FDataList.KeyPress(Key);
     end
@@ -2238,7 +2457,7 @@ begin
     end;
   end;
   inherited KeyPress(Key);
-  if (Key in [#13, #27]) then
+  if CharInSet(Key, [#13, #27]) then
     GetParentForm(Self).Perform(CM_DIALOGKEY, Byte(Key), 0);
 end;
 
@@ -2261,6 +2480,7 @@ end;
 
 procedure TRxDBLookupCombo.KeyValueChanged;
 begin
+{$IFNDEF VER80}
   if FLookupMode then begin
     if FDisplayValues <> nil then FDisplayValues.Clear;
     if FDataLink.Active and (FDataField <> nil) then {begin
@@ -2276,6 +2496,7 @@ begin
       end
     else inherited Text := '';
   end else
+{$ENDIF}
   if FListActive and LocateKey then
     UpdateFieldText
   else if FListActive then begin
@@ -2316,17 +2537,21 @@ end;
 
 function TRxDBLookupCombo.GetDisplayAll: Boolean;
 begin
+{$IFNDEF VER80}
   if FLookupMode then Result := False else
+{$ENDIF}
   Result := FDisplayAll;
 end;
 
 procedure TRxDBLookupCombo.SetDisplayAll(Value: Boolean);
 begin
   if FDisplayAll <> Value then begin
+{$IFNDEF VER80}
     if FLookupMode then FDisplayAll := False else
+{$ENDIF}
     FDisplayAll := Value;
     if not (csReading in ComponentState)
-      and not FLookupMode then
+      {$IFNDEF VER80} and not FLookupMode {$ENDIF} then
       KeyValueChanged
     else Invalidate;
   end;
@@ -2440,7 +2665,7 @@ begin
     W := LoWord(Longint(FDisplayValues.Objects[I]));
     if I < LastIndex then W := W * TxtWidth + 4
     else W := ARight - R.Left;
-    X := 2;
+    X := 2;   
     R.Right := R.Left + W;
     case TAlignment(HiWord(Longint(FDisplayValues.Objects[I]))) of
       taRightJustify: X := W - Canvas.TextWidth(S) - 3;
@@ -2468,11 +2693,14 @@ var
   Image: TGraphic;
   Bmp: TBitmap;
   Alignment: TAlignment;
+{$IFDEF VER80}
+  Target: TRect;
+{$ENDIF}
 begin
   Canvas.Font := Font;
   Canvas.Brush.Color := Color;
-  Selected := FFocused and not FListVisible and
-    not (csPaintCopy in ControlState);
+  Selected := FFocused and not FListVisible {$IFNDEF VER80} and
+    not (csPaintCopy in ControlState) {$ENDIF};
   if Selected then begin
     Canvas.Font.Color := clHighlightText;
     Canvas.Brush.Color := clHighlight;
@@ -2484,11 +2712,13 @@ begin
   Image := nil;
   IsEmpty := False;
   DrawList := DisplayAllFields;
+{$IFNDEF VER80}
   if (csPaintCopy in ControlState) and (FDataField <> nil) then begin
     DrawList := False;
     AText := FDataField.DisplayText;
     Alignment := FDataField.Alignment;
   end;
+{$ENDIF}
   TextMargin := 0;
   if FListVisible then begin
     DrawList := False;
@@ -2511,7 +2741,9 @@ begin
     end;
   end
   else begin
+{$IFNDEF VER80}
     if (csPaintCopy in ControlState) then Image := nil else
+{$ENDIF}
     begin
       IsEmpty := ValueIsEmpty(Value);
       Image := GetPicture(True, IsEmpty, TextMargin);
@@ -2523,6 +2755,9 @@ begin
   W := ClientWidth - FButtonWidth;
   if W > 4 then begin
     SetRect(R, 1, 1, W - 1, ClientHeight - 1);
+{$IFDEF VER80}
+    InflateRect(R, -1, -1);
+{$ENDIF}
     if TextMargin > 0 then Inc(TextMargin);
     X := 0{2} + TextMargin;  // Polaris
     if not (FListVisible and (FDataList.FSearchText <> '')) and not DrawList then
@@ -2582,6 +2817,7 @@ begin
     R.Right:= FButtonWidth;
   end;
 {$ENDIF}
+{$IFNDEF VER80}
   if (not FListActive) or (not Enabled) or ReadOnly then
     Flags := DFCS_SCROLLCOMBOBOX or DFCS_INACTIVE
   else if FPressed then
@@ -2589,6 +2825,26 @@ begin
   else
     Flags := DFCS_SCROLLCOMBOBOX;
   DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, Flags);
+{$ELSE}
+  if NewStyleControls then begin
+    InflateRect(R, -1, -1); Dec(R.Left);
+  end
+  else begin
+    InflateRect(R, 1, 1); Inc(R.Left);
+  end;
+  R := DrawButtonFace(Canvas, R, 1, bsWin31, False, FPressed, False);
+  { draw button glyph }
+  if (not FListActive) or (not Enabled) or ReadOnly then
+    Bmp := FBtnDisabled
+  else
+    Bmp := FBtnGlyph;
+  Target := Bounds(R.Left, R.Top, Bmp.Width, Bmp.Height);
+  OffsetRect(Target, ((R.Right - R.Left) div 2) - (Bmp.Width div 2),
+    ((R.Bottom - R.Top) div 2) - (Bmp.Height div 2));
+  { Canvas.Draw(Target.Left, Target.Top, Bmp); }
+  DrawBitmapTransparent(Canvas, Target.Left, Target.Top, Bmp,
+    TransColor[Bmp = FBtnGlyph]);
+{$ENDIF}
 end;
 
 procedure TRxDBLookupCombo.ResetField;
@@ -2637,6 +2893,7 @@ begin
     CloseUp(False);
 end;
 
+{$IFNDEF VER80}
 procedure TRxDBLookupCombo.CMCtl3DChanged(var Message: TMessage);
 begin
   if NewStyleControls then begin
@@ -2659,6 +2916,7 @@ begin
     end;
   inherited;
 end;
+{$ENDIF}
 
 procedure TRxDBLookupCombo.CMFontChanged(var Message: TMessage);
 begin
@@ -2673,10 +2931,12 @@ begin
   Invalidate;
 end;
 
+{$IFNDEF VER80}
 procedure TRxDBLookupCombo.CMGetDataLink(var Message: TMessage);
 begin
   Message.Result := Integer(FDataLink);
 end;
+{$ENDIF}
 
 procedure TRxDBLookupCombo.WMCancelMode(var Message: TMessage);
 begin
@@ -2705,7 +2965,11 @@ begin
   with ClientRect do
     if PtInRect(Bounds(Right - FButtonWidth, Top, FButtonWidth, Bottom - Top),
       ScreenToClient(P)) then
+{$IFNDEF VER80}
       Windows.SetCursor(LoadCursor(0, IDC_ARROW))
+{$ELSE}
+      WinProcs.SetCursor(LoadCursor(0, IDC_ARROW))
+{$ENDIF}
     else inherited;
 end;
 
@@ -3030,25 +3294,341 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 procedure TRxLookupEdit.SetPopupValue(const Value: Variant);
+{$ELSE}
+procedure TRxLookupEdit.SetPopupValue(const Value: string);
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   if VarIsNull(Value) or VarIsEmpty(Value) then
     TPopupDataWindow(FPopup).Value := TPopupDataWindow(FPopup).EmptyValue
   else
+{$ENDIF}
     TPopupDataWindow(FPopup).DisplayValue := Value;
 end;
 
+{$IFNDEF VER80}
 function TRxLookupEdit.GetPopupValue: Variant;
+{$ELSE}
+function TRxLookupEdit.GetPopupValue: string;
+{$ENDIF}
 begin
   with TPopupDataWindow(FPopup) do
     if Value <> EmptyValue then Result := DisplayValue
     else Result := Self.Text;
 end;
 
+{$IFNDEF VER80}
 function TRxLookupEdit.AcceptPopup(var Value: Variant): Boolean;
+{$ELSE}
+function TRxLookupEdit.AcceptPopup(var Value: string): Boolean;
+{$ENDIF}
 begin
   Result := True;
   if Assigned(FOnCloseUp) then FOnCloseUp(Self);
+end;
+
+{  TRxDBLookupEditEx  }
+
+constructor TRxDBLookupEditEx.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+//  inherited ReadOnly := True;
+  ControlStyle := ControlStyle + [csReplicatable];
+  FDataLink := TFieldDataLink.Create;
+  FDataLink.Control := Self;
+  FDataLink.OnDataChange := DataChange;
+  FDataLink.OnEditingChange := EditingChange;
+  FDataLink.OnUpdateData := UpdateData;
+  //DSS
+  PopupOnlyLocate := False;
+{$IFDEF RIGHT_SPACE_ALIGN}
+  FRightSpaceAlign := False;
+{$ENDIF}
+end;
+
+destructor TRxDBLookupEditEx.Destroy;
+begin
+  FDataLink.Free;
+  FDataLink := nil;
+  inherited Destroy;
+end;
+
+procedure TRxDBLookupEditEx.Loaded;
+begin
+  inherited Loaded;
+  if (csDesigning in ComponentState) then DataChange(Self);
+end;
+
+procedure TRxDBLookupEditEx.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited Notification(AComponent, Operation);
+  if (Operation = opRemove) and (FDataLink <> nil) and
+    (AComponent = DataSource) then DataSource := nil;
+end;
+
+procedure TRxDBLookupEditEx.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_DELETE) or ((Key = VK_INSERT) and (ssShift in Shift)) then
+    FDataLink.Edit;
+  inherited;
+end;
+
+procedure TRxDBLookupEditEx.KeyUp(var Key: Word; Shift: TShiftState);
+var
+  SStart, SLength: integer;
+begin
+  inherited;
+  SLength := SelLength;
+  SStart := SelStart + FDataLink.Field.Size - Length(Text);
+  if Trim(Text) <> '' then
+    Text := RightStr(Trim(Text), FDataLink.Field.Size)
+  else
+    Text := '';
+  SelStart := SStart; //after assignment Text restore.
+  SelLength := SLength;
+  FDataLink.Edit;
+//  SelStart := Length(Text);
+end;
+
+procedure TRxDBLookupEditEx.KeyPress(var Key: Char);
+var
+  NewText: string;
+//  SStart, SLength: integer;
+begin
+{$IFDEF RIGHT_SPACE_ALIGN}
+  if FRightSpaceAlign and CharInSet(Key, [#32..#255])
+    and (FDataLink.Field <> nil) and FDataLink.Field.IsValidChar(Key)
+    and (SelStart <= MaxLength)
+  then begin
+    NewText := Copy(Text, 1, SelStart) + Key +
+               Copy(Text, SelStart+SelLength, Length(Text) - SelStart - SelLength);
+    if Trim(NewText) <> '' then
+      Text := RightStr(Trim(NewText), FDataLink.Field.Size)
+    else
+      Text := '';
+    SelStart := Length(Text);
+  end;  
+{$ENDIF}
+
+  inherited KeyPress(Key);
+
+  if CharInSet(Key, [#32..#255]) and (FDataLink.Field <> nil) and
+    not FDataLink.Field.IsValidChar(Key) then
+  begin
+    MessageBeep(0);
+    Key := #0;
+  end;
+  case Key of
+    ^H, ^V, ^X, #32..#255:
+      FDataLink.Edit;
+    #27:
+      begin
+        FDataLink.Reset;
+        SelectAll;
+        Key := #0;
+      end;
+  end;
+end;
+
+function TRxDBLookupEditEx.EditCanModify: Boolean;
+begin
+  Result := FDataLink.Edit;
+end;
+
+procedure TRxDBLookupEditEx.Reset;
+begin
+  FDataLink.Reset;
+  SelectAll;
+end;
+
+procedure TRxDBLookupEditEx.SetFocused(Value: Boolean);
+begin
+  if FFocused <> Value then
+  begin
+    FFocused := Value;
+    if (FAlignment <> taLeftJustify) and not IsMasked then Invalidate;
+    FDataLink.Reset;
+  end;
+end;
+
+procedure TRxDBLookupEditEx.Change;
+begin
+//  if ChangeInvoked then
+//    exit; {If you will come here - should be hung.}
+  Application.ProcessMessages;
+  ChangeInvoked := True;
+  // Added, because this procedure is called before FormCreate, mother-mother.
+  if not Showing then exit;
+
+  FDataLink.Modified;
+  if Assigned(FDataLink.Dataset)
+     and FDataLink.Dataset.Active
+                                   //    and Assigned(LookupSource.Dataset) and LookupSource.Dataset.Active
+  then begin                       // inherited Change; - replaced by more appropriate treatment options.
+    if PopupOnlyLocate then begin  //DSS - PopupOnlyLocate undefined VS - now like a definite.
+      if PopupVisible then PopupChange;
+    end else begin
+      PopupChange;
+      DoChange;
+    end;
+  end;
+  ChangeInvoked := False;
+end;
+
+function TRxDBLookupEditEx.GetDataSource: TDataSource;
+begin
+  Result := FDataLink.DataSource;
+end;
+
+procedure TRxDBLookupEditEx.SetDataSource(Value: TDataSource);
+begin
+  FDataLink.DataSource := Value;
+  if Value <> nil then Value.FreeNotification(Self);
+end;
+
+function TRxDBLookupEditEx.GetDataField: string;
+begin
+  Result := FDataLink.FieldName;
+end;
+
+procedure TRxDBLookupEditEx.SetDataField(const Value: string);
+begin
+  FDataLink.FieldName := Value;
+end;
+
+function TRxDBLookupEditEx.GetReadOnly: Boolean;
+begin
+  Result := FDataLink.ReadOnly;
+end;
+
+procedure TRxDBLookupEditEx.SetReadOnly(Value: Boolean);
+begin
+  FDataLink.ReadOnly := Value;
+end;
+
+function TRxDBLookupEditEx.GetField: TField;
+begin
+  Result := FDataLink.Field;
+end;
+
+procedure TRxDBLookupEditEx.DataChange(Sender: TObject);
+begin
+  Enabled := (FDataLink.Field <> nil)
+             and Assigned(LookupSource)
+             and LookupSource.Dataset.Active
+             and FDataLink.Field.Dataset.Active;
+
+  if Enabled then
+  begin
+    if (FAlignment <> FDataLink.Field.Alignment) then
+    begin
+      EditText := '';  //  forces update
+      FAlignment := FDataLink.Field.Alignment;
+    end;
+    EditMask := FDataLink.Field.EditMask;
+
+    // my piece of code - VS
+    if (FDataLink.Field is TStringField) and
+       (MaxLength <> FDataLink.Field.Size)
+      then MaxLength := FDataLink.Field.Size;
+
+    if FFocused and FDataLink.CanModify then
+      Text := FDataLink.Field.Text
+    else
+    begin
+      EditText := FDataLink.Field.DisplayText;
+      if FDataLink.Editing and
+        ( {$IFDEF USE_BDE}(FDataLink.Dataset is TBDEDataSet)
+          and (FDataLink.Dataset as TBDEDataSet).CachedUpdates
+          and {$ENDIF}(FDataLink.Field.OldValue <> FDataLink.Field.NewValue)
+          {$IFDEF USE_BDE}or not (FDataLink.Dataset is TBDEDataSet){$ENDIF}
+        )
+//      FDataLink.FModified
+      then
+        Modified := True;
+    end;
+  end else begin
+    FAlignment := taLeftJustify;
+    EditMask := '';
+    if csDesigning in ComponentState then
+      EditText := Name else
+      EditText := '';
+  end;
+end;
+
+procedure TRxDBLookupEditEx.EditingChange(Sender: TObject);
+begin
+//  inherited ReadOnly := not FDataLink.Editing;
+end;
+
+procedure TRxDBLookupEditEx.UpdateData(Sender: TObject);
+begin
+  ValidateEdit;
+  FDataLink.Field.Text := Text;
+end;
+
+procedure TRxDBLookupEditEx.WMPaste(var Message: TMessage);
+begin
+  FDataLink.Edit;
+  inherited;
+end;
+
+procedure TRxDBLookupEditEx.WMCut(var Message: TMessage);
+begin
+  FDataLink.Edit;
+  inherited;
+end;
+
+procedure TRxDBLookupEditEx.CMEnter(var Message: TCMEnter);
+begin
+  SetFocused(True);
+  inherited;
+  if SysLocale.FarEast and FDataLink.CanModify then begin
+    inherited ReadOnly := False;
+    ReadOnly := False;
+  end;
+end;
+
+procedure TRxDBLookupEditEx.CMExit(var Message: TCMExit);
+begin
+  try
+    if FDataLink.Field.Dataset.State in [dsEdit, dsInsert] then
+      FDataLink.UpdateRecord;
+  except
+    SelectAll;
+    SetFocus;
+    raise;
+  end;
+//  SetFocused(False);
+//  CheckCursor;
+  DoExit;
+end;
+
+procedure TRxDBLookupEditEx.CMGetDataLink(var Message: TMessage);
+begin
+  Message.Result := Integer(FDataLink);
+end;
+
+function TRxDBLookupEditEx.AcceptPopup(var Value: Variant): Boolean;
+begin
+  FDataLink.Edit;
+  result := inherited AcceptPopup(Value);
+  if result then begin
+    FDataLink.UpdateRecord;
+    FDataLink.Reset;
+  end {$IFDEF DEBUG} else MessageDlg('DFFF', mtError, [mbOk], 0){$ENDIF};
+end;
+
+procedure TRxDBLookupEditEx.DropDown;
+begin
+//! Not the fact that RecordCount is always running fast.
+// This may have to do in particular cases.
+  if DropDownCount > LookupSource.Dataset.RecordCount then
+    DropDownCount := LookupSource.Dataset.RecordCount;
+  inherited;
 end;
 
 end.

@@ -7,16 +7,15 @@
 {                                                       }
 {*******************************************************}
 
-unit rxSplshWnd;
+unit RxSplshWnd;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows,
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, 
-  rxAnimate, rxVCLUtils;
+  RxAnimate, RxVCLUtils;
 
 type
   TSplashWindow = class(TForm)
@@ -43,8 +42,7 @@ const
 
 implementation
 
-uses
-  rxMaxMin;
+uses RxMaxMin;
 
 const
   defSplashHeight = 64;
@@ -72,7 +70,7 @@ begin
     ClientWidth := defImageLeft + defTextRight + 32;
     Enabled := False;
     Font.Height := -11;
-    Font.Name := 'MS Sans Serif';
+    Font.Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
     Font.Style := [];
     Font.Color := clWindowText;
     PixelsPerInch := 96;
@@ -151,12 +149,15 @@ end;
 procedure TSplashWindow.SetMessageText(const Value: string);
 var
   TextRect: TRect;
+{$IFDEF VER80}
+  C: array[0..255] of Char;
+{$ENDIF}
   VertOff: Integer;
 begin
   TextRect := Rect(FTextMessage.Left, 0, Max(Screen.Width div 2 - 64,
     defTextWidth), 0);
   DrawText(Canvas.Handle,
-    PChar(Value),
+    {$IFNDEF VER80} PChar(Value), {$ELSE} StrPCopy(C, Value), {$ENDIF}
     -1, TextRect, DT_CALCRECT or DT_WORDBREAK);
   VertOff := (ClientHeight div 2) - ((TextRect.Bottom - TextRect.Top) div 2);
   if VertOff < 0 then VertOff := 10;

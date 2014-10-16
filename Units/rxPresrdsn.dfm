@@ -6,9 +6,11 @@ object FormPropsDlg: TFormPropsDlg
   Caption = 'Form Storage Designer'
   ClientHeight = 319
   ClientWidth = 352
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -35,8 +37,9 @@ object FormPropsDlg: TFormPropsDlg
     47FFFFE00FFFFFF01FFFFFF83FFFC000000F8000000780000007800000078000
     0007800000078000000780000007800000078000000780000007800000078000
     000780000007C000000F8120021F8130061FFFF80FFFFFFC1FFFFFFFFFFF}
-  PixelsPerInch = 96
+  OldCreateOrder = True
   OnDestroy = FormDestroy
+  PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel
     Left = 4
@@ -48,13 +51,14 @@ object FormPropsDlg: TFormPropsDlg
   object Label30: TLabel
     Left = 12
     Top = 53
-    Width = 82
+    Width = 80
     Height = 13
     Caption = '&Components   '
     FocusControl = ComponentsList
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     IsControl = True
@@ -62,13 +66,14 @@ object FormPropsDlg: TFormPropsDlg
   object Label31: TLabel
     Left = 224
     Top = 53
-    Width = 70
+    Width = 68
     Height = 13
     Caption = '&Properties   '
     FocusControl = PropertiesList
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
     IsControl = True
@@ -76,13 +81,14 @@ object FormPropsDlg: TFormPropsDlg
   object Label2: TLabel
     Left = 12
     Top = 169
-    Width = 111
+    Width = 109
     Height = 13
     Caption = '&Stored Properties   '
     FocusControl = StoredList
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlack
     Font.Height = -11
-    Font.Name = 'MS Sans Serif'
+    Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
   end
@@ -93,7 +99,7 @@ object FormPropsDlg: TFormPropsDlg
     Height = 25
     Glyph.Data = {
       DE000000424DDE0000000000000076000000280000000D0000000D0000000100
-      0400000000006800000000000000000000000000000000000000000000000000
+      0400000000006800000000000000000000001000000000000000000000000000
       80000080000000808000800000008000800080800000C0C0C000808080000000
       FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
       3000333333333333300033330000033330003333066603333000333306660333
@@ -109,7 +115,7 @@ object FormPropsDlg: TFormPropsDlg
     Height = 25
     Glyph.Data = {
       DE000000424DDE0000000000000076000000280000000D0000000D0000000100
-      0400000000006800000000000000000000000000000000000000000000000000
+      0400000000006800000000000000000000001000000000000000000000000000
       80000080000000808000800000008000800080800000C0C0C000808080000000
       FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333333
       3000333333333333300033333303333330003333306033333000333306660333
@@ -158,7 +164,7 @@ object FormPropsDlg: TFormPropsDlg
     Width = 344
     Height = 44
     Caption = ' Form Properties '
-    TabOrder = 0
+    TabOrder = 9
     object ActiveCtrlBox: TCheckBox
       Left = 12
       Top = 16
@@ -173,6 +179,7 @@ object FormPropsDlg: TFormPropsDlg
       Width = 94
       Height = 17
       Caption = ' &Form Position'
+      Checked = True
       State = cbChecked
       TabOrder = 1
     end
@@ -182,6 +189,7 @@ object FormPropsDlg: TFormPropsDlg
       Width = 94
       Height = 17
       Caption = ' &Window State'
+      Checked = True
       State = cbChecked
       TabOrder = 2
     end
@@ -232,5 +240,14 @@ object FormPropsDlg: TFormPropsDlg
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 8
+  end
+  object StringsBox: TCheckBox
+    Left = 224
+    Top = 165
+    Width = 105
+    Height = 17
+    Caption = 'Show &strings only'
+    TabOrder = 0
+    OnClick = StringsBoxClick
   end
 end

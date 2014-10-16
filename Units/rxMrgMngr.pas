@@ -6,14 +6,13 @@
 {                                                       }
 {*******************************************************}
 
-unit rxMrgMngr;
+unit RxMrgMngr;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Classes, Controls, Forms, rxVCLUtils;
+uses Classes, Controls, Forms, RxVCLUtils;
 
 type
   TFormRequestEvent = procedure(Sender: TObject; CurrentForm: TCustomForm;
@@ -135,25 +134,27 @@ begin
 end;
 
 procedure TMergeManager.DefineProperties(Filer: TFiler);
-
+{$IFNDEF VER80}
   function DoWrite: Boolean;
   begin
     if Assigned(Filer.Ancestor) then
       Result := IsForm <> TMergeManager(Filer.Ancestor).IsForm
     else Result := IsForm;
   end;
-
-  begin
+{$ENDIF}
+begin
   inherited DefineProperties(Filer);
   Filer.DefineProperty('IsForm', ReadForm, WriteForm,
-    DoWrite);
+    {$IFNDEF VER80} DoWrite {$ELSE} IsForm {$ENDIF});
 end;
 
 procedure TMergeManager.SetMergeFrame(Value: TWinControl);
 begin
   if FMergeFrame <> Value then begin
     FMergeFrame := Value;
+{$IFNDEF VER80}
     if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
     FFormHistory.ResetHistory;
   end;
 end;

@@ -6,17 +6,16 @@
 {                                                       }
 {*******************************************************}
 
-unit rxFDualLst;
+unit RxFDualLst;
 
 {$I RX.INC}
 {$L-,S-}
 
 interface
 
-uses
-  SysUtils, Windows,
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, RXCtrls,
-  ExtCtrls, Buttons;
+  ExtCtrls, Buttons{$IFDEF RX_D6}, Types{$ENDIF};
 
 type
   TDualListForm = class(TForm)
@@ -64,8 +63,7 @@ end;
 
 implementation
 
-uses
-  Consts, rxVCLUtils, rxBoxProcs;
+uses Consts, RxVCLUtils, RxBoxProcs;
 
 {$R *.DFM}
 

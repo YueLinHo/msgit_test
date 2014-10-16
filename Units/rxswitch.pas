@@ -7,14 +7,15 @@
 {                                                       }
 {*******************************************************}
 
-unit RXSwitch;
+unit RxSwitch;
 
 interface
 
 {$I RX.INC}
 
 uses
-  SysUtils, Windows,
+  SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  {$IFDEF RX_D17}Types, System.UITypes,{$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, Menus;
 
 type
@@ -113,7 +114,9 @@ type
     property OnDragOver;
     property OnDragDrop;
     property OnEndDrag;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -127,10 +130,9 @@ type
 
 implementation
 
-uses
-  rxVCLUtils;
+uses RxVCLUtils;
 
-{$R *.R32}
+{$R *.RES}
 
 const
   ResName: array [Boolean] of PChar = ('SWITCH_OFF', 'SWITCH_ON');
@@ -147,7 +149,8 @@ begin
     csOpaque, csDoubleClicks];
   Width := 50;
   Height := 60;
-  for I := 0 to 1 do begin
+  for I := 0 to 1 do
+  begin
     FBitmaps[Boolean(I)] := TBitmap.Create;
     SetSwitchGlyph(I, nil);
     FBitmaps[Boolean(I)].OnChange := GlyphChanged;
@@ -165,7 +168,8 @@ destructor TRxSwitch.Destroy;
 var
   I: Byte;
 begin
-  for I := 0 to 1 do begin
+  for I := 0 to 1 do
+  begin
     FBitmaps[Boolean(I)].OnChange := nil;
     FDisableBitmaps[Boolean(I)].Free;
     FBitmaps[Boolean(I)].Free;
@@ -176,7 +180,8 @@ end;
 procedure TRxSwitch.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
-  with Params do begin
+  with Params do
+  begin
     WindowClass.Style := WindowClass.Style or CS_HREDRAW or CS_VREDRAW;
     Style := Style or Longword(BorderStyles[FBorderStyle]);
   end;
@@ -184,17 +189,19 @@ end;
 
 procedure TRxSwitch.DefineProperties(Filer: TFiler);
 
+{$IFNDEF VER80}
   function DoWrite: Boolean;
   begin
     if Assigned(Filer.Ancestor) then
       Result := FUserBitmaps <> TRxSwitch(Filer.Ancestor).FUserBitmaps
     else Result := FUserBitmaps <> [];
   end;
+{$ENDIF}
 
 begin
   inherited DefineProperties(Filer);
   Filer.DefineBinaryProperty('Data', ReadBinaryData, WriteBinaryData,
-    DoWrite);
+    {$IFNDEF VER80} DoWrite {$ELSE} FUserBitmaps <> [] {$ENDIF});
 end;
 
 function TRxSwitch.GetPalette: HPALETTE;
@@ -241,7 +248,8 @@ var
   I: Boolean;
 begin
   for I := False to True do
-    if Sender = FBitmaps[I] then begin
+    if Sender = FBitmaps[I] then
+    begin
       CreateDisabled(Ord(I));
     end;
   Invalidate;
@@ -249,11 +257,13 @@ end;
 
 procedure TRxSwitch.SetSwitchGlyph(Index: Integer; Value: TBitmap);
 begin
-  if Value <> nil then begin
+  if Value <> nil then
+  begin
     FBitmaps[Boolean(Index)].Assign(Value);
     Include(FUserBitmaps, Boolean(Index));
   end
-  else begin
+  else
+  begin
     FBitmaps[Boolean(Index)].Handle := LoadBitmap(HInstance,
       ResName[Boolean(Index)]);
     Exclude(FUserBitmaps, Boolean(Index));
@@ -265,7 +275,8 @@ var
   Active: Boolean;
 begin
   with Message do Active := (Sender = Self);
-  if Active <> FActive then begin
+  if Active <> FActive then
+  begin
     FActive := Active;
     if FShowFocus then Invalidate;
   end;
@@ -286,7 +297,8 @@ end;
 
 procedure TRxSwitch.CMDialogChar(var Message: TCMDialogChar);
 begin
-  if IsAccel(Message.CharCode, Caption) and CanFocus then begin
+  if IsAccel(Message.CharCode, Caption) and CanFocus then
+  begin
     SetFocus;
     Message.Result := 1;
   end;
@@ -295,7 +307,8 @@ end;
 procedure TRxSwitch.MouseDown(Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if Button = mbLeft then begin
+  if Button = mbLeft then
+  begin
     if TabStop and CanFocus then SetFocus;
     ToggleSwitch;
   end;
@@ -305,7 +318,8 @@ end;
 procedure TRxSwitch.KeyDown(var Key: Word; Shift: TShiftState);
 begin
   inherited KeyDown(Key, Shift);
-  if FToggleKey = ShortCut(Key, Shift) then begin
+  if FToggleKey = ShortCut(Key, Shift) then
+  begin
     ToggleSwitch;
     Key := 0;
   end;
@@ -374,14 +388,16 @@ var
 
 begin
   ARect := GetClientRect;
-  with Canvas do begin
+  with Canvas do
+  begin
     Font := Self.Font;
     Brush.Color := Self.Color;
     FillRect(ARect);
     if not Enabled and (FDisableBitmaps[FStateOn] <> nil) then
       DrawBitmap(FDisableBitmaps[FStateOn])
     else DrawBitmap(FBitmaps[FStateOn]);
-    if FTextPosition <> tpNone then begin
+    if FTextPosition <> tpNone then
+    begin
       FontHeight := TextHeight('W');
       with ARect do
       begin
@@ -389,8 +405,13 @@ begin
         Bottom := Top + FontHeight;
       end;
       StrPCopy(Text, Caption);
+{$IFNDEF VER80}
       Windows.DrawText(Handle, Text, StrLen(Text), ARect, DT_EXPANDTABS or
         DT_VCENTER or DT_CENTER);
+{$ELSE}
+      WinProcs.DrawText(Handle, Text, StrLen(Text), ARect, DT_EXPANDTABS or
+        DT_VCENTER or DT_CENTER);
+{$ENDIF}
     end;
   end;
 end;
@@ -412,7 +433,8 @@ end;
 
 procedure TRxSwitch.SetBorderStyle(Value: TBorderStyle);
 begin
-  if FBorderStyle <> Value then begin
+  if FBorderStyle <> Value then
+  begin
     FBorderStyle := Value;
     RecreateWnd;
   end;
@@ -420,7 +442,8 @@ end;
 
 procedure TRxSwitch.SetStateOn(Value: Boolean);
 begin
-  if FStateOn <> Value then begin
+  if FStateOn <> Value then
+  begin
     FStateOn := Value;
     Invalidate;
     if Value then DoOn
@@ -430,7 +453,8 @@ end;
 
 procedure TRxSwitch.SetTextPosition(Value: TTextPos);
 begin
-  if FTextPosition <> Value then begin
+  if FTextPosition <> Value then
+  begin
     FTextPosition := Value;
     Invalidate;
   end;
@@ -438,7 +462,8 @@ end;
 
 procedure TRxSwitch.SetShowFocus(Value: Boolean);
 begin
-  if FShowFocus <> Value then begin
+  if FShowFocus <> Value then
+  begin
     FShowFocus := Value;
     if not (csDesigning in ComponentState) then Invalidate;
   end;

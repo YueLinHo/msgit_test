@@ -6,6 +6,7 @@
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Revision and component added by JB.                   }
 {*******************************************************}
 
 { Note:
@@ -27,17 +28,18 @@ procedure Register;
 
 implementation
 
-{$R *.D32}
+{$R *.dcr}
 
 uses
-  Classes, SysUtils, Controls, Graphics, TypInfo, Consts,
-  ExtCtrls, rxPictEdit, RxHook, rxPicClip, rxPlacemnt, rxPresrDsn, rxMinMaxEd, rxDualList,
-  rxClipView, rxSpeedbar, rxSbEdit, rxDataConv, RXCalc, rxPageMngr, rxPgMngrEd, rxMrgMngr,
-  rxStrHlder, RXShell, rxAppEvent, rxVCLUtils, rxTimerLst, rxTimLstEd, rxIcoList, rxIcoLEdit,
-  {$IFDEF USE_RX_GIF} RxGIF, rxGIFCtrl, {$ENDIF} RXLConst, RXCtrls,
-  {$IFDEF RX_D3} {RxResExp,} {$ENDIF} RxMenus, rxMRUList,
-  RxNotify, RxGrdCpt, rxGradEdit, rxHintProp,
-  {$IFDEF RX_D6} RTLConsts, DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
+  Classes, SysUtils, Controls, Graphics, TypInfo, Consts, Dialogs, ExtCtrls,
+  RxPictEdit, RxHook, RxPicClip, RxPlacemnt, RxPresrDsn, RxMinMaxEd, RxDualList,
+  RxClipView, RxSpeedbar, RxSbEdit, RxDataConv, RXCalc, RxPageMngr, RxPgMngrEd, RxMrgMngr,
+  RxStrHlder, RXShell, RxAppEvent, RxVCLUtils, RxTimerLst, RxTimLstEd, RxIcoList, RxIcoLEdit,
+  {$IFDEF RX_D6}RxPlugin, RxPluginManager, RxPluginWizard, RxPluginParamsForm, {$ENDIF}
+  {$IFDEF USE_RX_GIF} RxGIF, RxGIFCtrl, {$ENDIF} RxResConst, RXCtrls, RxRichPopup, RxCalcEditDlg,
+  {$IFDEF RX_D3} RxResExp, {$ENDIF} RxMenus, RxMRUList, RxMailBox, RxTranslate, RxNTSecurity,
+  {$IFNDEF VER80} RxNotify, RxGrdCpt, RxGradEdit, {$ENDIF} RxHintProp, ToolsAPI, RxViewer,
+  {$IFDEF RX_D6} RTLConsts, DesignIntf, DesignEditors, VCLEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 { TStringsEditor }
 
@@ -64,7 +66,8 @@ var
   PropName: string;
 begin
   PropName := PropertyEditor.GetName;
-  if (CompareText(PropName, 'STRINGS') = 0) then begin
+  if (CompareText(PropName, 'STRINGS') = 0) then
+  begin
     PropertyEditor.Edit;
     Continue := False;
   end;
@@ -95,7 +98,11 @@ procedure TComponentFormProperty.SetValue(const Value: string);
 var
   Component: TComponent;
 begin
+{$IFNDEF VER80}
   Component := Designer.GetComponent(Value);
+{$ELSE}
+  Component := Designer.Form.FindComponent(Value);
+{$ENDIF}
 {$IFDEF RX_D6}  // Polaris
   if ((Component = nil) or not (Component is GetTypeData(GetPropType)^.ClassType))
     and (CompareText(Designer.Root.Name, Value) = 0) then
@@ -116,25 +123,89 @@ begin
     inherited SetValue(Value);
 end;
 
+{ TRxTranslatorEditor }
+
+type
+  TRxTranslatorEditor = class (TComponentEditor)
+  private
+    procedure CreateLanguageFile;
+  public
+    procedure ExecuteVerb(Index: Integer); override;
+    function GetVerb(Index: Integer): string; override;
+    function GetVerbCount: Integer; override;
+  end;
+
+{ TRxTranslatorEditor }
+
+procedure TRxTranslatorEditor.CreateLanguageFile;
+var
+  fs: TSaveDialog;
+begin
+  fs := TSaveDialog.Create(nil);
+  try
+    fs.FileName := TRxTranslator(Component).LanguageFileName;
+    fs.InitialDir := ExtractFilePath(fs.FileName);
+    if (ExtractFileName(fs.FileName) = '') then
+      fs.FileName := '';
+    fs.Filter := 'Ini files (*.ini)|*.ini|All files (*.*)|*.*';
+    fs.Options := fs.Options + [ofHideReadOnly];
+    if fs.Execute then
+    begin
+      TRxTranslator(Component).CreateLanguageFile(fs.FileName, True);
+    end;
+  finally
+    fs.Free;
+  end;
+end;
+
+
+procedure TRxTranslatorEditor.ExecuteVerb(Index: Integer);
+begin
+  case Index of
+    0: CreateLanguageFile;
+  end;
+end;
+
+function TRxTranslatorEditor.GetVerb(Index: Integer): string;
+begin
+  case Index of
+    0: Result := 'Create &language file...'
+  end;
+end;
+
+function TRxTranslatorEditor.GetVerbCount: Integer;
+begin
+  Result := 1;
+end;
+
 { Designer registration }
 
 procedure Register;
+const
+  srRXTools = 'RX Tools';
 begin
 { Components }
-  RegisterComponents(LoadStr(srRXTools), [TPicClip, TFormStorage,
+  RegisterComponents(srRXTools, [TPicClip, TFormStorage,
     TFormPlacement, TRxWindowHook, TAppEvents, TSpeedbar, TRxCalculator,
-    TRxTimerList, TPageManager, TMergeManager, TMRUManager, TSecretPanel,
-    TStrHolder, TRxTrayIcon, TRxMainMenu, TRxPopupMenu,
-    TRxFolderMonitor, TClipboardViewer,
-    TRxGradientCaption, TDualListDialog
+    TRxTimerList, TPageManager, TMergeManager, TMRUManager, TSecretPanel, TRxTrayIconEx,
+    TStrHolder, TRxTrayIcon, TRxMainMenu, TRxPopupMenu, TRxRichPopUpMenu, TRxViewer,
+    {$IFDEF RX_D6}TRxPluginManager, {$ENDIF}
+    {$IFNDEF VER80} TRxFolderMonitor, {$ENDIF} TClipboardViewer, TRxTranslator, TRxMailBoxManager,
+    {$IFNDEF VER80} TRxGradientCaption, {$ENDIF} TDualListDialog, TRxCalcEditDlg
     {$IFNDEF RX_D4}, TConverter {$ENDIF}]);
 
 {$IFDEF RX_D3}
   RegisterNonActiveX([TPicClip, TFormPlacement, TFormStorage, TRxWindowHook,
-    TDualListDialog, TSecretPanel, TSpeedbar, TClipboardViewer,
-    TPageManager, TMergeManager, TMRUManager, TAppEvents, TRxTimerList, 
+    TDualListDialog, TSecretPanel, TSpeedbar, TClipboardViewer, TRxMailBoxManager,
+    TPageManager, TMergeManager, TMRUManager, TAppEvents, TRxTimerList,
     TRxTrayIcon, TRxFolderMonitor, TRxGradientCaption], axrComponentOnly);
 {$ENDIF RX_D3}
+
+{$IFDEF RX_D6}
+{ TRxPluginCommand }
+  RegisterPropertyEditor(TypeInfo(TShortCut), TRxPluginCommand, 'ShortCut', TShortCutProperty);
+  RegisterPackageWizard(TRxPluginWizard.Create);
+{$ENDIF RX_D6}
 
 { TPicClip }
   RegisterComponentEditor(TPicClip, TGraphicsEditor);
@@ -202,16 +273,19 @@ begin
   RegisterPropertyEditor(TypeInfo(TGraphic), nil, '', TGraphicPropertyEditor);
   RegisterComponentEditor(TImage, TGraphicsEditor);
 
+  RegisterComponentEditor(TRxTranslator, TRxTranslatorEditor);
+{$IFNDEF VER80}
 { TRxGradientCaption }
   RegisterComponentEditor(TRxGradientCaption, TGradientCaptionEditor);
-{$IFNDEF RX_D3}
+ {$IFNDEF RX_D3}
   RegisterPropertyEditor(TypeInfo(TRxCaptionList), TRxGradientCaption, '',
     TGradientCaptionsProperty);
+ {$ENDIF}
 {$ENDIF}
 
 {$IFDEF RX_D3}
 { Project Resource Expert }
-{  RegisterResourceExpert;}
+  RegisterResourceExpert;
 {$ENDIF}
 end;
 

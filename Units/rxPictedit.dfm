@@ -6,14 +6,17 @@ object PictureEditDialog: TPictureEditDialog
   Caption = 'Picture Editor'
   ClientHeight = 335
   ClientWidth = 353
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = [fsBold]
-  PixelsPerInch = 96
+  OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  PixelsPerInch = 96
   TextHeight = 13
   object UsePreviewBox: TCheckBox
     Left = 7
@@ -154,6 +157,7 @@ object PictureEditDialog: TPictureEditDialog
     Width = 339
     Height = 14
     Caption = ' &Decrease to 16 colors when paste '
+    Checked = True
     State = cbChecked
     TabOrder = 2
   end
@@ -166,6 +170,7 @@ object PictureEditDialog: TPictureEditDialog
     StoredProps.Strings = (
       'UsePreviewBox.Checked'
       'DecreaseBox.Checked')
+    StoredValues = <>
     Left = 32
     Top = 30
   end

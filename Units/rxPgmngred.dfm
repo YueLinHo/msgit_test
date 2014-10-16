@@ -4,9 +4,11 @@ object ProxyEditor: TProxyEditor
   Width = 514
   Height = 331
   Caption = 'Page Proxy Editor'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = [fsBold]
   Icon.Data = {
     0000010001002020100000000000E80200001600000028000000200000004000
@@ -33,17 +35,18 @@ object ProxyEditor: TProxyEditor
     0000000000000000000000000000000000000000000000000000000000000000
     0000000000000000000000000000000000000000000000000000000000000000
     000000000000000000000000000080000001F8063FFFFC0FFFFFFFFFFFFF0100}
-  PixelsPerInch = 96
+  OldCreateOrder = True
   OnClose = FormClose
   OnCreate = FormCreate
   OnResize = FormResize
   OnShow = FormShow
+  PixelsPerInch = 96
   TextHeight = 13
   object BtnPanel: TPanel
     Left = 409
     Top = 0
     Width = 97
-    Height = 304
+    Height = 297
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 0
@@ -70,15 +73,15 @@ object ProxyEditor: TProxyEditor
     Left = 0
     Top = 0
     Width = 409
-    Height = 304
+    Height = 297
     Align = alClient
     ColCount = 2
     Ctl3D = True
     DefaultRowHeight = 17
     FixedCols = 0
+    RowCount = 2
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect]
     ParentCtl3D = False
-    RowCount = 2
     TabOrder = 1
     OnDrawCell = ProxyGridDrawCell
     OnKeyDown = ProxyGridKeyDown
@@ -90,6 +93,7 @@ object ProxyEditor: TProxyEditor
   object FormStorage: TFormStorage
     IniFileName = 'DELPHI.INI'
     IniSection = 'RX.ProxyEditor'
+    StoredValues = <>
     Left = 8
     Top = 4
   end

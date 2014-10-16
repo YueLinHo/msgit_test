@@ -11,7 +11,7 @@ object QueryParamsDialog: TQueryParamsDialog
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = True
   Position = poScreenCenter
@@ -28,7 +28,7 @@ object QueryParamsDialog: TQueryParamsDialog
     object Label1: TLabel
       Left = 8
       Top = 20
-      Width = 80
+      Width = 83
       Height = 13
       Caption = '&Parameter name:'
       FocusControl = ParamList
@@ -44,7 +44,7 @@ object QueryParamsDialog: TQueryParamsDialog
     object Label3: TLabel
       Left = 143
       Top = 40
-      Width = 49
+      Width = 52
       Height = 13
       Caption = '&Data type:'
       FocusControl = TypeList
@@ -53,7 +53,7 @@ object QueryParamsDialog: TQueryParamsDialog
       Left = 208
       Top = 62
       Width = 121
-      Height = 21
+      Height = 20
       TabOrder = 2
       OnExit = ParamValueExit
     end
@@ -72,7 +72,7 @@ object QueryParamsDialog: TQueryParamsDialog
       Width = 121
       Height = 21
       Style = csDropDownList
-      ItemHeight = 13
+      ItemHeight = 0
       Sorted = True
       TabOrder = 1
       OnChange = TypeListChange

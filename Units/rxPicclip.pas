@@ -8,14 +8,17 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxPicClip;
+unit RxPicClip;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Messages, Classes, Controls, Windows, Graphics;
+uses 
+  {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Messages, Classes, Controls,
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  Graphics {$IFDEF RX_D6}, Types{$ENDIF};
 
 type
 
@@ -75,9 +78,8 @@ implementation
 
 {$B-}
 
-uses
-  SysUtils, rxVCLUtils, Consts, RXConst
-  {$IFDEF RX_D6} , RTLConsts {$ENDIF}; // Polaris
+uses SysUtils, RxVCLUtils, Consts, RXConst, RxResConst
+     {$IFDEF RX_D6} , RTLConsts {$ENDIF}; // Polaris
 
 { TPicClip }
 
@@ -104,8 +106,10 @@ end;
 
 procedure TPicClip.Assign(Source: TPersistent);
 begin
-  if Source is TPicClip then begin
-    with TPicClip(Source) do begin
+  if Source is TPicClip then
+  begin
+    with TPicClip(Source) do
+    begin
       Self.FRows := Rows;
       Self.FCols := Cols;
       Self.FMasked := Masked;
@@ -118,13 +122,13 @@ begin
   else inherited Assign(Source);
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 type
   THack = class(TImageList);
 {$ENDIF}
 
 procedure TPicClip.AssignTo(Dest: TPersistent);
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 var
   I: Integer;
   SaveChange: TNotifyEvent;
@@ -134,8 +138,9 @@ begin
   else if (Dest is TGraphic) and (FPicture.Graphic <> nil) and
     (FPicture.Graphic is TGraphic(Dest).ClassType) then
     Dest.Assign(FPicture.Graphic)
-{$IFDEF WIN32}
-  else if (Dest is TImageList) and not IsEmpty then begin
+{$IFNDEF VER80}
+  else if (Dest is TImageList) and not IsEmpty then
+  begin
     with TImageList(Dest) do begin
       SaveChange := OnChange;
       try
@@ -143,7 +148,8 @@ begin
         Clear;
         Width := Self.Width;
         Height := Self.Height;
-        for I := 0 to Self.Count - 1 do begin
+        for I := 0 to Self.Count - 1 do
+        begin
           if Self.Masked and (MaskColor <> clNone) then
             TImageList(Dest).AddMasked(GraphicCell[I], MaskColor)
           else TImageList(Dest).Add(GraphicCell[I], nil);
@@ -181,11 +187,12 @@ var
 begin
   if Index < 0 then Image := Picture.Graphic
   else Image := GraphicCell[Index];
-  if (Image <> nil) and not Image.Empty then begin
-    if FMasked and (FMaskColor <> clNone) and
-      (Picture.Graphic is TBitmap) then
+  if (Image <> nil) and not Image.Empty then
+  begin
+    if FMasked and (FMaskColor <> clNone) and (Picture.Graphic is TBitmap) then
       DrawBitmapTransparent(Canvas, X, Y, TBitmap(Image), FMaskColor)
-    else Canvas.Draw(X, Y, Image);
+    else
+      Canvas.Draw(X, Y, Image);
   end;
 end;
 
@@ -216,7 +223,7 @@ begin
 {$IFDEF RX_D3}
     raise EListError.CreateFmt(SListIndexError, [Index]);
 {$ELSE}
-    raise EListError.CreateFmt('%s (%d)', [LoadStr(SListIndexError), Index]);
+    raise EListError.CreateFmt('%s (%d)', [{LoadStr(}SListIndexError{)}, Index]);
 {$ENDIF}
 end;
 
@@ -274,7 +281,8 @@ end;
 
 procedure TPicClip.SetMaskColor(Value: TColor);
 begin
-  if Value <> FMaskColor then begin
+  if Value <> FMaskColor then
+  begin
     FMaskColor := Value;
     Changed;
   end;

@@ -7,14 +7,13 @@
 {                                                       }
 {*******************************************************}
 
-unit rxPageMngr;
+unit RxPageMngr;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Classes, Controls, ExtCtrls;
+uses Classes, Controls, ExtCtrls{$IFDEF RX_D6}, Types{$ENDIF};
 
 type
   TPageNotifyEvent = procedure(Next: Boolean) of object;
@@ -73,8 +72,12 @@ type
     procedure Loaded; override;
     procedure Notification(AComponent: TComponent;
       AOperation: TOperation); override;
+{$IFNDEF VER80}
     procedure GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
       Root: TComponent {$ENDIF}); override;
+{$ELSE}
+    procedure WriteComponents(Writer: TWriter); override;
+{$ENDIF}
     procedure ChangePage(Next: Boolean); virtual;
   public
     constructor Create(AOwner: TComponent); override;
@@ -133,12 +136,18 @@ type
     procedure PageShow(Next: Boolean);
     procedure PageHide(Next: Boolean);
   protected
+{$IFNDEF VER80}
     procedure SetParentComponent(Value: TComponent); override;
+{$ELSE}
+    procedure ReadState(Reader: TReader); override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function HasParent: Boolean; override;
+{$IFNDEF VER80}
     function GetParentComponent: TComponent; override;
+{$ENDIF}
     property PageManager: TPageManager read FPageManager write SetPageManager;
   published
     property PageName: string read GetPageName write SetPageName;
@@ -177,8 +186,7 @@ const
 
 implementation
 
-uses
-  SysUtils, Forms, StdCtrls {$IFDEF RX_D4}, ActnList {$ENDIF};
+uses SysUtils, Forms, StdCtrls {$IFDEF RX_D4}, ActnList {$ENDIF};
 
 const
   Registered: Boolean = False;
@@ -243,6 +251,8 @@ begin
   Result := True;
 end;
 
+{$IFNDEF VER80}
+
 function TPageProxy.GetParentComponent: TComponent;
 begin
   Result := FPageManager;
@@ -254,6 +264,18 @@ begin
   if (Value <> nil) and (Value is TPageManager) then
     PageManager := TPageManager(Value);
 end;
+
+{$ELSE}
+
+procedure TPageProxy.ReadState(Reader: TReader);
+begin
+  inherited ReadState(Reader);
+  if Reader.Parent is TPageManager then begin
+    PageManager := TPageManager(Reader.Parent);
+  end;
+end;
+
+{$ENDIF}
 
 procedure TPageProxy.PageEnter(Next: Boolean);
 begin
@@ -346,7 +368,9 @@ begin
   if GetButton(Index) <> Value then begin
     if not (csLoading in ComponentState) then  SyncBtnClick(Index, False);
     FButtons[Boolean(Index)] := Value;
+{$IFNDEF VER80}
     if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
     if not (csLoading in ComponentState) then  SyncBtnClick(Index, True);
   end;
 end;
@@ -399,6 +423,7 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 procedure TPageManager.GetChildren(Proc: TGetChildProc {$IFDEF RX_D3};
   Root: TComponent {$ENDIF});
 var
@@ -409,6 +434,19 @@ begin
     Proc(TPageProxy(FPageProxies.Items[I]));
   end;
 end;
+{$ELSE}
+procedure TPageManager.WriteComponents(Writer: TWriter);
+var
+  I: Integer;
+  Proxy: TPageProxy;
+begin
+  inherited WriteComponents(Writer);
+  for I := 0 to FPageProxies.Count - 1 do begin
+    Proxy := FPageProxies.Items[I];
+    if Proxy.Owner = Writer.Root then Writer.WriteComponent(Proxy);
+  end;
+end;
+{$ENDIF}
 
 procedure TPageManager.SetDestroyHandles(Value: Boolean);
 begin
@@ -423,7 +461,9 @@ procedure TPageManager.SetPageOwner(Value: TPageOwner);
 begin
   if FPageOwner <> Value then begin
     FPageOwner := Value;
+{$IFNDEF VER80}
     if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
     if not (csLoading in ComponentState) then begin
       Resync;
       if FDestroyHandles then DormantPages;

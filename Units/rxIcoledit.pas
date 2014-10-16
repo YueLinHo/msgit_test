@@ -4,21 +4,20 @@
 {                                                       }
 {       Copyright (c) 1997 Master-Bank                  }
 {                                                       }
+{ Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxIcoLEdit;
+unit RxIcoLEdit;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Windows,
-  Messages, Classes, Graphics, Forms, Controls, Dialogs, Buttons, Menus,
-  StdCtrls, ExtCtrls,
-  {$IFDEF RX_D3} ExtDlgs, {$ELSE} ImagPrvw, {$ENDIF}
-  {$IFDEF RX_D6} RTLConsts, DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF} // Polaris
-   rxPlacemnt, rxIcoList, rxSpeedBar;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Messages, Classes, Graphics, Forms, Controls, Dialogs, Buttons, RxIcoList,
+  StdCtrls, ExtCtrls, RxPlacemnt, {$IFDEF RX_D3} ExtDlgs, {$ELSE}
+  ImagPrvw, {$ENDIF} Menus, RxSpeedBar,
+  {$IFDEF RX_D6} DesignIntf, DesignWindows, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 type
 
@@ -97,12 +96,13 @@ procedure EditIconList(IconList: TIconList);
 
 implementation
 
-uses
-  TypInfo, SysUtils, Clipbrd, Consts,
-  rxClipIcon, rxVCLUtils, rxAppUtils, RxConst, RxLConst, rxMaxMin, rxAniFile;
+uses TypInfo, SysUtils, Clipbrd, Consts, RxClipIcon, RxVCLUtils, RxAppUtils, // Polaris
+  RxConst, RxResConst, RxMaxMin, RxAniFile;
 
 {$B-}
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 {$R *.DFM}
 
@@ -186,7 +186,7 @@ begin
     with Dialog do begin
       Options := [ofHideReadOnly, ofFileMustExist];
       DefaultExt := 'ani';
-      Filter := LoadStr(srAniCurFilter);
+      Filter := RxLoadStr(srAniCurFilter);
       if Execute then begin
         AniCursor := TAnimatedCursorImage.Create;
         try
@@ -291,7 +291,7 @@ begin
   FileDialog := TOpenDialog.Create(Self);
 {$ENDIF}
   with FileDialog do begin
-    Title := LoadStr(srLoadIcon);
+    Title := RxLoadStr(srLoadIcon);
     Options := [ofHideReadOnly, ofFileMustExist];
     DefaultExt := GraphicExtension(TIcon);
     Filter := GraphicFilter(TIcon);

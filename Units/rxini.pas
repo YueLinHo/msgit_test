@@ -8,14 +8,13 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit RXIni;
+unit RxIni;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Windows, Registry,
+uses {$IFNDEF VER80} Windows, Registry, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Classes, IniFiles, Graphics;
 
 type
@@ -28,11 +27,11 @@ type
 
   TRxIniFile = class(TIniFile)
   private
-{$IFDEF RX_D4}   // Polaris
+    {$IFDEF RX_D4}   // Polaris
     FListItemName: String;
-{$ELSE}
+    {$ELSE}
     FListItemName: PString;
-{$ENDIF}
+    {$ENDIF}
     FOnReadObject: TReadObjectEvent;
     FOnWriteObject: TWriteObjectEvent;
     function GetItemName: string;
@@ -47,6 +46,9 @@ type
     constructor Create(const FileName: string);
     destructor Destroy; override;
     procedure Flush;
+    {$IFDEF VER80}
+    procedure DeleteKey(const Section, Ident: String);
+    {$ENDIF}
     { ini-file read and write methods }
     function ReadClearList(const Section: string; List: TStrings): TStrings;
     function ReadList(const Section: string; List: TStrings): TStrings;
@@ -70,9 +72,9 @@ function FontStylesToString(Styles: TFontStyles): string;
 function FontToString(Font: TFont): string;
 procedure StringToFont(const Str: string; Font: TFont);
 function RectToStr(Rect: TRect): string;
-function StrToRect(const Str: string; const Def: TRect): TRect;
+function StrToRect(const Str: AnsiString; const Def: TRect): TRect;
 function PointToStr(P: TPoint): string;
-function StrToPoint(const Str: string; const Def: TPoint): TPoint;
+function StrToPoint(const Str: AnsiString; const Def: TPoint): TPoint;
 
 function DefProfileName: string;
 function DefLocalProfileName: string;
@@ -82,8 +84,8 @@ const
 
 implementation
 
-uses
-  SysUtils, Forms, rxStrUtils;
+Uses SysUtils, Forms {$IFDEF VER80}, Str16 {$ENDIF}, {$IFDEF RX_D12}AnsiStrings,{$ENDIF}
+     {$IFDEF RX_D6} RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
 const
   idnListCount = 'Count';
@@ -172,9 +174,9 @@ begin
     Result := Format('[%d,%d,%d,%d]', [Left, Top, Right, Bottom]);
 end;
 
-function StrToRect(const Str: string; const Def: TRect): TRect;
+function StrToRect(const Str: AnsiString; const Def: TRect): TRect;
 var
-  S: string;
+  S: AnsiString;
   Temp: string[10];
   I: Integer;
 begin
@@ -183,23 +185,35 @@ begin
   if (S[1] in Lefts) and (S[Length(S)] in Rights) then begin
     Delete(S, 1, 1); SetLength(S, Length(S) - 1);
   end;
+{$IFDEF RX_D12}
+  I := AnsiStrings.PosEx(',', S);
+{$ELSE}
   I := Pos(',', S);
+{$ENDIF}
   if I > 0 then begin
     Temp := Trim(Copy(S, 1, I - 1));
-    Result.Left := StrToIntDef(Temp, Def.Left);
+    Result.Left := StrToIntDef(string(Temp), Def.Left);
     Delete(S, 1, I);
+{$IFDEF RX_D12}
+  I := AnsiStrings.PosEx(',', S);
+{$ELSE}
     I := Pos(',', S);
+{$ENDIF}
     if I > 0 then begin
       Temp := Trim(Copy(S, 1, I - 1));
-      Result.Top := StrToIntDef(Temp, Def.Top);
+      Result.Top := StrToIntDef(string(Temp), Def.Top);
       Delete(S, 1, I);
+{$IFDEF RX_D12}
+      I := AnsiStrings.PosEx(',', S);
+{$ELSE}
       I := Pos(',', S);
+{$ENDIF}
       if I > 0 then begin
         Temp := Trim(Copy(S, 1, I - 1));
-        Result.Right := StrToIntDef(Temp, Def.Right);
+        Result.Right := StrToIntDef(string(Temp), Def.Right);
         Delete(S, 1, I);
         Temp := Trim(S);
-        Result.Bottom := StrToIntDef(Temp, Def.Bottom);
+        Result.Bottom := StrToIntDef(string(Temp), Def.Bottom);
       end;
     end;
   end;
@@ -210,9 +224,9 @@ begin
   with P do Result := Format('[%d,%d]', [X, Y]);
 end;
 
-function StrToPoint(const Str: string; const Def: TPoint): TPoint;
+function StrToPoint(const Str: AnsiString; const Def: TPoint): TPoint;
 var
-  S: string;
+  S: AnsiString;
   Temp: string[10];
   I: Integer;
 begin
@@ -221,15 +235,20 @@ begin
   if (S[1] in Lefts) and (S[Length(Str)] in Rights) then begin
     Delete(S, 1, 1); SetLength(S, Length(S) - 1);
   end;
+{$IFDEF RX_D12}
+  I := AnsiStrings.PosEx(',', S);
+{$ELSE}
   I := Pos(',', S);
+{$ENDIF}
   if I > 0 then begin
     Temp := Trim(Copy(S, 1, I - 1));
-    Result.X := StrToIntDef(Temp, Def.X);
+    Result.X := StrToIntDef(string(Temp), Def.X);
     Delete(S, 1, I);
     Temp := Trim(S);
-    Result.Y := StrToIntDef(Temp, Def.Y);
+    Result.Y := StrToIntDef(string(Temp), Def.Y);
   end;
 end;
+
 
 { TRxIniFile }
 
@@ -255,14 +274,36 @@ end;
 
 procedure TRxIniFile.Flush;
 var
+{$IFNDEF VER80}
   CFileName: array[0..MAX_PATH] of WideChar;
+{$ELSE}
+  CFileName: array[0..127] of Char;
+{$ENDIF}
 begin
-  if (Win32Platform = VER_PLATFORM_WIN32_NT) then
+{$IFNDEF VER80}
+  if (Win32Platform = VER_PLATFORM_WIN32_NT) then 
     WritePrivateProfileStringW(nil, nil, nil, StringToWideChar(FileName,
       CFileName, MAX_PATH))
   else
     WritePrivateProfileString(nil, nil, nil, PChar(FileName));
+{$ELSE}
+  WritePrivateProfileString(nil, nil, nil, StrPLCopy(CFileName,
+    FileName, SizeOf(CFileName) - 1));
+{$ENDIF}
 end;
+
+{$IFDEF VER80}
+procedure TRxIniFile.DeleteKey(const Section, Ident: String);
+var
+  CSection: array[0..127] of Char;
+  CIdent: array[0..127] of Char;
+  CFileName: array[0..127] of Char;
+begin
+  WritePrivateProfileString(StrPLCopy(CSection, Section, SizeOf(CSection) - 1),
+    StrPLCopy(CIdent, Ident, SizeOf(CIdent) - 1), nil,
+    StrPLCopy(CFileName, FileName, SizeOf(CFileName) - 1));
+end;
+{$ENDIF}
 
 function TRxIniFile.GetItemName: string;
 begin
@@ -353,7 +394,7 @@ end;
 
 function TRxIniFile.ReadRect(const Section, Ident: string; const Default: TRect): TRect;
 begin
-  Result := StrToRect(ReadString(Section, Ident, RectToStr(Default)), Default);
+  Result := StrToRect(AnsiString(ReadString(Section, Ident, RectToStr(Default))), Default);
 end;
 
 procedure TRxIniFile.WriteRect(const Section, Ident: string; const Value: TRect);
@@ -363,7 +404,7 @@ end;
 
 function TRxIniFile.ReadPoint(const Section, Ident: string; const Default: TPoint): TPoint;
 begin
-  Result := StrToPoint(ReadString(Section, Ident, PointToStr(Default)), Default);
+  Result := StrToPoint(AnsiString(ReadString(Section, Ident, PointToStr(Default))), Default);
 end;
 
 procedure TRxIniFile.WritePoint(const Section, Ident: string; const Value: TPoint);

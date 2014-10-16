@@ -8,7 +8,7 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit RXSpin;
+unit RxSpin;
 
 interface
 
@@ -18,8 +18,7 @@ interface
 //<Polaris
 
 
-uses
-  Windows, ComCtrls, 
+uses {$IFNDEF VER80} Windows, ComCtrls, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Controls, ExtCtrls, Classes, Graphics, Messages, Forms, StdCtrls, Menus,
   SysUtils, Mask;
 
@@ -77,6 +76,7 @@ type
     destructor Destroy; override;
     property Down: TSpinButtonState read FDown write SetDown default sbNotDown;
   published
+    property Align;
 //>Polaris
     property ButtonStyle: TrSpinButtonStyle read FButtonStyle write SetButtonStyle default sbsDefault;
 //<Polaris
@@ -99,7 +99,9 @@ type
     property OnDragDrop;
     property OnDragOver;
     property OnEndDrag;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
@@ -115,8 +117,10 @@ type
 {$ENDIF}
 
 //>Polaris
-//  TSpinButtonKind = (bkStandard, bkDiagonal);
-  TSpinButtonKind = (bkStandard, bkDiagonal, bkClassic);
+{.$IFNDEF VER80
+  TSpinButtonKind = (bkStandard, bkDiagonal);
+$ENDIF}
+  TSpinButtonKind = ({$IFNDEF VER80}bkStandard,{$ENDIF} bkDiagonal, bkClassic);
 
 //Polaris  TRxSpinEdit = class(TCustomEdit)
   TRxCustomSpinEdit = class(TCustomMaskEdit)
@@ -145,6 +149,7 @@ type
     FArrowKeys: Boolean;
     FOnTopClick: TNotifyEvent;
     FOnBottomClick: TNotifyEvent;
+{$IFNDEF VER80}
 //    FButtonKind: TSpinButtonKind;
     FUpDown: TCustomUpDown;
 //Polaris
@@ -165,6 +170,7 @@ type
     function GetButtonKind: TSpinButtonKind;
     procedure SetButtonKind(Value: TSpinButtonKind);
     procedure UpDownClick(Sender: TObject; Button: TUDBtnType);
+{$ENDIF}
     function GetMinHeight: Integer;
     procedure GetTextHeight(var SysHeight, Height: Integer);
     function GetAsInteger: Longint;
@@ -195,7 +201,9 @@ type
 {$ENDIF}
   protected
 //Polaris up to protected
+{$IFNDEF VER80}
     FButtonKind: TSpinButtonKind;
+ {$ENDIF}
     procedure RecreateButton;
     function CheckValue(NewValue: Extended): Extended;
     function CheckValueRange(NewValue: Extended; RaiseOnError: Boolean): Extended;
@@ -231,6 +239,7 @@ type
     property Alignment: TAlignment read FAlignment write SetAlignment
       default taLeftJustify;
     property ArrowKeys: Boolean read FArrowKeys write SetArrowKeys default True;
+{$IFNDEF VER80}
     property ButtonKind: TSpinButtonKind read FButtonKind write SetButtonKind
 //  {$IFDEF POLESPIN}
 //      default bkClassic
@@ -238,6 +247,7 @@ type
       default bkDiagonal
 //  {$ENDIF}
   ;
+{$ENDIF}
     property Decimal: Byte read FDecimal write SetDecimal default 2;
     property EditorEnabled: Boolean read FEditorEnabled write FEditorEnabled default True;
     property Increment: Extended read FIncrement write FIncrement stored IsIncrementStored;
@@ -272,7 +282,9 @@ type
     property Alignment;
     property ArrowKeys;
     property DisplayFormat;
+{$IFNDEF VER80}
     property ButtonKind default bkDiagonal;
+{$ENDIF}
     property Decimal;
     property EditorEnabled;
     property Increment;
@@ -299,10 +311,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property MaxLength;
     property ParentColor;
     property ParentCtl3D;
@@ -328,7 +342,9 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -339,14 +355,64 @@ type
     property OnStartDock;
 {$ENDIF}
   end;
+  
+  {  TRxTimeEdit  }
+
+  TRxTimeEdit = class(TCustomPanel) //by Craig Manley
+  private
+    FSpinEditHours: TRxSpinEdit;
+    FSpinEditMinutes: TRxSpinEdit;
+    FSpinEditSeconds: TRxSpinEdit;
+    FLabelHours: TLabel;
+    FLabelMinutes: TLabel;
+    FLabelSeconds: TLabel;
+    procedure WMSetTextProc(var Msg: TWMSetText); message WM_SETTEXT;
+    procedure CMTextChangedProc(var Msg: TMessage); message CM_TEXTCHANGED;
+  protected
+    function GetTime: TDateTime;
+    procedure SetTime(const AValue: TDateTime);
+    function GetHours: byte;
+    procedure SetHours(const AValue: byte);
+    function GetMinutes: byte;
+    procedure SetMinutes(const AValue: byte);
+    function GetSeconds: byte;
+    procedure SetSeconds(const AValue: byte);
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+  published
+    property Color;
+    property Constraints;
+    property DockSite;
+    property DragCursor;
+    property DragKind;
+    property DragMode;
+    property Enabled;
+    property Font;
+    property FullRepaint;
+    property Hint;
+    property Locked;
+    property ParentBiDiMode;
+    property ParentColor;
+    property ParentShowHint;
+    property PopupMenu;
+    property ShowHint;
+    property TabOrder;
+    property TabStop;
+    property UseDockManager;
+    property Visible;
+    property Time: TDateTime read GetTime write SetTime;
+    property Hours: byte read GetHours write SetHours default 0;
+    property Minutes: byte read GetMinutes write SetMinutes default 0;
+    property Seconds: byte read GetSeconds write SetSeconds default 0;
+  end;
 
 implementation
 
-uses
-  CommCtrl, Consts,
-  RxStrUtils, rxVCLUtils;
+uses {$IFNDEF VER80}CommCtrl, {$ENDIF} RxVCLUtils, RxStrUtils , Consts, //Polaris
+  RxResConst;
 
-{$R *.R32}
+{$R *.RES}
 
 const
   sSpinUpBtn = 'RXSPINUP';
@@ -432,7 +498,9 @@ end;
 procedure TRxSpinButton.SetFocusControl(Value: TWinControl);
 begin
   FFocusControl := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
 end;
 
 procedure TRxSpinButton.Notification(AComponent: TComponent;
@@ -843,6 +911,8 @@ begin
   if Result > 15 then Result := 15;
 end;
 
+{$IFNDEF VER80}
+
 type
   TRxUpDown = class(TCustomUpDown)
   private
@@ -905,6 +975,7 @@ begin
   inherited;
   if Width <> DefBtnWidth then Width := DefBtnWidth;
 end;
+{$ENDIF}
 
 { TRxCustomSpinEdit }
 
@@ -924,6 +995,7 @@ begin
   FIncrement := 1.0;
   FDecimal := 2;
   FEditorEnabled := True;
+{$IFNDEF VER80}
   FButtonKind := bkDiagonal;
 (*
   {$IFDEF POLESPIN}
@@ -932,6 +1004,7 @@ begin
   FButtonKind := bkDiagonal;
   {$ENDIF}
 *)
+{$ENDIF}
   FArrowKeys := True;
   RecreateButton;
 end;
@@ -946,10 +1019,12 @@ begin
     FBtnWindow.Free;
     FBtnWindow := nil;
   end;
+{$IFNDEF VER80}
   if FUpDown <> nil then begin
     FUpDown.Free;
     FUpDown := nil;
   end;
+{$ENDIF}
   inherited Destroy;
 end;
 
@@ -960,6 +1035,7 @@ begin
   FButton := nil;
   FBtnWindow.Free;
   FBtnWindow := nil;
+{$IFNDEF VER80}
   FUpDown.Free;
   FUpDown := nil;
   if GetButtonKind = bkStandard then begin
@@ -977,6 +1053,7 @@ begin
     end;
   end
   else begin
+{$ENDIF}
     FBtnWindow := TWinControl.Create(Self);
     FBtnWindow.Visible := True;
     FBtnWindow.Parent := Self;
@@ -999,15 +1076,20 @@ begin
     FButton.OnBottomClick := DownClick;
 //Polaris
     FButton.SetBounds(1, 1, FBtnWindow.Width-1, FBtnWindow.Height-1);
+{$IFNDEF VER80}
   end;
+{$ENDIF}
 end;
 
 procedure TRxCustomSpinEdit.SetArrowKeys(Value: Boolean);
 begin
   FArrowKeys := Value;
+{$IFNDEF VER80}
   ResizeButton;
+{$ENDIF}
 end;
 
+{$IFNDEF VER80}
 function TRxCustomSpinEdit.GetButtonKind: TSpinButtonKind;
 begin
   if NewStyleControls then Result := FButtonKind
@@ -1045,18 +1127,24 @@ begin
     btPrev: DownClick(Sender);
   end;
 end;
+{$ENDIF}
 
 function TRxCustomSpinEdit.GetButtonWidth: Integer;
 begin
+{$IFNDEF VER80}
   if FUpDown <> nil then Result := FUpDown.Width else
+{$ENDIF}
   if FButton <> nil then Result := FButton.Width
   else Result := DefBtnWidth;
 end;
 
 procedure TRxCustomSpinEdit.ResizeButton;
+{$IFNDEF VER80}
 var
   R: TRect;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   if FUpDown <> nil then begin
     FUpDown.Width := DefBtnWidth;
  {$IFDEF RX_D4}
@@ -1096,6 +1184,19 @@ begin
 //Polaris
     FButton.SetBounds(1, 1, FBtnWindow.Width-1, FBtnWindow.Height-1);
   end;
+{$ELSE}
+  if FButton <> nil then begin
+{$IFDEF POLESPIN}
+//Polaris
+    if FButtonKind = bkClassic
+    then FBtnWindow.SetBounds(Width - DefBtnWidth, 0, DefBtnWidth, Height)
+    else
+//Polaris
+{$ENDIF}
+    FBtnWindow.SetBounds(Width - Height, 0, Height, Height);
+    FButton.SetBounds(1, 1, FBtnWindow.Width-1, FBtnWindow.Height-1);
+  end;
+{$ENDIF}
 end;
 
 procedure TRxCustomSpinEdit.KeyDown(var Key: Word; Shift: TShiftState);
@@ -1120,7 +1221,7 @@ begin
     MessageBeep(0)
   end;
   //Polaris
-  if Key = '.' then Key := DecimalSeparator;
+  if Key = '.' then Key := {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator;
   if Key <> #0 then begin
     inherited KeyPress(Key);
     if (Key = Char(VK_RETURN)) or (Key = Char(VK_ESCAPE)) then begin
@@ -1133,19 +1234,19 @@ end;
 
 function TRxCustomSpinEdit.IsValidChar(Key: Char): Boolean;
 var
-  ValidChars: set of Char;
+  ValidChars: set of AnsiChar;
 begin
   ValidChars := ['+', '-', '0'..'9'];
   if ValueType = vtFloat then begin
-    if Pos(DecimalSeparator, Text) = 0 then
-      ValidChars := ValidChars + [DecimalSeparator,'.'];
+    if Pos({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, Text) = 0 then
+      ValidChars := ValidChars + [{$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator,'.'];
     if Pos('E', AnsiUpperCase(Text)) = 0 then
       ValidChars := ValidChars + ['e', 'E'];
   end
   else if ValueType = vtHex then begin
     ValidChars := ValidChars + ['A'..'F', 'a'..'f'];
   end;
-  Result := (Key in ValidChars) or (Key < #32);
+  Result := CharInSet(Key, ValidChars) or (Key < #32);
   if not FEditorEnabled and Result and ((Key >= #32) or
     (Key = Char(VK_BACK)) or (Key = Char(VK_DELETE))) then Result := False;
 end;
@@ -1244,7 +1345,7 @@ var
 begin
   GetTextHeight(I, H);
   if I > H then I := H;
-  Result := H +
+  Result := H + {$IFDEF VER80} (I div 4) + {$ENDIF}
     (GetSystemMetrics(SM_CYBORDER) * 4) + 1;
 end;
 
@@ -1316,10 +1417,12 @@ end;
 procedure TRxCustomSpinEdit.CMEnabledChanged(var Message: TMessage);
 begin
   inherited;
+{$IFNDEF VER80}
   if FUpDown <> nil then begin
     FUpDown.Enabled := Enabled;
     ResizeButton;
   end;
+{$ENDIF}
   if FButton <> nil then FButton.Enabled := Enabled;
 end;
 
@@ -1564,13 +1667,13 @@ end;
 function TRxCustomSpinEdit.TextToValText(const AValue: string): string;
 begin
   Result := DelRSpace(AValue);
-  if DecimalSeparator <> ThousandSeparator then begin
-    Result := DelChars(Result, ThousandSeparator);
+  if {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator <> {$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator then begin
+    Result := DelChars(Result, {$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator);
   end;
-  if (DecimalSeparator <> '.') and (ThousandSeparator <> '.') then
-    Result := ReplaceStr(Result, '.', DecimalSeparator);
-  if (DecimalSeparator <> ',') and (ThousandSeparator <> ',') then
-    Result := ReplaceStr(Result, ',', DecimalSeparator);
+  if ({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator <> '.') and ({$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator <> '.') then
+    Result := ReplaceStr(Result, '.', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator);
+  if ({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator <> ',') and ({$IFDEF RX_D15}FormatSettings.{$ENDIF}ThousandSeparator <> ',') then
+    Result := ReplaceStr(Result, ',', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator);
   if Result = '' then Result := '0'
   else if Result = '-' then Result := '-0';
 end;
@@ -1593,7 +1696,9 @@ end;
 constructor TRxSpinEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+//{$IFNDEF VER80}
 //  FButtonKind := bkDiagonal;
+//{$ENDIF}
   Text := '0';
 //  RecreateButton;
 end;
@@ -1635,6 +1740,113 @@ begin
   end;
 end;
 
+{  TRxTimeEdit  }
 
+constructor TRxTimeEdit.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  BevelOuter := bvNone;
+  FSpinEditHours := TRxSpinEdit.Create(self);
+  FSpinEditHours.Left := 0;
+  FSpinEditHours.Width := 41;
+  FSpinEditHours.MaxValue := 23;
+  FSpinEditHours.MinValue := 0;
+  FSpinEditHours.Parent := self;
+  FLabelHours := TLabel.Create(self);
+  FLabelHours.Left := FSpinEditHours.Left + FSpinEditHours.Width;
+  FLabelHours.FocusControl := FSpinEditHours;
+  FLabelHours.Caption := RxLoadStr(ccTimeEditHours);
+  FLabelHours.Parent := self;
+  FSpinEditMinutes := TRxSpinEdit.Create(self);
+  FSpinEditMinutes.Left := FLabelHours.Left + FLabelHours.Width + 4;
+  FSpinEditMinutes.Width := 41;
+  FSpinEditMinutes.MaxValue := 59;
+  FSpinEditMinutes.MinValue := 0;
+  FSpinEditMinutes.Parent := self;
+  FLabelMinutes := TLabel.Create(self);
+  FLabelMinutes.Left := FSpinEditMinutes.Left + FSpinEditMinutes.Width;
+  FLabelMinutes.FocusControl := FSpinEditMinutes;
+  FLabelMinutes.Caption := RxLoadStr(ccTimeEditMins);
+  FLabelMinutes.Parent := self;
+  FSpinEditSeconds := TRxSpinEdit.Create(self);
+  FSpinEditSeconds.Left := FLabelMinutes.Left + FLabelMinutes.Width + 4;
+  FSpinEditSeconds.Width := 41;
+  FSpinEditSeconds.MaxValue := 59;
+  FSpinEditSeconds.MinValue := 0;
+  FSpinEditSeconds.Parent := self;
+  FLabelSeconds := TLabel.Create(self);
+  FLabelSeconds.Left := FSpinEditSeconds.Left + FSpinEditSeconds.Width;
+  FLabelSeconds.FocusControl := FSpinEditSeconds;
+  FLabelSeconds.Caption := RxLoadStr(ccTimeEditSecs);
+  FLabelSeconds.Parent := self;
+  Height := FSpinEditHours.Height + 2;
+  Width := FLabelSeconds.Left + FLabelSeconds.Width + 2;
+end;
+
+destructor TRxTimeEdit.Destroy;
+begin
+  FLabelSeconds.Free;
+  FSpinEditSeconds.Free;
+  FLabelMinutes.Free;
+  FSpinEditMinutes.Free;
+  FLabelHours.Free;
+  FSpinEditHours.Free;
+  inherited;
+end;
+
+procedure TRxTimeEdit.WMSetTextProc(var Msg: TWMSetText);
+begin
+  Msg.Result := 0;
+end;
+
+procedure TRxTimeEdit.CMTextChangedProc(var Msg: TMessage);
+begin
+  Msg.Result := 0;
+end;
+
+function TRxTimeEdit.GetTime: TDateTime;
+begin
+  Result := EncodeTime(GetHours(),GetMinutes(),GetSeconds(),0);
+end;
+
+procedure TRxTimeEdit.SetTime(const AValue: TDateTime);
+var
+  h,m,s,ms: Word;
+begin
+  DecodeTime(AValue,h,m,s,ms);
+  SetHours(h);
+  SetMinutes(m);
+  SetSeconds(s);
+end;
+
+function TRxTimeEdit.GetHours: byte;
+begin
+  Result := FSpinEditHours.AsInteger;
+end;
+
+procedure TRxTimeEdit.SetHours(const AValue: byte);
+begin
+  FSpinEditHours.AsInteger := AValue;
+end;
+
+function TRxTimeEdit.GetMinutes: byte;
+begin
+  Result := FSpinEditMinutes.AsInteger;
+end;
+
+procedure TRxTimeEdit.SetMinutes(const AValue: byte);
+begin
+  FSpinEditMinutes.AsInteger := AValue;
+end;
+
+function TRxTimeEdit.GetSeconds: byte;
+begin
+  Result := FSpinEditSeconds.AsInteger;
+end;
+
+procedure TRxTimeEdit.SetSeconds(const AValue: byte);
+begin
+  FSpinEditSeconds.AsInteger := AValue;
+end;
 
 end.

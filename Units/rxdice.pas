@@ -8,16 +8,16 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit RXDice;
+unit RxDice;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows, 
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Classes, Graphics, Messages, Controls, Forms, StdCtrls, ExtCtrls, Menus,
-  RxTimer, rxVCLUtils;
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  RxTimer, RxVCLUtils;
 
 type
   TRxDiceValue = 1..6;
@@ -108,7 +108,9 @@ type
     property OnDragOver;
     property OnDragDrop;
     property OnEndDrag;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -119,11 +121,14 @@ type
     property OnEndDock;
     property OnStartDock;
 {$ENDIF}
+    {$IFDEF RX_D9}
+    property OnMouseActivate;
+    {$ENDIF}
   end;
 
 implementation
 
- {$R *.R32}
+{$R *.RES}
 
 const
   ResName: array [TRxDiceValue] of PChar =

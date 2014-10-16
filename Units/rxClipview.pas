@@ -7,16 +7,17 @@
 {                                                       }
 {*******************************************************}
 
-unit rxClipview;
+unit RxClipView;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows,
-  Messages, Classes, Graphics, Controls, Clipbrd, Forms, StdCtrls,
-  ExtCtrls, Menus;
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Messages, Classes, Graphics, Controls, Clipbrd, Forms, StdCtrls
+  {$IFDEF RX_D6}, Types{$ENDIF},
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  ExtCtrls, Menus, RxConst;
 
 type
 
@@ -77,7 +78,9 @@ type
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
@@ -88,9 +91,8 @@ function ClipboardFormatToView(Value: Word): TClipboardViewFormat;
 
 implementation
 
-uses
-  Grids,
-  rxClipIcon, rxMaxMin, RxTConst, rxVCLUtils;
+uses Grids, RxClipIcon, RxMaxMin, RxResConst, {$IFDEF VER80} RxStr16, {$ENDIF}
+  RxVCLUtils;
 
 { Utility routines }
 
@@ -105,7 +107,9 @@ begin
       CF_DIB: Result := 'DIB Bitmap';
       CF_DIF: Result := 'DIF';
       CF_METAFILEPICT: Result := 'Metafile Picture';
-      CF_ENHMETAFILE: Result := 'Enhanced Metafile';
+{$IFNDEF VER80}
+      CF_ENHMETAFILE: Result := 'Enchanced Metafile';
+{$ENDIF}
       CF_OEMTEXT: Result := 'OEM Text';
       CF_PALETTE: Result := 'Palette';
       CF_PENDATA: Result := 'Pen Data';
@@ -138,7 +142,9 @@ begin
   if Value = CF_TEXT then Result := cvText
   else if Value = CF_BITMAP then Result := cvBitmap
   else if Value = CF_METAFILEPICT then Result := cvMetafile
+{$IFNDEF VER80}
   else if Value = CF_ENHMETAFILE then Result := cvMetafile
+{$ENDIF}
   else if Value = CF_PALETTE then Result := cvPalette
   else if Value = CF_OEMTEXT then Result := cvOemText
   else if Value = CF_PICTURE then Result := cvPicture { CF_BITMAP, CF_METAFILEPICT }
@@ -356,6 +362,9 @@ constructor TCustomClipboardViewer.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ControlState := ControlState + [csCreating];
+{$IFDEF VER80}
+  ControlStyle := ControlStyle + [csFramed];
+{$ENDIF}
   FWndNext := 0;
   FPaintControl := nil;
   FViewFormat := cvDefault;
@@ -427,8 +436,8 @@ begin
               Instance.Free;
             end;
           end
-          else if IsEmptyClipboard then Text := LoadStr(SClipbrdEmpty)
-          else Text := LoadStr(SClipbrdUnknown);
+          else if IsEmptyClipboard then Text := RxLoadStr(SClipbrdEmpty)
+          else Text := RxLoadStr(SClipbrdUnknown);
           ReadOnly := True;
         end;
       end;
@@ -453,7 +462,7 @@ begin
           end
           else if ((Format = cvBitmap) and Clipboard.HasFormat(CF_BITMAP))
             or ((Format = cvMetafile) and (Clipboard.HasFormat(CF_METAFILEPICT))
-            or Clipboard.HasFormat(CF_ENHMETAFILE))
+            {$IFNDEF VER80} or Clipboard.HasFormat(CF_ENHMETAFILE) {$ENDIF})
             or ((Format = cvPicture) and Clipboard.HasFormat(CF_PICTURE)) then
           begin
             Picture.Assign(Clipboard);
@@ -603,7 +612,9 @@ function TCustomClipboardViewer.GetDrawFormat: TClipboardViewFormat;
     else if Clipboard.HasFormat(CF_OEMTEXT) then Result := cvOemText
     else if Clipboard.HasFormat(CF_BITMAP) then Result := cvBitmap
     else if (Clipboard.HasFormat(CF_METAFILEPICT))
+{$IFNDEF VER80}
       or (Clipboard.HasFormat(CF_ENHMETAFILE))
+{$ENDIF}
       then Result := cvMetafile
     else if Clipboard.HasFormat(CF_ICON) then Result := cvIcon
     else if Clipboard.HasFormat(CF_PICTURE) then Result := cvPicture

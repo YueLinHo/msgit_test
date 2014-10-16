@@ -4,17 +4,22 @@
 {                                                       }
 {       Copyright (c) 1997, 1998 Master-Bank            }
 {                                                       }
+{ Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxExcptDlg;
+unit RxExcptDlg;
 
 {$I RX.INC}
+{$IFDEF RX_D6}
+{$WARN SYMBOL_PLATFORM OFF}  // Polaris
+{$ENDIF}
 
 interface
 
 uses
   SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, RXCtrls;
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  StdCtrls, ExtCtrls, RxCtrls;
 
 type
   TErrorEvent = procedure (Error: Exception; var Msg: string) of object;
@@ -49,11 +54,15 @@ type
     ExceptObj: Exception;
     FPrevOnException: TExceptionEvent;
     FOnErrorMsg: TErrorEvent;
+{$IFNDEF VER80}
     FHelpFile: string;
+{$ENDIF}
     procedure GetErrorMsg(var Msg: string);
     procedure ShowError;
     procedure SetShowDetails(Value: Boolean);
+{$IFNDEF VER80}
     procedure WMHelp(var Message: TWMHelp); message WM_HELP;
+{$ENDIF}
   public
     procedure ShowException(Sender: TObject; E: Exception);
     property OnErrorMsg: TErrorEvent read FOnErrorMsg write FOnErrorMsg;
@@ -70,8 +79,12 @@ procedure RxErrorIntercept;
 implementation
 
 uses
+{$IFNDEF VER80}
   Windows, {$IFDEF RX_D3} ComObj, {$ELSE} OleAuto, {$ENDIF RX_D3}
-  Consts, RxCConst, rxStrUtils, rxVCLUtils;
+{$ELSE}
+  WinProcs, WinTypes, ToolHelp, RxStr16,
+{$ENDIF}
+  Consts, RxResConst, RxVCLUtils, RxStrUtils; // Polaris
 
 {$R *.DFM}
 
@@ -118,6 +131,7 @@ begin
   Application.RestoreTopMosts;
 end;
 
+{$IFNDEF VER80}
 function ConvertAddr(Address: Pointer): Pointer; assembler;
 asm
         TEST    EAX,EAX
@@ -134,21 +148,60 @@ var
 begin
   VirtualQuery(ExceptAddr, Info, SizeOf(Info));
   if (Info.State <> MEM_COMMIT) or
-    (GetModuleFilename(THandle(Info.AllocationBase), Temp,
-    SizeOf(Temp)) = 0) then
+    (GetModuleFilename(THandle(Info.AllocationBase), Temp, {$IFDEF UNICODE}Length(Temp){$ELSE}SizeOf(Temp){$ENDIF}) = 0) then
   begin
-    GetModuleFileName(HInstance, Temp, SizeOf(Temp));
+    GetModuleFileName(HInstance, Temp, {$IFDEF UNICODE}Length(Temp){$ELSE}SizeOf(Temp){$ENDIF});
     LogicalAddress := ConvertAddr(LogicalAddress);
   end
-  else Integer(LogicalAddress) := Integer(LogicalAddress) -
+  else {$IFDEF WIN64}NativeInt{$ELSE}Integer{$ENDIF}(LogicalAddress) := {$IFDEF WIN64}NativeInt{$ELSE}Integer{$ENDIF}(LogicalAddress) -
     Integer(Info.AllocationBase);
 {$IFDEF RX_D3}
-  StrLCopy(ModName, AnsiStrRScan(Temp, '\') + 1, SizeOf(ModName) - 1);
+  StrLCopy(ModName, AnsiStrRScan(Temp, {$IFDEF RX_D6}PathDelim{$ELSE}'\'{$ENDIF}) + 1, SizeOf(ModName) - 1);
 {$ELSE}
-  StrLCopy(ModName, StrRScan(Temp, '\') + 1, SizeOf(ModName) - 1);
+  StrLCopy(ModName, StrRScan(Temp, PathDelim) + 1, SizeOf(ModName) - 1);
 {$ENDIF}
   ModuleName := StrPas(ModName);
 end;
+
+{$ELSE}
+
+function ConvertAddr(Address: Pointer): Pointer; assembler;
+asm
+        MOV     AX,Address.Word[0]
+        MOV     DX,Address.Word[2]
+        MOV     CX,DX
+        OR      CX,AX
+        JE      @@1
+        CMP     DX,0FFFFH
+        JE      @@1
+        MOV     ES,DX
+        MOV     DX,ES:Word[0]
+@@1:
+end;
+
+procedure TRxErrorDialog.ErrorInfo(var LogicalAddress: Pointer;
+  var ModuleName: string);
+var
+  GlobalEntry: TGlobalEntry;
+  hMod: THandle;
+  ModName: array[0..15] of Char;
+  Buffer: array[0..MAX_PATH] of Char;
+begin
+  GlobalEntry.dwSize := SizeOf(GlobalEntry);
+  if GlobalEntryHandle(@GlobalEntry, THandle(PtrRec(LogicalAddress).Seg)) then
+    with GlobalEntry do
+    begin
+      hMod := hOwner;
+      if wType in [GT_CODE, GT_DATA, GT_DGROUP] then
+        PtrRec(LogicalAddress).Seg := wData;
+    end
+    else LogicalAddress := ConvertAddr(LogicalAddress);
+  GetModuleFileName(hMod, Buffer, {$IFDEF UNICODE}Length(Buffer){$ELSE}SizeOf(Buffer) - 1{$ENDIF});
+  StrLCopy(ModName, StrRScan(Buffer, PathDelim) + 1, SizeOf(ModName) - 1);
+  ModuleName := StrPas(ModName);
+end;
+
+{$ENDIF}
 
 procedure TRxErrorDialog.ShowError;
 var
@@ -167,7 +220,9 @@ begin
     S := ReplaceStr(S, #10, CRLF);
   if ExceptObj is EInOutError then
     S := Format(SCodeError, [S, EInOutError(ExceptObj).ErrorCode])
-  else if ExceptObj is EOleException then begin
+{$IFNDEF VER80}
+  else if ExceptObj is EOleException then
+  begin
     with EOleException(ExceptObj) do
       if (Source <> '') and (AnsiCompareText(S, Trim(Source)) <> 0) then
         S := S + CRLF + Trim(Source);
@@ -178,6 +233,7 @@ begin
   else if ExceptObj is EExternalException then
     S := Format(SCodeError, [S,
       EExternalException(ExceptObj).ExceptionRecord^.ExceptionCode])
+{$ENDIF}
 {$IFDEF RX_D3}
 {$IFDEF RX_D6}  // Polaris
   else if ExceptObj is EOSError then
@@ -198,13 +254,13 @@ begin
     if Value then begin
       DetailsPanel.Height := DetailsHeight;
       ClientHeight := DetailsPanel.Height + BasicPanel.Height;
-      DetailsBtn.Caption := '<< &' + LoadStr(SDetails);
+      DetailsBtn.Caption := '<< &' + RxLoadStr(SDetails);
       ShowError;
     end
     else begin
       ClientHeight := BasicPanel.Height;
       DetailsPanel.Height := 0;
-      DetailsBtn.Caption := '&' + LoadStr(SDetails) + ' >>';
+      DetailsBtn.Caption := '&' + RxLoadStr(SDetails) + ' >>';
     end;
     DetailsPanel.Enabled := Value;
     Details := Value;
@@ -226,6 +282,7 @@ begin
     end;
 end;
 
+{$IFNDEF VER80}
 procedure TRxErrorDialog.WMHelp(var Message: TWMHelp);
 var
   AppHelpFile: string;
@@ -239,10 +296,15 @@ begin
     Application.HelpFile := AppHelpFile;
   end;
 end;
+{$ENDIF}
 
 procedure TRxErrorDialog.FormCreate(Sender: TObject);
 begin
+{$IFNDEF VER80}
   BorderIcons := [biSystemMenu, biHelp];
+{$ELSE}
+  BorderIcons := [];
+{$ENDIF}
   DetailsHeight := DetailsPanel.Height;
   Icon.Handle := LoadIcon(0, IDI_HAND);
   IconImage.Picture.Icon := Icon;
@@ -262,11 +324,14 @@ end;
 procedure TRxErrorDialog.FormShow(Sender: TObject);
 var
   S: string;
+{$IFNDEF VER80}
   ExStyle: Longint;
+{$ENDIF}
 begin
   if ExceptObj.HelpContext <> 0 then
     HelpContext := ExceptObj.HelpContext
   else HelpContext := ErrorDlgHelpCtx;
+{$IFNDEF VER80}
   if ExceptObj is EOleException then
     FHelpFile := EOleException(ExceptObj).HelpFile
   else FHelpFile := '';
@@ -276,6 +341,7 @@ begin
   else
     ExStyle := ExStyle and not WS_EX_CONTEXTHELP;
   SetWindowLong(Handle, GWL_EXSTYLE, ExStyle);
+{$ENDIF}
   S := Trim(ExceptObj.Message) + '.';
   GetErrorMsg(S);
   ErrorText.Caption := S;
@@ -290,10 +356,13 @@ end;
 
 procedure TRxErrorDialog.FormKeyUp(Sender: TObject; var Key: Word;
   Shift: TShiftState);
+{$IFNDEF VER80}
 var
   Info: THelpInfo;
+{$ENDIF}
 begin
   if (Key = VK_F1) and (HelpContext <> 0) then begin
+{$IFNDEF VER80}
     with Info do begin
       cbSize := SizeOf(THelpInfo);
       iContextType := HELPINFO_WINDOW;
@@ -303,6 +372,9 @@ begin
       GetCursorPos(MousePos);
     end;
     Perform(WM_HELP, 0, Longint(@Info));
+{$ELSE}
+    Application.HelpContext(HelpContext);
+{$ENDIF}
   end;
 end;
 

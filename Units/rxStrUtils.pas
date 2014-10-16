@@ -7,17 +7,18 @@
 {         This unit based on AlexGraf String Library    }
 {         by Alexei Lukin (c) 1992                      }
 {                                                       }
+{ Renamed by Polaris Software                           }
+{ Revision and command line method added by JB.         }
 {*******************************************************}
 
-unit rxStrUtils;
+unit RxStrUtils;
 
 {$I RX.INC}
 {$A+,B-,E-,R-}
 
 interface
 
-uses
-  SysUtils;
+uses SysUtils {$IFDEF MSWINDOWS} {$IFDEF VER80}, RxStr16 {$ENDIF} {$ENDIF};
 
 type
 {$IFNDEF RX_D4}
@@ -27,132 +28,136 @@ type
 
 { ** Common string handling routines ** }
 
+{$IFNDEF RX_D12}
+function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean; {$IFDEF RX_D9}inline;{$ENDIF}
+{$ENDIF}
+
 {$IFDEF MSWINDOWS}
-function StrToOem(const AnsiStr: string): string;
+function StrToOem(const Str: string): AnsiString; {$IFDEF RX_D9}inline;{$ENDIF}
 { StrToOem translates a string from the Windows character set into the
   OEM character set. }
 
-function OemToAnsiStr(const OemStr: string): string;
+function OemToAnsiStr(const OemStr: AnsiString): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { OemToAnsiStr translates a string from the OEM character set into the
   Windows character set. }
 {$ENDIF}
 
-function IsEmptyStr(const S: string; const EmptyChars: TCharSet): Boolean;
+function IsEmptyStr(const S: string; const EmptyChars: TCharSet): Boolean; {$IFDEF RX_D9}inline;{$ENDIF}
 { EmptyStr returns true if the given string contains only character
   from the EmptyChars. }
 
-function ReplaceStr(const S, Srch, Replace: string): string;
+function ReplaceStr(const S, Srch, Replace: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Returns string with every occurrence of Srch string replaced with
   Replace string. }
 
-function DelSpace(const S: string): string;
+function DelSpace(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { DelSpace return a string with all white spaces removed. }
 
-function DelChars(const S: string; Chr: Char): string;
+function DelChars(const S: string; Chr: Char): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { DelChars return a string with all Chr characters removed. }
 
-function DelBSpace(const S: string): string;
+function DelBSpace(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { DelBSpace trims leading spaces from the given string. }
 
-function DelESpace(const S: string): string;
+function DelESpace(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { DelESpace trims trailing spaces from the given string. }
 
-function DelRSpace(const S: string): string;
+function DelRSpace(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { DelRSpace trims leading and trailing spaces from the given string. }
 
-function DelSpace1(const S: string): string;
+function DelSpace1(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { DelSpace1 return a string with all non-single white spaces removed. }
 
-function Tab2Space(const S: string; Numb: Byte): string;
+function Tab2Space(const S: string; Numb: Byte): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Tab2Space converts any tabulation character in the given string to the
   Numb spaces characters. }
 
-function NPos(const C: string; S: string; N: Integer): Integer;
+function NPos(const C: string; S: string; N: Integer): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 { NPos searches for a N-th position of substring C in a given string. }
 
-function MakeStr(C: Char; N: Integer): string;
-function MS(C: Char; N: Integer): string;
+function MakeStr(C: Char; N: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
+function MS(C: Char; N: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { MakeStr return a string of length N filled with character C. }
 
-function AddChar(C: Char; const S: string; N: Integer): string;
+function AddChar(C: Char; const S: string; N: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { AddChar return a string left-padded to length N with characters C. }
 
-function AddCharR(C: Char; const S: string; N: Integer): string;
+function AddCharR(C: Char; const S: string; N: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { AddCharR return a string right-padded to length N with characters C. }
 
-function LeftStr(const S: string; N: Integer): string;
+function LeftStr(const S: string; N: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { LeftStr return a string right-padded to length N with blanks. }
 
-function RightStr(const S: string; N: Integer): string;
+function RightStr(const S: string; N: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { RightStr return a string left-padded to length N with blanks. }
 
-function CenterStr(const S: string; Len: Integer): string;
+function CenterStr(const S: string; Len: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { CenterStr centers the characters in the string based upon the
   Len specified. }
 
-function CompStr(const S1, S2: string): Integer;
+function CompStr(const S1, S2: string): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 { CompStr compares S1 to S2, with case-sensitivity. The return value is
   -1 if S1 < S2, 0 if S1 = S2, or 1 if S1 > S2. }
 
-function CompText(const S1, S2: string): Integer;
+function CompText(const S1, S2: string): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 { CompText compares S1 to S2, without case-sensitivity. The return value
   is the same as for CompStr. }
 
-function Copy2Symb(const S: string; Symb: Char): string;
+function Copy2Symb(const S: string; Symb: Char): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Copy2Symb returns a substring of a string S from begining to first
   character Symb. }
 
-function Copy2SymbDel(var S: string; Symb: Char): string;
+function Copy2SymbDel(var S: string; Symb: Char): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Copy2SymbDel returns a substring of a string S from begining to first
   character Symb and removes this substring from S. }
 
-function Copy2Space(const S: string): string;
+function Copy2Space(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Copy2Symb returns a substring of a string S from begining to first
   white space. }
 
-function Copy2SpaceDel(var S: string): string;
+function Copy2SpaceDel(var S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Copy2SpaceDel returns a substring of a string S from begining to first
   white space and removes this substring from S. }
 
-function AnsiProperCase(const S: string; const WordDelims: TCharSet): string;
+function AnsiProperCase(const S: string; const WordDelims: TCharSet): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Returns string, with the first letter of each word in uppercase,
   all other letters in lowercase. Words are delimited by WordDelims. }
 
-function WordCount(const S: string; const WordDelims: TCharSet): Integer;
+function WordCount(const S: string; const WordDelims: TCharSet): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 { WordCount given a set of word delimiters, returns number of words in S. }
 
 function WordPosition(const N: Integer; const S: string;
-  const WordDelims: TCharSet): Integer;
+  const WordDelims: TCharSet): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 { Given a set of word delimiters, returns start position of N'th word in S. }
 
 function ExtractWord(N: Integer; const S: string;
-  const WordDelims: TCharSet): string;
+  const WordDelims: TCharSet): string; {$IFDEF RX_D9}inline;{$ENDIF}
 function ExtractWordPos(N: Integer; const S: string;
-  const WordDelims: TCharSet; var Pos: Integer): string;
+  const WordDelims: TCharSet; var Pos: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 function ExtractDelimited(N: Integer; const S: string;
-  const Delims: TCharSet): string;
+  const Delims: TCharSet): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { ExtractWord, ExtractWordPos and ExtractDelimited given a set of word
   delimiters, return the N'th word in S. }
 
 function ExtractSubstr(const S: string; var Pos: Integer;
-  const Delims: TCharSet): string;
+  const Delims: TCharSet): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { ExtractSubstr given a set of word delimiters, returns the substring from S,
   that started from position Pos. }
 
-function IsWordPresent(const W, S: string; const WordDelims: TCharSet): Boolean;
+function IsWordPresent(const W, S: string; const WordDelims: TCharSet): Boolean; {$IFDEF RX_D9}inline;{$ENDIF}
 { IsWordPresent given a set of word delimiters, returns True if word W is
   present in string S. }
 
-function QuotedString(const S: string; Quote: Char): string;
+function QuotedString(const S: string; Quote: Char): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { QuotedString returns the given string as a quoted string, using the
   provided Quote character. }
 
-function ExtractQuotedString(const S: string; Quote: Char): string;
+function ExtractQuotedString(const S: string; Quote: Char): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { ExtractQuotedString removes the Quote characters from the beginning and
   end of a quoted string, and reduces pairs of Quote characters within
   the quoted string to a single character. }
 
-function FindPart(const HelpWilds, InputStr: string): Integer;
+function FindPart(const HelpWilds, InputStr: string): Integer; {$IFDEF RX_D9}inline;{$ENDIF}
 { FindPart compares a string with '?' and another, returns the position of
   HelpWilds in InputStr. }
 
@@ -160,46 +165,48 @@ function IsWild(InputStr, Wilds: string; IgnoreCase: Boolean): Boolean;
 { IsWild compares InputString with WildCard string and returns True
   if corresponds. }
 
-function XorString(const Key, Src: ShortString): ShortString;
-function XorEncode(const Key, Source: string): string;
-function XorDecode(const Key, Source: string): string;
+function XorString(const Key, Src: AnsiString): AnsiString; {$IFDEF RX_D9}inline;{$ENDIF}
+function XorEncode(const Key, Source: AnsiString): AnsiString; {$IFDEF RX_D9}inline;{$ENDIF}
+function XorDecode(const Key, Source: AnsiString): AnsiString; {$IFDEF RX_D9}inline;{$ENDIF}
 
 { ** Command line routines ** }
 
 {$IFNDEF RX_D4}
 function FindCmdLineSwitch(const Switch: string; SwitchChars: TCharSet;
-  IgnoreCase: Boolean): Boolean;
+  IgnoreCase: Boolean): Boolean; {$IFDEF RX_D9}inline;{$ENDIF}
 {$ENDIF}
-function GetCmdLineArg(const Switch: string; SwitchChars: TCharSet): string;
+function FindSwitch(const Switch: string): Boolean; {$IFDEF RX_D9}inline;{$ENDIF}
+function GetCmdLineArg(const Switch: string; SwitchChars: TCharSet): string; {$IFDEF RX_D9}inline;{$ENDIF}
+procedure SplitCommandLine(const CmdLine: string; var ExeName, Params: string);
 
 { ** Numeric string handling routines ** }
 
-function Numb2USA(const S: string): string;
+function Numb2USA(const S: string): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Numb2USA converts numeric string S to USA-format. }
 
-function Dec2Hex(N: Longint; A: Byte): string;
-function D2H(N: Longint; A: Byte): string;
+function Dec2Hex(N: Longint; A: Byte): string; {$IFDEF RX_D9}inline;{$ENDIF}
+function D2H(N: Longint; A: Byte): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Dec2Hex converts the given value to a hexadecimal string representation
   with the minimum number of digits (A) specified. }
 
-function Hex2Dec(const S: string): Longint;
-function H2D(const S: string): Longint;
+function Hex2Dec(const S: string): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
+function H2D(const S: string): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
 { Hex2Dec converts the given hexadecimal string to the corresponding integer
   value. }
 
-function Dec2Numb(N: Longint; A, B: Byte): string;
+function Dec2Numb(N: Longint; A, B: Byte): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { Dec2Numb converts the given value to a string representation with the
   base equal to B and with the minimum number of digits (A) specified. }
 
-function Numb2Dec(S: string; B: Byte): Longint;
+function Numb2Dec(S: string; B: Byte): Longint; {$IFDEF RX_D9}inline;{$ENDIF}
 { Numb2Dec converts the given B-based numeric string to the corresponding
   integer value. }
 
-function IntToBin(Value: Longint; Digits, Spaces: Integer): string;
+function IntToBin(Value: Longint; Digits, Spaces: Integer): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { IntToBin converts the given value to a binary string representation
   with the minimum number of digits specified. }
 
-function IntToRoman(Value: Longint): string;
+function IntToRoman(Value: Longint): string; {$IFDEF RX_D9}inline;{$ENDIF}
 { IntToRoman converts the given value to a roman numeric string
   representation. }
 
@@ -217,22 +224,36 @@ const
 
 implementation
 
-{$IFDEF MSWINDOWS}
-uses
-  Windows;
+uses {$IFNDEF VER80} Windows {$ELSE} WinTypes, WinProcs {$ENDIF};
 
-function StrToOem(const AnsiStr: string): string;
+{$IFNDEF RX_D12}
+function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 begin
-  SetLength(Result, Length(AnsiStr));
+  Result := C in CharSet;
+end;
+{$ENDIF}
+
+{$IFDEF MSWINDOWS}
+function StrToOem(const Str: string): AnsiString;
+begin
+  SetLength(Result, Length(Str));
   if Length(Result) > 0 then
-    CharToOemBuff(PChar(AnsiStr), PChar(Result), Length(Result));
+{$IFNDEF VER80}
+    CharToOemBuff(PChar(Str), PAnsiChar(Result), Length(Result));
+{$ELSE}
+    AnsiToOemBuff(@AnsiStr[1], @Result[1], Length(Result));
+{$ENDIF}
 end;
 
-function OemToAnsiStr(const OemStr: string): string;
+function OemToAnsiStr(const OemStr: AnsiString): string;
 begin
   SetLength(Result, Length(OemStr));
   if Length(Result) > 0 then
-    OemToCharBuff(PChar(OemStr), PChar(Result), Length(Result));
+{$IFNDEF VER80}
+    OemToCharBuff(PAnsiChar(OemStr), PChar(Result), Length(Result));
+{$ELSE}
+    OemToAnsiBuff(@OemStr[1], @Result[1], Length(Result));
+{$ENDIF}
 end;
 {$ENDIF}
 
@@ -242,8 +263,10 @@ var
 begin
   SLen := Length(S);
   I := 1;
-  while I <= SLen do begin
-    if not (S[I] in EmptyChars) then begin
+  while I <= SLen do
+  begin
+    if not CharInSet(S[I], EmptyChars) then
+    begin
       Result := False;
       Exit;
     end
@@ -261,7 +284,8 @@ begin
   Result := '';
   repeat
     I := Pos(Srch, Source);
-    if I > 0 then begin
+    if I > 0 then
+    begin
       Result := Result + Copy(Source, 1, I - 1) + Replace;
       Source := Copy(Source, I + Length(Srch), MaxInt);
     end
@@ -279,7 +303,8 @@ var
   I: Integer;
 begin
   Result := S;
-  for I := Length(Result) downto 1 do begin
+  for I := Length(Result) downto 1 do
+  begin
     if Result[I] = Chr then Delete(Result, I, 1);
   end;
 end;
@@ -313,7 +338,8 @@ var
   I: Integer;
 begin
   Result := S;
-  for I := Length(Result) downto 2 do begin
+  for I := Length(Result) downto 2 do
+  begin
     if (Result[I] = ' ') and (Result[I - 1] = ' ') then
       Delete(Result, I, 1);
   end;
@@ -325,8 +351,10 @@ var
 begin
   I := 1;
   Result := S;
-  while I <= Length(Result) do begin
-    if Result[I] = Chr(9) then begin
+  while I <= Length(Result) do
+  begin
+    if Result[I] = Chr(9) then
+    begin
       Delete(Result, I, 1);
       Insert(MakeStr(' ', Numb), Result, I);
       Inc(I, Numb);
@@ -338,9 +366,17 @@ end;
 function MakeStr(C: Char; N: Integer): string;
 begin
   if N < 1 then Result := ''
-  else begin
+  else 
+  begin
+    {$IFDEF VER80}
+    if N > 255 then N := 255; {correct length only}
+    {$ENDIF}
+    {$IFNDEF UNICODE}
     SetLength(Result, N);
     FillChar(Result[1], Length(Result), C);
+    {$ELSE}
+    Result:= StringOfChar(C, N);
+    {$ENDIF}
   end;
 end;
 
@@ -355,10 +391,12 @@ var
 begin
   Result := 0;
   K := 0;
-  for I := 1 to N do begin
+  for I := 1 to N do
+  begin
     P := Pos(C, S);
     Inc(K, P);
-    if (I = N) and (P > 0) then begin
+    if (I = N) and (P > 0) then
+    begin
       Result := K;
       Exit;
     end;
@@ -393,14 +431,22 @@ end;
 
 function CompStr(const S1, S2: string): Integer;
 begin
+{$IFNDEF VER80}
   Result := CompareString(GetThreadLocale, SORT_STRINGSORT, PChar(S1),
     Length(S1), PChar(S2), Length(S2)) - 2;
+{$ELSE}
+  Result := CompareStr(S1, S2);
+{$ENDIF}
 end;
 
 function CompText(const S1, S2: string): Integer;
 begin
+{$IFNDEF VER80}
   Result := CompareString(GetThreadLocale, SORT_STRINGSORT or NORM_IGNORECASE,
     PChar(S1), Length(S1), PChar(S2), Length(S2)) - 2;
+{$ELSE}
+  Result := CompareText(S1, S2);
+{$ENDIF}
 end;
 
 function Copy2Symb(const S: string; Symb: Char): string;
@@ -435,10 +481,11 @@ begin
   Result := AnsiLowerCase(S);
   I := 1;
   SLen := Length(Result);
-  while I <= SLen do begin
-    while (I <= SLen) and (Result[I] in WordDelims) do Inc(I);
+  while I <= SLen do
+  begin
+    while (I <= SLen) and CharInSet(Result[I], WordDelims) do Inc(I);
     if I <= SLen then Result[I] := AnsiUpperCase(Result[I])[1];
-    while (I <= SLen) and not (Result[I] in WordDelims) do Inc(I);
+    while (I <= SLen) and not CharInSet(Result[I], WordDelims) do Inc(I);
   end;
 end;
 
@@ -449,10 +496,11 @@ begin
   Result := 0;
   I := 1;
   SLen := Length(S);
-  while I <= SLen do begin
-    while (I <= SLen) and (S[I] in WordDelims) do Inc(I);
+  while I <= SLen do
+  begin
+    while (I <= SLen) and CharInSet(S[I], WordDelims) do Inc(I);
     if I <= SLen then Inc(Result);
-    while (I <= SLen) and not(S[I] in WordDelims) do Inc(I);
+    while (I <= SLen) and not CharInSet(S[I], WordDelims) do Inc(I);
   end;
 end;
 
@@ -464,14 +512,15 @@ begin
   Count := 0;
   I := 1;
   Result := 0;
-  while (I <= Length(S)) and (Count <> N) do begin
+  while (I <= Length(S)) and (Count <> N) do
+  begin
     { skip over delimiters }
-    while (I <= Length(S)) and (S[I] in WordDelims) do Inc(I);
+    while (I <= Length(S)) and CharInSet(S[I], WordDelims) do Inc(I);
     { if we're not beyond end of S, we're at the start of a word }
     if I <= Length(S) then Inc(Count);
     { if not finished, find the end of the current word }
     if Count <> N then
-      while (I <= Length(S)) and not (S[I] in WordDelims) do Inc(I)
+      while (I <= Length(S)) and not CharInSet(S[I], WordDelims) do Inc(I)
     else Result := I;
   end;
 end;
@@ -486,7 +535,8 @@ begin
   I := WordPosition(N, S, WordDelims);
   if I <> 0 then
     { find the end of the current word }
-    while (I <= Length(S)) and not(S[I] in WordDelims) do begin
+    while (I <= Length(S)) and not CharInSet(S[I], WordDelims) do
+    begin
       { add the I'th character to result }
       Inc(Len);
       SetLength(Result, Len);
@@ -506,7 +556,8 @@ begin
   Pos := I;
   if I <> 0 then
     { find the end of the current word }
-    while (I <= Length(S)) and not(S[I] in WordDelims) do begin
+    while (I <= Length(S)) and not CharInSet(S[I], WordDelims) do
+    begin
       { add the I'th character to result }
       Inc(Len);
       SetLength(Result, Len);
@@ -527,10 +578,13 @@ begin
   Len := 0;
   SLen := Length(S);
   SetLength(Result, 0);
-  while (I <= SLen) and (CurWord <> N) do begin
-    if S[I] in Delims then Inc(CurWord)
-    else begin
-      if CurWord = N - 1 then begin
+  while (I <= SLen) and (CurWord <> N) do
+  begin
+    if CharInSet(S[I], Delims) then Inc(CurWord)
+    else
+    begin
+      if CurWord = N - 1 then
+      begin
         Inc(Len);
         SetLength(Result, Len);
         Result[Len] := S[I];
@@ -546,9 +600,9 @@ var
   I: Integer;
 begin
   I := Pos;
-  while (I <= Length(S)) and not (S[I] in Delims) do Inc(I);
+  while (I <= Length(S)) and not CharInSet(S[I], Delims) do Inc(I);
   Result := Copy(S, Pos, I - Pos);
-  if (I <= Length(S)) and (S[I] in Delims) then Inc(I);
+  if (I <= Length(S)) and CharInSet(S[I], Delims) then Inc(I);
   Pos := I;
 end;
 
@@ -559,15 +613,18 @@ begin
   Result := False;
   Count := WordCount(S, WordDelims);
   for I := 1 to Count do
-    if ExtractWord(I, S, WordDelims) = W then begin
+    if ExtractWord(I, S, WordDelims) = W then
+    begin
       Result := True;
       Exit;
     end;
 end;
 
-{$IFNDEF VER90}
-  { C++Builder or Delphi 3.0 }
-  {$DEFINE MBCS}
+{$IFNDEF VER80}
+  {$IFNDEF VER90}
+    { C++Builder or Delphi 3.0 }
+    {$DEFINE MBCS}
+  {$ENDIF}
 {$ENDIF}
 
 function QuotedString(const S: string; Quote: Char): string;
@@ -598,12 +655,12 @@ begin
 begin
   Result := S;
   I := Length(Result);
-  if (I > 0) and (Result[1] = Quote) and
-    (Result[I] = Quote) then
+  if (I > 0) and (Result[1] = Quote) and (Result[I] = Quote) then
   begin
     Delete(Result, I, 1);
     Delete(Result, 1, 1);
-    for I := Length(Result) downto 2 do begin
+    for I := Length(Result) downto 2 do
+    begin
       if (Result[I] = Quote) and (Result[I - 1] = Quote) then
         Delete(Result, I, 1);
     end;
@@ -618,7 +675,8 @@ begin
   I := Length(S);
   Result := S;
   NA := 0;
-  while (I > 0) do begin
+  while (I > 0) do
+  begin
     if ((Length(Result) - I + 1 - NA) mod 3 = 0) and (I <> 1) then
     begin
       Insert(',', Result, I);
@@ -630,7 +688,8 @@ end;
 
 function CenterStr(const S: string; Len: Integer): string;
 begin
-  if Length(S) < Len then begin
+  if Length(S) < Len then
+  begin
     Result := MakeStr(' ', (Len div 2) - (Length(S) div 2)) + S;
     Result := Result + MakeStr(' ', Len - Length(Result));
   end
@@ -671,14 +730,16 @@ var
 {$ENDIF}
 begin
   if N = 0 then Result := '0'
-  else begin
+  else
+  begin
 {$IFDEF RX_D4}
     Number := Cardinal(N);
 {$ELSE}
     Number := N;
 {$ENDIF}
     Result := '';
-    while Number > 0 do begin
+    while Number > 0 do
+    begin
       C := Number mod B;
       if C > 9 then C := C + 55
       else C := C + 48;
@@ -697,7 +758,8 @@ begin
   Result := 0;
   S := UpperCase(S);
   P := 1;
-  while (I >= 1) do begin
+  while (I >= 1) do
+  begin
     if S[I] > '@' then Result := Result + (Ord(S[I]) - 55) * P
     else Result := Result + (Ord(S[I]) - 48) * P;
     Dec(I);
@@ -719,13 +781,15 @@ begin
   I := 0;
   Negative := (Length(S) > 0) and (S[1] = '-');
   if Negative then Inc(I);
-  while (I < Length(S)) do begin
+  while (I < Length(S)) do
+  begin
     Inc(I);
     Index := UpCase(S[I]);
-    if Index in RomanChars then begin
+    if CharInSet(Index, RomanChars) then
+    begin
       if Succ(I) <= Length(S) then Next := UpCase(S[I + 1])
       else Next := #0;
-      if (Next in RomanChars) and (RomanValues[Index] < RomanValues[Next]) then
+      if CharInSet(Next, RomanChars) and (RomanValues[Index] < RomanValues[Next]) then
       begin
         Inc(Result, RomanValues[Next]);
         Dec(Result, RomanValues[Index]);
@@ -733,7 +797,8 @@ begin
       end
       else Inc(Result, RomanValues[Index]);
     end
-    else begin
+    else
+    begin
       Result := 0;
       Exit;
     end;
@@ -746,70 +811,86 @@ Label
   A500, A400, A100, A90, A50, A40, A10, A9, A5, A4, A1;
 begin
   Result := '';
-  while Value >= 1000 do begin
+{$IFDEF MSWINDOWS} {$IFDEF VER80}
+  if (Value > MaxInt * 2) then Exit;
+{$ENDIF} {$ENDIF}
+  while Value >= 1000 do
+  begin
     Dec(Value, 1000); Result := Result + 'M';
   end;
   if Value < 900 then goto A500
-  else begin
+  else
+  begin
     Dec(Value, 900); Result := Result + 'CM';
   end;
   goto A90;
 A400:
   if Value < 400 then goto A100
-  else begin
+  else
+  begin
     Dec(Value, 400); Result := Result + 'CD';
   end;
   goto A90;
 A500:
   if Value < 500 then goto A400
-  else begin
+  else
+  begin
     Dec(Value, 500); Result := Result + 'D';
   end;
 A100:
-  while Value >= 100 do begin
+  while Value >= 100 do
+  begin
     Dec(Value, 100); Result := Result + 'C';
   end;
 A90:
   if Value < 90 then goto A50
-  else begin
+  else
+  begin
     Dec(Value, 90); Result := Result + 'XC';
   end;
   goto A9;
 A40:
   if Value < 40 then goto A10
-  else begin
+  else
+  begin
     Dec(Value, 40); Result := Result + 'XL';
   end;
   goto A9;
 A50:
   if Value < 50 then goto A40
-  else begin
+  else
+  begin
     Dec(Value, 50); Result := Result + 'L';
   end;
 A10:
-  while Value >= 10 do begin
+  while Value >= 10 do
+  begin
     Dec(Value, 10); Result := Result + 'X';
   end;
 A9:
   if Value < 9 then goto A5
-  else begin
+  else
+  begin
     Result := Result + 'IX';
   end;
   Exit;
 A4:
   if Value < 4 then goto A1
-  else begin
+  else
+  begin
     Result := Result + 'IV';
   end;
   Exit;
 A5:
   if Value < 5 then goto A4
-  else begin
+  else
+  begin
     Dec(Value, 5); Result := Result + 'V';
   end;
   goto A1;
 A1:
-  while Value >= 1 do begin
+  while Value >= 1 do
+  begin
     Dec(Value); Result := Result + 'I';
   end;
 end;
@@ -818,7 +899,8 @@ function IntToBin(Value: Longint; Digits, Spaces: Integer): string;
 begin
   Result := '';
   if Digits > 32 then Digits := 32;
-  while Digits > 0 do begin
+  while Digits > 0 do
+  begin
     if (Digits mod Spaces) = 0 then Result := Result + ' ';
     Dec(Digits);
     Result := Result + IntToStr((Value shr Digits) and 1);
@@ -831,24 +913,27 @@ var
   Diff: Integer;
 begin
   I := Pos('?', HelpWilds);
-  if I = 0 then begin
+  if I = 0 then
+  begin
     { if no '?' in HelpWilds }
     Result := Pos(HelpWilds, InputStr);
     Exit;
   end;
   { '?' in HelpWilds }
   Diff := Length(InputStr) - Length(HelpWilds);
-  if Diff < 0 then begin
+  if Diff < 0 then
+  begin
     Result := 0;
     Exit;
   end;
   { now move HelpWilds over InputStr }
   for I := 0 to Diff do begin
-    for J := 1 to Length(HelpWilds) do begin
-      if (InputStr[I + J] = HelpWilds[J]) or
-        (HelpWilds[J] = '?') then
+    for J := 1 to Length(HelpWilds) do
+    begin
+      if (InputStr[I + J] = HelpWilds[J]) or (HelpWilds[J] = '?') then
       begin
-        if J = Length(HelpWilds) then begin
+        if J = Length(HelpWilds) then
+        begin
           Result := I + 1;
           Exit;
         end;
@@ -874,7 +959,8 @@ var
   MaxInputWord, MaxWilds: Integer; { Length of InputStr and Wilds }
   HelpWilds: string;
 begin
-  if Wilds = InputStr then begin
+  if Wilds = InputStr then
+  begin
     Result := True;
     Exit;
   end;
@@ -883,17 +969,20 @@ begin
     if I > 0 then
       Wilds := Copy(Wilds, 1, I - 1) + '*' + Copy(Wilds, I + 2, MaxInt);
   until I = 0;
-  if Wilds = '*' then begin { for fast end, if Wilds only '*' }
+  if Wilds = '*' then
+  begin { for fast end, if Wilds only '*' }
     Result := True;
     Exit;
   end;
   MaxInputWord := Length(InputStr);
   MaxWilds := Length(Wilds);
-  if IgnoreCase then begin { upcase all letters }
+  if IgnoreCase then
+  begin { upcase all letters }
     InputStr := AnsiUpperCase(InputStr);
     Wilds := AnsiUpperCase(Wilds);
   end;
-  if (MaxWilds = 0) or (MaxInputWord = 0) then begin
+  if (MaxWilds = 0) or (MaxInputWord = 0) then
+  begin
     Result := False;
     Exit;
   end;
@@ -901,27 +990,32 @@ begin
   CWild := 1;
   Result := True;
   repeat
-    if InputStr[CInputWord] = Wilds[CWild] then begin { equal letters }
+    if InputStr[CInputWord] = Wilds[CWild] then
+    begin { equal letters }
       { goto next letter }
       Inc(CWild);
       Inc(CInputWord);
       Continue;
     end;
-    if Wilds[CWild] = '?' then begin { equal to '?' }
+    if Wilds[CWild] = '?' then
+    begin { equal to '?' }
       { goto next letter }
       Inc(CWild);
       Inc(CInputWord);
       Continue;
     end;
-    if Wilds[CWild] = '*' then begin { handling of '*' }
+    if Wilds[CWild] = '*' then
+    begin { handling of '*' }
       HelpWilds := Copy(Wilds, CWild + 1, MaxWilds);
       I := SearchNext(HelpWilds);
       LenHelpWilds := Length(HelpWilds);
-      if I = 0 then begin
+      if I = 0 then
+      begin
         { no '*' in the rest, compare the ends }
         if HelpWilds = '' then Exit; { '*' is the last letter }
         { check the rest for equal Length and no '?' }
-        for I := 0 to LenHelpWilds - 1 do begin
+        for I := 0 to LenHelpWilds - 1 do
+        begin
           if (HelpWilds[LenHelpWilds - I] <> InputStr[MaxInputWord - I]) and
             (HelpWilds[LenHelpWilds - I]<> '?') then
           begin
@@ -934,7 +1028,8 @@ begin
       { handle all to the next '*' }
       Inc(CWild, 1 + LenHelpWilds);
       I := FindPart(HelpWilds, Copy(InputStr, CInputWord, MaxInt));
-      if I= 0 then begin
+      if I= 0 then
+      begin
         Result := False;
         Exit;
       end;
@@ -949,42 +1044,44 @@ begin
   if (CWild <= MaxWilds) and (Wilds[MaxWilds] <> '*') then Result := False;
 end;
 
-function XorString(const Key, Src: ShortString): ShortString;
+function XorString(const Key, Src: AnsiString): AnsiString;
 var
   I: Integer;
 begin
   Result := Src;
   if Length(Key) > 0 then
     for I := 1 to Length(Src) do
-      Result[I] := Chr(Byte(Key[1 + ((I - 1) mod Length(Key))]) xor Ord(Src[I]));
+      Result[I] := {$IFDEF RX_D12}AnsiChar{$ELSE}Chr{$ENDIF}(Byte(Key[1 + ((I - 1) mod Length(Key))]) xor Byte(Src[I]));
 end;
 
-function XorEncode(const Key, Source: string): string;
+function XorEncode(const Key, Source: AnsiString): AnsiString;
 var
   I: Integer;
-  C: Byte;
+  B: Byte;
 begin
   Result := '';
-  for I := 1 to Length(Source) do begin
+  for I := 1 to Length(Source) do
+  begin
     if Length(Key) > 0 then
-      C := Byte(Key[1 + ((I - 1) mod Length(Key))]) xor Byte(Source[I])
+      B := Byte(Key[1 + ((I - 1) mod Length(Key))]) xor Byte(Source[I])
     else
-      C := Byte(Source[I]);
-    Result := Result + AnsiLowerCase(IntToHex(C, 2));
+      B := Byte(Source[I]);
+    Result := Result + AnsiString(AnsiLowerCase(IntToHex(B, 2)));
   end;
 end;
 
-function XorDecode(const Key, Source: string): string;
+function XorDecode(const Key, Source: AnsiString): AnsiString;
 var
   I: Integer;
-  C: Char;
+  B: Byte;
 begin
   Result := '';
-  for I := 0 to Length(Source) div 2 - 1 do begin
-    C := Chr(StrToIntDef('$' + Copy(Source, (I * 2) + 1, 2), Ord(' ')));
+  for I := 0 to Length(Source) div 2 - 1 do
+  begin
+    B := StrToIntDef('$' + string(Copy(Source, (I * 2) + 1, 2)), Ord(' '));
     if Length(Key) > 0 then
-      C := Chr(Byte(Key[1 + (I mod Length(Key))]) xor Byte(C));
-    Result := Result + C;
+      B := Byte(Key[1 + (I mod Length(Key))]) xor B;
+    Result := Result + AnsiChar(B);
   end;
 end;
 
@@ -995,19 +1092,24 @@ var
   I: Integer;
   S: string;
 begin
-  for I := 1 to ParamCount do begin
+  for I := 1 to ParamCount do
+  begin
     S := ParamStr(I);
     if (SwitchChars = []) or ((S[1] in SwitchChars) and (Length(S) > 1)) then
     begin
       S := Copy(S, 2, MaxInt);
-      if IgnoreCase then begin
-        if (AnsiCompareText(S, Switch) = 0) then begin
+      if IgnoreCase then
+      begin
+        if (AnsiCompareText(S, Switch) = 0) then
+        begin
           Result := True;
           Exit;
         end;
       end
-      else begin
-        if (AnsiCompareStr(S, Switch) = 0) then begin
+      else
+      begin
+        if (AnsiCompareStr(S, Switch) = 0) then
+        begin
           Result := True;
           Exit;
         end;
@@ -1024,13 +1126,16 @@ var
   S: string;
 begin
   I := 1;
-  while I <= ParamCount do begin
+  while I <= ParamCount do
+  begin
     S := ParamStr(I);
-    if (SwitchChars = []) or ((S[1] in SwitchChars) and (Length(S) > 1)) then
+    if (SwitchChars = []) or (CharInSet(S[1], SwitchChars) and (Length(S) > 1)) then
     begin
-      if (AnsiCompareText(Copy(S, 2, MaxInt), Switch) = 0) then begin
+      if (AnsiCompareText(Copy(S, 2, MaxInt), Switch) = 0) then
+      begin
         Inc(I);
-        if I <= ParamCount then begin
+        if I <= ParamCount then
+        begin
           Result := ParamStr(I);
           Exit;
         end;
@@ -1040,5 +1145,161 @@ begin
   end;
   Result := '';
 end;
+
+function GetParamStr(P: PChar; var Param: string): PChar;
+var
+  Len: Integer;
+  Buffer: array[Byte] of Char;
+begin
+  while True do
+  begin
+    while (P[0] <> #0) and (P[0] <= ' ') do Inc(P);
+    if (P[0] = '"') and (P[1] = '"') then Inc(P, 2) else Break;
+  end;
+  Len := 0;
+  while P[0] > ' ' do
+    if P[0] = '"' then
+    begin
+      Inc(P);
+      while (P[0] <> #0) and (P[0] <> '"') do
+      begin
+        Buffer[Len] := P[0];
+        Inc(Len);
+        Inc(P);
+      end;
+      if P[0] <> #0 then Inc(P);
+    end
+    else
+    begin
+      Buffer[Len] := P[0];
+      Inc(Len);
+      Inc(P);
+    end;
+  SetString(Param, Buffer, Len);
+  Result := P;
+end;
+
+function ParamCountFromCommandLine(CmdLine: PChar): Integer;
+var
+  S: string;
+  P: PChar;
+begin
+  P := CmdLine;
+  Result := 0;
+  while True do
+  begin
+    P := GetParamStr(P, S);
+    if S = '' then Break;
+    Inc(Result);
+  end;
+end;
+
+function ParamStrFromCommandLine(CmdLine: PChar; Index: Integer): string;
+var
+  P: PChar;
+begin
+  P := CmdLine;
+  while True do
+  begin
+    P := GetParamStr(P, Result);
+    if (Index = 0) or (Result = '') then Break;
+    Dec(Index);
+  end;
+end;
+
+procedure SplitCommandLine(const CmdLine: string; var ExeName, Params: string);
+var
+  Buffer: PChar;
+  Cnt, I: Integer;
+  S: string;
+begin
+  ExeName := '';
+  Params := '';
+  Buffer := StrAlloc(Length(CmdLine) + 1);
+  StrPCopy(Buffer, CmdLine);
+  try
+    Cnt := ParamCountFromCommandLine(Buffer);
+    if Cnt > 0 then
+    begin
+      ExeName := ParamStrFromCommandLine(Buffer, 0);
+      for I := 1 to Cnt - 1 do
+      begin
+        S := ParamStrFromCommandLine(Buffer, I);
+        if Pos(' ', S) > 0 then S := '"' + S + '"';
+        Params := Params + S;
+        if I < Cnt - 1 then Params := Params + ' ';
+      end;
+    end;
+  finally
+    StrDispose(Buffer);
+  end;
+end;
+
+function FindSwitch(const Switch: string): Boolean;
+begin
+  Result := FindCmdLineSwitch(Switch, ['-', '/'], True);
+end;
+
+  function GetWordParam(N: Integer; const S: string;
+    const WordDelims: TCharSet): string;
+  const
+    QChars = ['"', ''''];
+  var
+    I, K, Len: Integer;
+    Quote: Boolean;
+    qc: string;
+  begin
+    Len := 0;
+    qc := '';
+    I := 1;
+    K := 1;
+    Quote := False;
+    while (I <= Length(S)) and (K < N) do
+    begin
+      if CharInSet(S[I], QChars) then
+      begin
+        if Quote then
+        begin
+          if S[I] = qc then
+            Quote := False;
+        end
+        else
+        begin
+          Quote := True;
+          qc := S[I];
+        end;
+      end;
+      if not(Quote) and CharInSet(S[I], WordDelims) then
+        Inc(K);
+      Inc(I);
+    end;
+    Quote := False;
+    { find the end of the current word }
+    while (I <= Length(S)) do
+    begin
+      if CharInSet(S[I], QChars) then
+      begin
+        if Quote then
+        begin
+          if S[I] = qc then
+            Quote := False;
+        end
+        else
+        begin
+          Quote := True;
+          qc := S[I];
+        end;
+      end;
+      if not(Quote) and CharInSet(S[I], WordDelims) then
+        Break;
+      { add the I'th character to result }
+      Inc(Len);
+      SetLength(Result, Len);
+      Result[Len] := S[I];
+      Inc(I);
+    end;
+    SetLength(Result, Len);
+    Result := ExtractQuotedString(Result, '''');
+  end;
 
 end.

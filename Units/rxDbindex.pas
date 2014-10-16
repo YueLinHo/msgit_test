@@ -5,17 +5,22 @@
 {         Copyright (c) 1995, 1996 AO ROSNO             }
 {         Copyright (c) 1997 Master-Bank                }
 {                                                       }
+{ Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxDBIndex;
+unit RxDBIndex;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows, Messages, Classes, Controls, Forms,
+{$IFNDEF VER80}
+uses SysUtils, Windows, Messages, Classes, Controls, Forms,
   Graphics, Menus, StdCtrls, ExtCtrls, DB, DBTables;
+{$ELSE}
+uses SysUtils, WinTypes, WinProcs, Messages, Classes, Controls, Forms,
+  Graphics, Menus, StdCtrls, ExtCtrls, DB, DBTables;
+{$ENDIF}
 
 type
 
@@ -74,10 +79,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property ItemHeight;
     property ParentCtl3D;
     property ParentFont;
@@ -102,7 +109,9 @@ type
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnEndDock;
     property OnStartDock;
@@ -111,9 +120,8 @@ type
 
 implementation
 
-uses
-  Bde, 
-  DBConsts, rxStrUtils, rxDBUtils, rxBdeUtils;
+uses {$IFNDEF VER80} Bde, {$ELSE} DbiErrs, DbiTypes, DbiProcs, {$ENDIF}
+  DBConsts, RxStrUtils , RxDBUtils, RxBdeUtils;
 
 { TKeyDataLink }
 
@@ -231,7 +239,9 @@ end;
 procedure TDBIndexCombo.SetDataSource(Value: TDataSource);
 begin
   FDataLink.DataSource := Value;
+{$IFNDEF VER80}
   if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
   if not (csLoading in ComponentState) then ActiveChanged;
 end;
 

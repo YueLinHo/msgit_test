@@ -19,8 +19,9 @@ unit RxCombos;
 
 interface
 
-uses
-  Windows, Messages, Classes, Controls, Graphics, StdCtrls, Forms, Menus;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  {$IFDEF RX_D17}Types, System.UITypes,{$ENDIF}
+  Messages, Classes, Controls, Graphics, StdCtrls, Forms, Menus;
 
 type
 
@@ -93,6 +94,7 @@ type
     procedure Change; override;
     procedure PopulateList; virtual;
     procedure DoChange; dynamic;
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -125,10 +127,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property ParentColor;
     property ParentCtl3D;
     property ParentFont;
@@ -151,7 +155,9 @@ type
     property OnKeyDown;
     property OnKeyPress;
     property OnKeyUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -218,10 +224,12 @@ type
     property DragKind;
     property ParentBiDiMode;
 {$ENDIF}
+{$IFNDEF VER80}
   {$IFNDEF VER90}
     property ImeMode;
     property ImeName;
   {$ENDIF}
+{$ENDIF}
     property ParentColor;
     property ParentCtl3D;
     property ParentFont;
@@ -244,7 +252,9 @@ type
     property OnKeyDown;
     property OnKeyPress;
     property OnKeyUp;
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
@@ -260,19 +270,24 @@ procedure Register;
 
 implementation
 
-{$R *.R32}
+{$R *.RES}
 
-uses
-  Consts, SysUtils, Printers, dialogs,
-  {$IFNDEF GXE} rxVCLUtils, {$ENDIF}
-  rRXCombo;  // Polaris
+uses SysUtils, Consts, Printers {$IFNDEF GXE}, RxVCLUtils {$ENDIF},
+     Dialogs, RxResConst;  // Polaris
 
 {$IFDEF GXE}
 procedure Register;
+const
+  srRXControls = 'RX Controls';
 begin
   RegisterComponents('Additional', [TFontComboBox, TColorComboBox]);
 end;
 {$ENDIF GXE}
+
+{$IFDEF VER80}
+type
+  DWORD = Longint;
+{$ENDIF}
 
 { Utility routines }
 
@@ -378,15 +393,15 @@ end;
 const
   // Polaris begin
   BaseColorsNum = 16;
-  ColorsInList = BaseColorsNum+{$IFDEF RX_D3}30{$ELSE}28{$ENDIF};
+  ColorsInList = BaseColorsNum+{$IFNDEF VER80}30{28}{$ELSE}26{24}{$ENDIF};
   ColorValues: array [0..ColorsInList - 1] of TColor = (
     clBlack, clMaroon, clGreen, clOlive, clNavy, clPurple, clTeal, clGray,
     clSilver, clRed, clLime, clYellow, clBlue, clFuchsia, clAqua, clWhite,
     clScrollBar, clBackground, clActiveCaption, clInactiveCaption, clMenu,
     clWindow, clWindowFrame, clMenuText, clWindowText, clCaptionText, clActiveBorder,
     clInactiveBorder, clAppWorkSpace, clHighlight, clHighlightText, clBtnFace, clBtnShadow,
-    clGrayText, clBtnText, clInactiveCaptionText, clBtnHighlight, cl3DDkShadow, cl3DLight,
-    clInfoText, clInfoBk, clCream, clMoneyGreen, clSkyBlue{$IFDEF RX_D3}, clNone, clDefault {$ENDIF});
+    clGrayText, clBtnText, clInactiveCaptionText, clBtnHighlight,{$IFNDEF VER80} cl3DDkShadow, cl3DLight,
+    clInfoText, clInfoBk,{$ENDIF} clCream, clMoneyGreen, clSkyBlue{$IFDEF RX_D3}, clNone, clDefault {$ENDIF});
 
   ColorNamesEx : array [0..ColorsInList - 1] of Integer = (
     SColorBlack, SColorMaroon, SColorGreen, SColorOlive, SColorNavy, SColorPurple, SColorTeal, SColorGray,
@@ -394,8 +409,8 @@ const
     SColorScrollBar, SColorBackground, SColorActiveCaption, SColorInactiveCaption, SColorMenu,
     SColorWindow, SColorWindowFrame, SColorMenuText, SColorWindowText, SColorCaptionText, SColorActiveBorder,
     SColorInactiveBorder, SColorAppWorkSpace, SColorHighlight, SColorHighlightText, SColorBtnFace, SColorBtnShadow,
-    SColorGrayText, SColorBtnText, SColorInactiveCaptionText, SColorBtnHighlight, SColor3DDkShadow, SColor3DLight,
-    SColorInfoText, SColorInfoBk, SColorCream, SColorMoneyGreen, SColorSkyBlue{$IFDEF RX_D3}, SColorNone, SColorDefault{$ENDIF});
+    SColorGrayText, SColorBtnText, SColorInactiveCaptionText, SColorBtnHighlight,{$IFNDEF VER80} SColor3DDkShadow, SColor3DLight,
+    SColorInfoText, SColorInfoBk,{$ENDIF} SColorCream, SColorMoneyGreen, SColorSkyBlue{$IFDEF RX_D3}, SColorNone, SColorDefault{$ENDIF});
   // Polaris end
 
 constructor TColorComboBox.Create(AOwner: TComponent);
@@ -410,10 +425,11 @@ begin
   FCustomColorList := '';
   FInternalDropDown:= False;//Polaris
   // Polaris
-  for i := 0 to ColorsInList - 1 do FColorNames.Add(LoadStr(ColorNamesEx[i]));
+  for i := 0 to ColorsInList - 1 do FColorNames.Add(RxLoadStr(ColorNamesEx[i]));
 
   TStringList(FColorNames).OnChange := ColorNamesChanged;
   FDisplayNames := True;
+
 end;
 
 destructor TColorComboBox.Destroy;
@@ -465,7 +481,7 @@ begin
     end;
 //Polaris
     if coIncludeOther in Options
-    then Items.AddObject(LoadStr(SColorCustom), TObject(FCustomColor));
+    then Items.AddObject(RxLoadStr(SColorCustom), TObject(FCustomColor));
 //Polaris
   finally
     Items.EndUpdate;
@@ -492,9 +508,10 @@ begin
   Result := ColorsInList <> FColorNames.Count;
   if not Result then
     for i:=0 to ColorsInList-1 do
-      if FColorNames[i] <> LoadStr(ColorNamesEx[i]) then begin
+      if FColorNames[i] <> RxLoadStr(ColorNamesEx[i]) then
+      begin
         Result := True;
-        exit;
+        Exit;
       end;
 end;
 
@@ -747,6 +764,8 @@ begin
     Result := Result and (FontType and RASTER_FONTTYPE = 0);
 end;
 
+{$IFNDEF VER80}
+
 function EnumFontsProc(var EnumLogFont: TEnumLogFont;
   var TextMetric: TNewTextMetric; FontType: Integer; Data: LPARAM): Integer;
   export; stdcall;
@@ -764,6 +783,24 @@ begin
     end;
   Result := 1;
 end;
+
+{$ELSE}
+
+function EnumFontsProc(var LogFont: TLogFont; var TextMetric: TTextMetric;
+  FontType: Integer; Data: Pointer): Integer; export;
+begin
+  with TFontComboBox(Data) do
+    if (Items.IndexOf(StrPas(LogFont.lfFaceName)) < 0) and
+      IsValidFont(TFontComboBox(Data), LogFont, FontType) then
+    begin
+      if LogFont.lfCharSet = SYMBOL_CHARSET then
+        FontType := FontType or WRITABLE_FONTTYPE;
+      Items.AddObject(StrPas(LogFont.lfFaceName), TObject(FontType));
+    end;
+  Result := 1;
+end;
+
+{$ENDIF}
 
 constructor TFontComboBox.Create(AOwner: TComponent);
 begin
@@ -802,6 +839,9 @@ end;
 procedure TFontComboBox.PopulateList;
 var
   DC: HDC;
+{$IFDEF VER80}
+  Proc: TFarProc;
+{$ENDIF}
 begin
   if not HandleAllocated then Exit;
   Items.BeginUpdate;
@@ -809,6 +849,7 @@ begin
     Clear;
     DC := GetDC(0);
     try
+{$IFNDEF VER80}
       if (FDevice = fdScreen) or (FDevice = fdBoth) then
         EnumFontFamilies(DC, nil, @EnumFontsProc, Longint(Self));
       if (FDevice = fdPrinter) or (FDevice = fdBoth) then
@@ -817,6 +858,21 @@ begin
       except
         { skip any errors }
       end;
+{$ELSE}
+      Proc := MakeProcInstance(@EnumFontsProc, HInstance);
+      try
+        if (FDevice = fdScreen) or (FDevice = fdBoth) then
+          EnumFonts(DC, nil, Proc, PChar(Self));
+        if (FDevice = fdPrinter) or (FDevice = fdBoth) then
+          try
+            EnumFonts(Printer.Handle, nil, Proc, PChar(Self));
+          except
+            { skip any errors }
+          end;
+      finally
+        FreeProcInstance(Proc);
+      end;
+{$ENDIF}
     finally
       ReleaseDC(0, DC);
     end;

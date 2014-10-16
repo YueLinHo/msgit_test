@@ -12,8 +12,9 @@ interface
 
 {$I RX.INC}
 
-uses
-  Windows, SysUtils, Classes, Messages, ExtCtrls;
+{$IFNDEF VER80}
+
+uses Windows, SysUtils, Classes, Messages, ExtCtrls;
 
 type
   TFileChangeFilter = (fnFileName, fnDirName, fnAttributes, fnSize,
@@ -91,11 +92,13 @@ type
 function CreateNotifyThread(const FolderName: string; WatchSubtree: Boolean;
   Filter: TFileChangeFilters): TNotifyThread;
 
+{$ENDIF}
+
 implementation
 
-uses
-  Forms,
-  rxVCLUtils, rxFileUtil;
+{$IFNDEF VER80}
+
+uses Forms, RxVCLUtils, RxFileUtil;
 
 {$IFNDEF RX_D3}
 const
@@ -364,5 +367,7 @@ procedure TRxFolderMonitor.Changed;
 begin
   if Assigned(FOnChange) then FOnChange(Self);
 end;
+
+{$ENDIF}
 
 end.

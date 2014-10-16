@@ -7,15 +7,15 @@
 {                                                       }
 {*******************************************************}
 
-unit rxMemTable;
+unit RxMemTable;
 
 {$I RX.INC}
 {$N+,P+,S-}
 
 interface
 
-uses
-  SysUtils, Classes, Controls, Bde, DB, DBTables;
+uses SysUtils, Classes, Controls, {$IFNDEF VER80} Bde, {$ELSE} DbiTypes,
+  DbiProcs, DbiErrs, {$ENDIF} DB, DBTables;
 
 type
 
@@ -43,8 +43,10 @@ type
     procedure DoBeforeScroll; override;
     procedure DoAfterScroll; override;
 {$ENDIF}
+{$IFNDEF VER80}
     function GetRecordCount: {$IFNDEF RX_D3} Longint {$ELSE}
       Integer; override {$ENDIF};
+{$ENDIF}
 {$IFDEF RX_D3}
     function GetRecNo: Integer; override;
     procedure SetRecNo(Value: Integer); override;
@@ -89,9 +91,8 @@ type
 
 implementation
 
-uses
-  DBConsts, rxDBUtils, rxBdeUtils, {$IFDEF RX_D3} BDEConst, {$ENDIF}
-  Forms, rxMaxMin;
+uses DBConsts, RxDBUtils, RxBdeUtils, {$IFDEF RX_D3} BDEConst, {$ENDIF}
+  Forms, RxMaxMin;
 
 { Memory tables are created in RAM and deleted when you close them. They
   are much faster and are very useful when you need fast operations on
@@ -244,15 +245,15 @@ end;
 function TMemoryTable.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
   IsBlank: LongBool;
-  RecBuf: PChar;
+  RecBuf: TBuffer;
 begin
   Result := inherited GetFieldData(Field, Buffer);
   if not Result then begin
     RecBuf := nil;
     case State of
-      dsBrowse: if not IsEmpty then RecBuf := ActiveBuffer;
-      dsEdit, dsInsert: RecBuf := ActiveBuffer;
-      dsCalcFields: RecBuf := CalcBuffer;
+      dsBrowse: if not IsEmpty then RecBuf := Pointer(ActiveBuffer);
+      dsEdit, dsInsert: RecBuf := Pointer(ActiveBuffer);
+      dsCalcFields: RecBuf := Pointer(CalcBuffer);
     end;
     if RecBuf = nil then Exit;
     with Field do
@@ -371,7 +372,7 @@ begin
         DBErrorFmt(SFieldUnsupportedType, [Fields[I].FieldName]);
 {$ENDIF}
       with Fields[I] do
-        if not (Calculated or Lookup) then
+        if not (Calculated {$IFNDEF VER80} or Lookup {$ENDIF}) then
           FieldDefs.Add(FieldName, DataType, Size, Required);
     end;
 {$IFNDEF RX_D4}
@@ -383,7 +384,7 @@ begin
     if TableName = '' then
       AnsiToNative(Locale, '$RxInMem$', szTblName, SizeOf(szTblName) - 1)
     else
-      AnsiToNative(Locale, TableName, szTblName, SizeOf(szTblName) - 1);
+      AnsiToNative(Locale, AnsiString(TableName), szTblName, SizeOf(szTblName) - 1);
 {$IFDEF RX_D4}
     SetLength(FldDescList, iFldCount);
     FieldDescs := BDE.PFLDDesc(FldDescList);
@@ -399,7 +400,7 @@ begin
 {$ENDIF}
     end;
     Check(DbiTranslateRecordStructure(nil, iFldCount, FieldDescs, nil, nil,
-      FieldDescs, False));
+      FieldDescs {$IFNDEF VER80}, False {$ENDIF}));
     Check(DbiCreateInMemTable(DBHandle, szTblName, iFldCount, FieldDescs,
       Result));
   finally
@@ -444,17 +445,19 @@ procedure TMemoryTable.EncodeFieldDesc(var FieldDesc: FLDDesc;
 begin
   with FieldDesc do begin
     FillChar(szName, SizeOf(szName), 0);
-    AnsiToNative(Locale, Name, szName, SizeOf(szName) - 1);
+    AnsiToNative(Locale, AnsiString(Name), szName, SizeOf(szName) - 1);
     iFldType := FieldLogicMap(DataType);
     iSubType := FieldSubtypeMap(DataType);
+{$IFNDEF VER80}
     if iSubType = fldstAUTOINC then iSubType := 0;
+{$ENDIF}
     case DataType of
 {$IFDEF RX_D4}
       ftString, ftFixedChar, ftBytes, ftVarBytes, ftBlob..ftTypedBinary:
 {$ELSE}
-      ftString, ftBytes, ftVarBytes, ftBlob, ftMemo, ftGraphic,
-      ftFmtMemo, ftParadoxOle, ftDBaseOle,
-      ftTypedBinary:
+      ftString, ftBytes, ftVarBytes, ftBlob, ftMemo, ftGraphic
+      {$IFNDEF VER80}, ftFmtMemo, ftParadoxOle, ftDBaseOle,
+      ftTypedBinary {$ENDIF}:
 {$ENDIF}
         iUnits1 := Size;
       ftBCD:
@@ -472,11 +475,13 @@ begin
   end;
 end;
 
+{$IFNDEF VER80}
 function TMemoryTable.GetRecordCount: {$IFNDEF RX_D3} Longint {$ELSE} Integer {$ENDIF};
 begin
   if State = dsInactive then _DBError(SDataSetClosed);
   Check(DbiGetRecordCount(Handle, Result));
 end;
+{$ENDIF}
 
 procedure TMemoryTable.SetRecNo(Value: {$IFDEF RX_D3} Integer {$ELSE} Longint {$ENDIF});
 var

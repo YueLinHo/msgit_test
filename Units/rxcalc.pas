@@ -14,9 +14,9 @@ interface
 
 {$I RX.INC}
 
-uses
-  Windows, SysUtils, Variants,
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} SysUtils,
   Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Menus,
+  {$IFDEF RX_D17}System.Types, System.UITypes,{$ENDIF}
   ExtCtrls, Buttons, RxCtrls, Clipbrd;
 
 const
@@ -102,10 +102,10 @@ procedure SetupPopupCalculator(PopupCalc: TWinControl; APrecision: Byte;
 
 implementation
 
-uses
-  rxVclUtils, rxMaxMin, rxStrUtils, rxToolEdit;
+uses {$IFDEF VER80} RxStr16, {$ENDIF} RxVCLUtils, RxMaxMin, RxToolEdit,
+     {$IFDEF RX_D6} Variants, RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
-{$R *.R32}
+{$R *.RES}
 
 const
   SCalculator = 'Calculator';
@@ -120,23 +120,30 @@ type
 
   TCalcPanelLayout = (clDialog, clPopup);
 
-procedure SetDefaultFont(AFont: TFont; Layout: TCalcPanelLayout);
+procedure SetDefaultFont(AFont: TFont; Layout: TCalcPanelLayout); {$IFDEF RX_D9}inline;{$ENDIF}
+{$IFNDEF VER80}
 var
   NonClientMetrics: TNonClientMetrics;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   NonClientMetrics.cbSize := SizeOf(NonClientMetrics);
   if SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, @NonClientMetrics, 0) then
     AFont.Handle := CreateFontIndirect(NonClientMetrics.lfMessageFont)
   else
-  with AFont do begin
+{$ENDIF}
+  with AFont do
+  begin
     Color := clWindowText;
-    Name := 'MS Sans Serif';
+    Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
     Size := 8;
   end;
   AFont.Style := [fsBold];
-  if Layout = clDialog then begin
+  if Layout = clDialog then
+  begin
   end
-  else begin
+  else
+  begin
   end;
 end;
 
@@ -146,8 +153,11 @@ begin
   with Result do
   try
     HelpContext := AHelpContext;
+{$IFNDEF VER80}
     if HelpContext <> 0 then BorderIcons := BorderIcons + [biHelp];
-    if Screen.PixelsPerInch <> 96 then begin { scale to screen res }
+{$ENDIF}
+    if Screen.PixelsPerInch <> 96 then
+    begin { scale to screen res }
       ScaleBy(Screen.PixelsPerInch, 96);
       SetDefaultFont(Font, clDialog);
       Left := (Screen.Width div 2) - (Width div 2);
@@ -176,7 +186,9 @@ type
 constructor TCalcButton.CreateKind(AOwner: TComponent; AKind: TCalcBtnKind);
 begin
   inherited Create(AOwner);
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   FKind := AKind;
   if FKind in [cbNum0..cbClr] then Tag := Ord(Kind) - 1
   else Tag := -1;
@@ -184,7 +196,7 @@ end;
 
 procedure TCalcButton.CMParentFontChanged(var Message: TMessage);
 
-  function BtnColor(Kind: TCalcBtnKind): TColor;
+  function BtnColor(Kind: TCalcBtnKind): TColor; {$IFDEF RX_D9}inline;{$ENDIF}
   begin
     if Kind in [cbSqr, cbPcnt, cbRev, cbMP..cbMC] then Result := clNavy
     else if Kind in [cbDiv, cbMul, cbSub, cbAdd, cbEql] then Result := clPurple
@@ -194,7 +206,8 @@ procedure TCalcButton.CMParentFontChanged(var Message: TMessage);
 
 begin
   if not FFontChanging then inherited;
-  if ParentFont and not FFontChanging then begin
+  if ParentFont and not FFontChanging then
+  begin
     FFontChanging := True;
     try
       Font.Color := BtnColor(FKind);
@@ -248,15 +261,17 @@ begin
   with Result do
   try
     if Kind in [cbNum0..cbNum9] then Caption := IntToStr(Tag)
-    else if Kind = cbDcm then Caption := DecimalSeparator
+    else if Kind = cbDcm then Caption := {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator
     else if Kind in [cbSgn..cbMC] then Caption := StrPas(BtnCaptions[Kind]);
     Left := BtnPos[ALayout, Kind].X;
     Top := BtnPos[ALayout, Kind].Y;
-    if ALayout = clDialog then begin
+    if ALayout = clDialog then
+    begin
       Width := 36;
       Height := 22;
     end
-    else begin
+    else
+    begin
       Width := 21;
       Height := 21;
     end;
@@ -331,8 +346,10 @@ const
     4{Sub}, 5{Add}, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1{Ok}, 0{Cancel});
 begin
   inherited Create(AOwner);
+{$IFNDEF VER80}
   if ALayout = clPopup then
     ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   ParentColor := False;
   Color := clBtnFace;
   if ALayout = clDialog then begin
@@ -354,13 +371,17 @@ begin
   else Bmp := nil;
   try
     if Bmp <> nil then Bmp.Handle := LoadBitmap(hInstance, 'CALCBTNS');
-    for I := cbNum0 to cbCancel do begin
+    for I := cbNum0 to cbCancel do
+    begin
       if BtnPos[ALayout, I].X > 0 then
-        with CreateCalcBtn(Self, I, BtnClick, ALayout) do begin
-          if ALayout = clDialog then begin
+        with CreateCalcBtn(Self, I, BtnClick, ALayout) do
+        begin
+          if ALayout = clDialog then
+          begin
             if (Kind in [cbBck, cbClr]) then Width := 44;
             if (Kind in [cbSgn..cbCancel]) then
-              if BtnGlyphs[Kind] >= 0 then begin
+              if BtnGlyphs[Kind] >= 0 then
+              begin
                 Caption := '';
                 AssignBitmapCell(Bmp, Glyph, 6, 1, BtnGlyphs[Kind]);
               end;
@@ -379,10 +400,12 @@ begin
           end;
         end;
     end;
-    if ALayout = clDialog then begin
+    if ALayout = clDialog then
+    begin
       { Memory panel }
       FMemoryPanel := TPanel.Create(Self);
-      with FMemoryPanel do begin
+      with FMemoryPanel do
+      begin
         SetBounds(6, 7, 34, 20);
         BevelInner := bvLowered;
         BevelOuter := bvNone;
@@ -390,7 +413,8 @@ begin
         Parent := Self;
       end;
       FMemoryLabel := TLabel.Create(Self);
-      with FMemoryLabel do begin
+      with FMemoryLabel do
+      begin
         SetBounds(3, 3, 26, 14);
         Alignment := taCenter;
         AutoSize := False;
@@ -409,7 +433,8 @@ end;
 
 procedure TCalculatorPanel.SetText(const Value: string);
 begin
-  if FText <> Value then begin
+  if FText <> Value then
+  begin
     FText := Value;
     TextChanged;
   end;
@@ -434,7 +459,8 @@ var
   S: string;
 begin
   S := FloatToStrF(R, ffGeneral, Max(2, FPrecision), 0);
-  if FText <> S then begin
+  if FText <> S then
+  begin
     SetText(S);
     if Assigned(FOnDisplayChange) then FOnDisplayChange(Self);
   end;
@@ -448,7 +474,8 @@ end;
 
 procedure TCalculatorPanel.CheckFirst;
 begin
-  if FStatus = csFirst then begin
+  if FStatus = csFirst then
+  begin
     FStatus := csValid;
     SetText('0');
   end;
@@ -463,10 +490,12 @@ var
   I: Integer;
 begin
   inherited;
-  for I := 0 to ComponentCount - 1 do begin
+  for I := 0 to ComponentCount - 1 do
+  begin
     if Components[I] is TRxSpeedButton then
       TRxSpeedButton(Components[I]).Style := Ctl3DStyle[Ctl3D]
-    else if Components[I] = FMemoryPanel then begin
+    else if Components[I] = FMemoryPanel then
+    begin
       FMemoryPanel.BevelInner := Ctl3DBevel[Ctl3D];
       FMemoryPanel.BorderStyle := Ctl3DBorder[Ctl3D];
     end;
@@ -487,20 +516,23 @@ begin
   Key := UpCase(Key);
   if (FStatus = csError) and (Key <> 'C') then Key := #0;
   if Assigned(FOnCalcKey) then FOnCalcKey(Self, Key);
-  if Key in [DecimalSeparator, '.', ','] then begin
+  if CharInSet(Key, [{$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, '.', ',']) then
+  begin
     CheckFirst;
-    if Pos(DecimalSeparator, FText) = 0 then
-      SetText(FText + DecimalSeparator);
+    if Pos({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, FText) = 0 then
+      SetText(FText + {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator);
     Exit;
   end;
   case Key of
     'R':
-      if FStatus in [csValid, csFirst] then begin
+      if FStatus in [csValid, csFirst] then
+      begin
         FStatus := csFirst;
         if GetDisplay = 0 then Error else SetDisplay(1.0 / GetDisplay);
       end;
     'Q':
-      if FStatus in [csValid, csFirst] then begin
+      if FStatus in [csValid, csFirst] then
+      begin
         FStatus := csFirst;
         if GetDisplay < 0 then Error else SetDisplay(Sqrt(GetDisplay));
       end;
@@ -508,7 +540,8 @@ begin
       begin
         CheckFirst;
         if FText = '0' then SetText('');
-        if Pos('E', FText) = 0 then begin
+        if Pos('E', FText) = 0 then
+        begin
           if Length(FText) < Max(2, FPrecision) + Ord(Boolean(Pos('-', FText))) then
             SetText(FText + Key)
           else if FBeepOnError then MessageBeep(0);
@@ -525,7 +558,8 @@ begin
     '_': SetDisplay(-GetDisplay);
     '+', '-', '*', '/', '=', '%', #13:
       begin
-        if FStatus = csValid then begin
+        if FStatus = csValid then
+        begin
           FStatus := csFirst;
           R := GetDisplay;
           if Key = '%' then
@@ -542,7 +576,7 @@ begin
         end;
         FOperator := Key;
         FOperand := GetDisplay;
-        if Key in ResultKeys then
+        if CharInSet(Key, ResultKeys) then
           if Assigned(FOnResult) then FOnResult(Self);
       end;
     #27, 'C': Clear;
@@ -574,13 +608,15 @@ var
   I: Integer;
   BtnTag: Longint;
 begin
-  if Key in [DecimalSeparator, '.', ','] then Key := '.'
+  if CharInSet(Key, [{$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator, '.', ',']) then Key := '.'
   else if Key = #13 then Key := '='
   else if Key = #27 then Key := 'C';
   BtnTag := Pos(UpCase(Key), ButtonChars) - 1;
   if BtnTag >= 0 then
-    for I := 0 to ControlCount - 1 do begin
-      if Controls[I] is TRxSpeedButton then begin
+    for I := 0 to ControlCount - 1 do
+    begin
+      if Controls[I] is TRxSpeedButton then
+      begin
         Result := TRxSpeedButton(Controls[I]);
         if Result.Tag = BtnTag then Exit;
       end;
@@ -593,7 +629,7 @@ begin
   case TCalcButton(Sender).Kind of
     cbNum0..cbNum9: CalcKey(Char(TComponent(Sender).Tag + Ord('0')));
     cbSgn: CalcKey('_');
-    cbDcm: CalcKey(DecimalSeparator);
+    cbDcm: CalcKey({$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator);
     cbDiv: CalcKey('/');
     cbMul: CalcKey('*');
     cbSub: CalcKey('-');
@@ -605,19 +641,22 @@ begin
     cbBck: CalcKey(#8);
     cbClr: CalcKey('C');
     cbMP:
-      if FStatus in [csValid, csFirst] then begin
+      if FStatus in [csValid, csFirst] then
+      begin
         FStatus := csFirst;
         FMemory := FMemory + GetDisplay;
         UpdateMemoryLabel;
       end;
     cbMS:
-      if FStatus in [csValid, csFirst] then begin
+      if FStatus in [csValid, csFirst] then
+      begin
         FStatus := csFirst;
         FMemory := GetDisplay;
         UpdateMemoryLabel;
       end;
     cbMR:
-      if FStatus in [csValid, csFirst] then begin
+      if FStatus in [csValid, csFirst] then
+      begin
         FStatus := csFirst;
         CheckFirst;
         SetDisplay(FMemory);
@@ -629,7 +668,8 @@ begin
       end;
     cbOk:
       begin
-        if FStatus <> csError then begin
+        if FStatus <> csError then
+        begin
           DisplayValue := DisplayValue; { to raise exception on error }
           if Assigned(FOnOk) then FOnOk(Self);
         end
@@ -649,7 +689,7 @@ begin
   if Clipboard.HasFormat(CF_TEXT) then
     try
       SetDisplay(StrToFloat(Trim(ReplaceStr(Clipboard.AsText,
-        CurrencyString, ''))));
+        {$IFDEF RX_D15}FormatSettings.{$ENDIF}CurrencyString, ''))));
     except
       SetText('0');
     end;
@@ -671,7 +711,9 @@ constructor TLocCalculator.Create(AOwner: TComponent);
 begin
   inherited CreateLayout(AOwner, clPopup);
   ControlStyle := [csCaptureMouse, csClickEvents, csDoubleClicks];
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   Enabled := False;
   TabStop := False;
 end;
@@ -685,7 +727,8 @@ end;
 procedure TLocCalculator.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
-  with Params do begin
+  with Params do
+  begin
     Style := Style and not (WS_TABSTOP or WS_DISABLED);
 {$IFDEF RX_D4}
     AddBiDiModeExStyle(ExStyle);
@@ -703,8 +746,13 @@ type
     procedure ResultClick(Sender: TObject);
   protected
     procedure KeyPress(var Key: Char); override;
+{$IFNDEF VER80}
     function GetValue: Variant; override;
     procedure SetValue(const Value: Variant); override;
+{$ELSE}
+    function GetValue: string; override;
+    procedure SetValue(const Value: string); override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     function GetPopupText: string; override;
@@ -734,7 +782,8 @@ begin
   if (PopupCalc = nil) or not (PopupCalc is TPopupCalculator) then
     Exit;
   if TPopupCalculator(PopupCalc).FCalcPanel <> nil then
-    with TPopupCalculator(PopupCalc).FCalcPanel do begin
+    with TPopupCalculator(PopupCalc).FCalcPanel do
+    begin
       FPrecision := Max(2, APrecision);
       FBeepOnError := ABeepOnError;
     end;
@@ -750,7 +799,8 @@ begin
   SetDefaultFont(Font, clPopup);
   if (csDesigning in ComponentState) then Exit;
   FCalcPanel := TLocCalculator.Create(Self);
-  with FCalcPanel do begin
+  with FCalcPanel do
+  begin
     Parent := Self;
     Align := alClient;
     BevelOuter := bvRaised;
@@ -767,16 +817,21 @@ begin
   inherited KeyPress(Key);
 end;
 
+{$IFNDEF VER80}
+
 function TPopupCalculator.GetValue: Variant;
 begin
   if (csDesigning in ComponentState) then Result := 0
-  else begin
-    if FCalcPanel.FStatus <> csError then begin
+  else
+  begin
+    if FCalcPanel.FStatus <> csError then
+    begin
       { to raise exception on error }
       FCalcPanel.DisplayValue := FCalcPanel.DisplayValue;
       Result := FCalcPanel.DisplayValue;
     end
-    else begin
+    else
+    begin
       if FCalcPanel.FBeepOnError then MessageBeep(0);
       Result := 0;
     end;
@@ -786,7 +841,8 @@ end;
 procedure TPopupCalculator.SetValue(const Value: Variant);
 begin
   if not (csDesigning in ComponentState) then
-    with FCalcPanel do begin
+    with FCalcPanel do
+    begin
       try
         if VarIsNull(Value) or VarIsEmpty(Value) then
           DisplayValue := 0
@@ -800,6 +856,51 @@ begin
     end;
 end;
 
+{$ELSE}
+
+function TPopupCalculator.GetValue: string;
+var
+  D: Double;
+begin
+  if (csDesigning in ComponentState) or (FCalcPanel = nil) then Result := '0'
+  else
+  begin
+    if FCalcPanel.FStatus <> csError then
+    begin
+      { to raise exception on error }
+      FCalcPanel.DisplayValue := FCalcPanel.DisplayValue;
+      D := FCalcPanel.DisplayValue;
+    end
+    else
+    begin
+      if FCalcPanel.FBeepOnError then MessageBeep(0);
+      D := 0;
+    end;
+    Result := FloatToStrF(D, ffGeneral, Max(2, FCalcPanel.FPrecision), 0);
+  end;
+end;
+
+procedure TPopupCalculator.SetValue(const Value: string);
+begin
+  if not (csDesigning in ComponentState) then
+  begin
+    with FCalcPanel do
+    begin
+      if Value = '' then DisplayValue := 0
+      else
+        try
+          DisplayValue := StrToFloat(Value);
+        except
+          DisplayValue := 0;
+        end;
+      FStatus := csFirst;
+      FOperator := '=';
+    end;
+  end;
+end;
+
+{$ENDIF}
+
 function TPopupCalculator.GetPopupText: string;
 begin
   Result := FCalcPanel.Text;
@@ -807,7 +908,8 @@ end;
 
 procedure TPopupCalculator.ResultClick(Sender: TObject);
 begin
-  if FCalcPanel.FStatus <> csError then begin
+  if FCalcPanel.FStatus <> csError then
+  begin
     FCalcPanel.DisplayValue := FCalcPanel.DisplayValue;
     CloseUp(True);
   end;
@@ -900,15 +1002,18 @@ begin
     TCalculatorPanel(FCalcPanel).UpdateMemoryLabel;
     TCalculatorPanel(FCalcPanel).FPrecision := Max(2, Self.Precision);
     TCalculatorPanel(FCalcPanel).FBeepOnError := Self.BeepOnError;
-    if Self.FValue <> 0 then begin
+    if Self.FValue <> 0 then
+    begin
       TCalculatorPanel(FCalcPanel).DisplayValue := Self.FValue;
       TCalculatorPanel(FCalcPanel).FStatus := csFirst;
       TCalculatorPanel(FCalcPanel).FOperator := '=';
     end;
     Result := (ShowModal = mrOk);
-    if Result then begin
+    if Result then
+    begin
       Self.FMemory := TCalculatorPanel(FCalcPanel).FMemory;
-      if (TCalculatorPanel(FCalcPanel).DisplayValue <> Self.FValue) then begin
+      if (TCalculatorPanel(FCalcPanel).DisplayValue <> Self.FValue) then
+      begin
         Self.FValue := TCalculatorPanel(FCalcPanel).DisplayValue;
         Change;
       end;
@@ -949,7 +1054,8 @@ begin
   Popup.OnPopup := PopupMenuPopup;
   { MainPanel }
   FMainPanel := TPanel.Create(Self);
-  with FMainPanel do begin
+  with FMainPanel do
+  begin
     Align := alClient;
     Parent := Self;
     BevelOuter := bvLowered;
@@ -958,7 +1064,8 @@ begin
   end;
   { DisplayPanel }
   FDisplayPanel := TPanel.Create(Self);
-  with FDisplayPanel do begin
+  with FDisplayPanel do
+  begin
     SetBounds(6, 6, 230, 23);
     Parent := FMainPanel;
     BevelOuter := bvLowered;
@@ -966,7 +1073,8 @@ begin
     Ctl3D := False;
   end;
   Control := TPanel.Create(Self);
-  with TPanel(Control) do begin
+  with TPanel(Control) do
+  begin
     SetBounds(1, 1, 228, 21);
     Align := alClient;
     Parent := FDisplayPanel;
@@ -977,7 +1085,8 @@ begin
     ParentCtl3D := False;
   end;
   FDisplayLabel := TLabel.Create(Self);
-  with FDisplayLabel do begin
+  with FDisplayLabel do
+  begin
     AutoSize := False;
     Alignment := taRightJustify;
     SetBounds(5, 2, 217, 15);
@@ -986,7 +1095,8 @@ begin
   end;
   { CalcPanel }
   FCalcPanel := TCalculatorPanel.CreateLayout(Self, clDialog);
-  with TCalculatorPanel(FCalcPanel) do begin
+  with TCalculatorPanel(FCalcPanel) do
+  begin
     Align := alBottom;
     Parent := FMainPanel;
     OnOkClick := Self.OkClick;

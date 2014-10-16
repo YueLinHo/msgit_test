@@ -8,16 +8,15 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxDBSecur;
+unit RxDBSecur;
 
 interface
 
 {$I RX.INC}
 
-uses
-  SysUtils, Windows,
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, Dialogs, DB, DBTables,
-  RxLogin, rxLoginDlg, rxChPswDlg;
+  RxLogin, RxLoginDlg, RxChPswDlg;
 
 type
   TCheckUserEvent = function(UsersTable: TTable;
@@ -62,7 +61,9 @@ type
     property IniFileName;
     property MaxPasswordLen;
     property UpdateCaption;
+{$IFNDEF VER80}
     property UseRegistry;
+{$ENDIF}
     property OnCheckUser: TCheckUserEvent read FOnCheckUser write FOnCheckUser;
     property OnChangePassword: TChangePasswordEvent read FOnChangePassword
       write FOnChangePassword;
@@ -75,8 +76,7 @@ type
 
 implementation
 
-uses
-  rxAppUtils, rxVCLUtils;
+uses RxAppUtils, RxVCLUtils;  // Polaris
 
 { TDBSecurity }
 
@@ -122,7 +122,9 @@ procedure TDBSecurity.SetDatabase(Value: TDatabase);
 begin
   if FDatabase <> Value then begin
     FDatabase := Value;
+{$IFNDEF VER80}
     if Value <> nil then Value.FreeNotification(Self);
+{$ENDIF}
   end;
 end;
 

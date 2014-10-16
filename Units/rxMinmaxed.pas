@@ -4,19 +4,19 @@
 {                                                       }
 {         Copyright (c) 1997 Master-Bank                }
 {                                                       }
+{ Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxMinMaxEd;
+unit RxMinMaxEd;
 
 interface
 
 {$I RX.INC}
 
-uses SysUtils, Windows, Consts,
+uses SysUtils, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  Buttons, Mask, RTLConsts,
-  {$IFDEF RX_D6} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF} // Polaris
-  rxCurrEdit, rxVclUtils, rxPlacemnt, rxToolEdit;
+  Buttons, Mask, RxCurrEdit, RxVCLUtils, RxPlacemnt, Consts,
+  {$IFDEF RX_D6} DesignIntf, DesignEditors,  {$ELSE} DsgnIntf,  {$ENDIF} RxToolEdit; // Polaris
 
 type
   TMinMaxInfoEditDialog = class(TForm)
@@ -79,7 +79,9 @@ implementation
 
 {$R *.DFM}
 
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 function EditMinMaxInfo(AComponent: TFormPlacement): Boolean;
 begin

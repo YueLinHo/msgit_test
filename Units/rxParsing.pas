@@ -5,22 +5,27 @@
 {         Copyright (c) 1995, 1996 AO ROSNO             }
 {         Copyright (c) 1997, 1998 Master-Bank          }
 {                                                       }
+{ Revision by JB.                                       }
 {*******************************************************}
 
-unit rxParsing;
+unit RxParsing;
 
 interface
 
 {$I RX.INC}
 
-uses SysUtils, Classes;
+uses SysUtils, Classes {$IFDEF WIN64}, Math{$ENDIF};
 
 type
   TParserFunc = (pfArcTan, pfCos, pfSin, pfTan, pfAbs, pfExp, pfLn, pfLog,
     pfSqrt, pfSqr, pfInt, pfFrac, pfTrunc, pfRound, pfArcSin, pfArcCos,
     pfSign, pfNot);
   ERxParserError = class(Exception);
+{$IFNDEF VER80}
   TUserFunction = function(Value: Extended): Extended;
+{$ELSE}
+  TUserFunction = Pointer;
+{$ENDIF}
 
   TRxMathParser = class(TObject)
   private
@@ -43,9 +48,13 @@ type
 
 function GetFormulaValue(const Formula: string): Extended;
 
+{$IFDEF VER80}
+function Power(Base, Exponent: Extended): Extended;
+{$ENDIF}
+
 implementation
 
-uses RxTConst;
+uses {$IFNDEF RX_D12}RxStrUtils,{$ENDIF} RxResConst;
 
 const
   SpecialChars = [#0..' ', '+', '-', '/', '*', ')', '^'];
@@ -57,14 +66,20 @@ const
 
 { Parser errors }
 
-procedure InvalidCondition(Str: Word);
+procedure InvalidCondition(Str: string{Word});
 begin
-  raise ERxParserError.Create(LoadStr(Str));
+  raise ERxParserError.Create({LoadStr(}Str{)});
 end;
 
 { IntPower and Power functions are copied from Borland's MATH.PAS unit }
 
 function IntPower(Base: Extended; Exponent: Integer): Extended;
+{$IFDEF WIN64}
+begin
+  Result := Math.IntPower(Base, Exponent); //alias only
+end;
+{$ELSE}
+{$IFNDEF VER80}
 asm
         mov     ecx, eax
         cdq
@@ -87,7 +102,24 @@ asm
 @@3:
         fwait
 end;
-
+{$ELSE}
+var
+  Y: Longint;
+begin
+  Y := Abs(Exponent);
+  Result := 1.0;
+  while Y > 0 do begin
+    while not Odd(Y) do begin
+      Y := Y shr 1;
+      Base := Base * Base;
+    end;
+    Dec(Y);
+    Result := Result * Base;
+  end;
+  if Exponent < 0 then Result := 1.0 / Result;
+end;
+{$ENDIF}
+{$ENDIF}
 function Power(Base, Exponent: Extended): Extended;
 begin
   if Exponent = 0.0 then Result := 1.0
@@ -100,7 +132,11 @@ end;
 { User defined functions }
 
 type
+{$IFNDEF VER80}
   TFarUserFunction = TUserFunction;
+{$ELSE}
+  TFarUserFunction = function(Value: Extended): Extended;
+{$ENDIF}
 
 var
   UserFuncList: TStrings;
@@ -164,7 +200,7 @@ begin
     TmpStr := C;
     NextChar;
     C := GetChar;
-    while C in ['0'..'9', 'A'..'F', 'a'..'f'] do begin
+    while CharInSet(C, ['0'..'9', 'A'..'F', 'a'..'f']) do begin
       TmpStr := TmpStr + C;
       NextChar;
       C := GetChar;
@@ -172,22 +208,22 @@ begin
     IsHex := True;
     Result := (Length(TmpStr) > 1) and (Length(TmpStr) <= 9);
   end
-  else if C in ['+', '-', '0'..'9', '.', DecimalSeparator] then begin
-    if (C in ['.', DecimalSeparator]) then TmpStr := '0' + '.'
+  else if CharInSet(C, ['+', '-', '0'..'9', '.', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator]) then begin
+    if CharInSet(C, ['.', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator]) then TmpStr := '0' + '.'
     else TmpStr := C;
     NextChar;
     C := GetChar;
-    if (Length(TmpStr) = 1) and (TmpStr[1] in ['+', '-']) and
-      (C in ['.', DecimalSeparator]) then TmpStr := TmpStr + '0';
-    while C in ['0'..'9', '.', 'E', 'e', DecimalSeparator] do begin
-      if C = DecimalSeparator then TmpStr := TmpStr + '.'
+    if (Length(TmpStr) = 1) and CharInSet(TmpStr[1], ['+', '-']) and
+      CharInSet(C, ['.', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator]) then TmpStr := TmpStr + '0';
+    while CharInSet(C, ['0'..'9', '.', 'E', 'e', {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator]) do begin
+      if C = {$IFDEF RX_D15}FormatSettings.{$ENDIF}DecimalSeparator then TmpStr := TmpStr + '.'
       else TmpStr := TmpStr + C;
       if (C = 'E') then begin
         if (Length(TmpStr) > 1) and (TmpStr[Length(TmpStr) - 1] = '.') then
           Insert('0', TmpStr, Length(TmpStr));
         NextChar;
         C := GetChar;
-        if (C in ['+', '-']) then begin
+        if CharInSet(C, ['+', '-']) then begin
           TmpStr := TmpStr + C;
           NextChar;
         end;
@@ -200,7 +236,7 @@ begin
     Val(TmpStr, AValue, Code);
     Result := (Code = 0);
   end;
-  Result := Result and (FParseText[FCurPos] in SpecialChars);
+  Result := Result and CharInSet(FParseText[FCurPos], SpecialChars);
   if Result then begin
     if IsHex then AValue := StrToInt(TmpStr)
     { else AValue := StrToFloat(TmpStr) };
@@ -216,7 +252,7 @@ begin
   Result := False;
   case FParseText[FCurPos] of
     'E':
-      if FParseText[FCurPos + 1] in SpecialChars then
+      if CharInSet(FParseText[FCurPos + 1], SpecialChars) then
       begin
         AValue := Exp(1);
         Inc(FCurPos);
@@ -224,7 +260,7 @@ begin
       end;
     'P':
       if (FParseText[FCurPos + 1] = 'I') and
-        (FParseText[FCurPos + 2] in SpecialChars) then
+        CharInSet(FParseText[FCurPos + 2], SpecialChars) then
       begin
         AValue := Pi;
         Inc(FCurPos, 2);
@@ -239,7 +275,7 @@ var
   I: Integer;
 begin
   Result := False;
-  if (FParseText[FCurPos] in ['A'..'Z', 'a'..'z', '_']) and
+  if CharInSet(FParseText[FCurPos], ['A'..'Z', 'a'..'z', '_']) and
     Assigned(UserFuncList) then
   begin
     with UserFuncList do
@@ -268,7 +304,7 @@ var
 begin
   Result := False;
   AValue := Low(TParserFunc);
-  if FParseText[FCurPos] in ['A'..'Z', 'a'..'z', '_'] then begin
+  if CharInSet(FParseText[FCurPos], ['A'..'Z', 'a'..'z', '_']) then begin
     for I := Low(TParserFunc) to High(TParserFunc) do begin
       TmpStr := Copy(FParseText, FCurPos, StrLen(FuncNames[I]));
       if CompareText(TmpStr, StrPas(FuncNames[I])) = 0 then begin
@@ -293,7 +329,7 @@ begin
   if FParseText[FCurPos] = '(' then begin
     Inc(FCurPos);
     Value := Calculate;
-    if FParseText[FCurPos] <> ')' then InvalidCondition(SParseNotCramp);
+    if FParseText[FCurPos] <> ')' then InvalidCondition(RxLoadStr(SParseNotCramp));
     Inc(FCurPos);
   end
   else begin
@@ -303,7 +339,7 @@ begin
           Inc(FCurPos);
           Func := UserFuncList.Objects[UserFunc];
           Value := TFarUserFunction(Func)(Calculate);
-          if FParseText[FCurPos] <> ')' then InvalidCondition(SParseNotCramp);
+          if FParseText[FCurPos] <> ')' then InvalidCondition(RxLoadStr(SParseNotCramp));
           Inc(FCurPos);
         end
         else if GetFunction(NoFunc) then begin
@@ -315,18 +351,18 @@ begin
               pfCos: Value := Cos(Value);
               pfSin: Value := Sin(Value);
               pfTan:
-                if Cos(Value) = 0 then InvalidCondition(SParseDivideByZero)
+                if Cos(Value) = 0 then InvalidCondition(RxLoadStr(SParseDivideByZero))
                 else Value := Sin(Value) / Cos(Value);
               pfAbs: Value := Abs(Value);
               pfExp: Value := Exp(Value);
               pfLn:
-                if Value <= 0 then InvalidCondition(SParseLogError)
+                if Value <= 0 then InvalidCondition(RxLoadStr(SParseLogError))
                 else Value := Ln(Value);
               pfLog:
-                if Value <= 0 then InvalidCondition(SParseLogError)
+                if Value <= 0 then InvalidCondition(RxLoadStr(SParseLogError))
                 else Value := Ln(Value) / Ln(10);
               pfSqrt:
-                if Value < 0 then InvalidCondition(SParseSqrError)
+                if Value < 0 then InvalidCondition(RxLoadStr(SParseSqrError))
                 else Value := Sqrt(Value);
               pfSqr: Value := Sqr(Value);
               pfInt: Value := Round(Value);
@@ -346,12 +382,12 @@ begin
             end;
           except
             on E: ERxParserError do raise
-            else InvalidCondition(SParseInvalidFloatOperation);
+            else InvalidCondition(RxLoadStr(SParseInvalidFloatOperation));
           end;
-          if FParseText[FCurPos] <> ')' then InvalidCondition(SParseNotCramp);
+          if FParseText[FCurPos] <> ')' then InvalidCondition(RxLoadStr(SParseNotCramp));
           Inc(FCurPos);
         end
-        else InvalidCondition(SParseSyntaxError);
+        else InvalidCondition(RxLoadStr(SParseSyntaxError));
   end;
   Result := Value;
 end;
@@ -361,7 +397,7 @@ var
   Value: Extended;
 begin
   Value := Term;
-  while FParseText[FCurPos] in ['*', '^', '/'] do begin
+  while CharInSet(FParseText[FCurPos], ['*', '^', '/']) do begin
     Inc(FCurPos);
     if FParseText[FCurPos - 1] = '*' then
       Value := Value * Term
@@ -371,7 +407,7 @@ begin
       try
         Value := Value / Term;
       except
-        InvalidCondition(SParseDivideByZero);
+        InvalidCondition(RxLoadStr(SParseDivideByZero));
       end;
   end;
   Result := Value;
@@ -382,13 +418,13 @@ var
   Value: Extended;
 begin
   Value := SubTerm;
-  while FParseText[FCurPos] in ['+', '-'] do begin
+  while CharInSet(FParseText[FCurPos], ['+', '-']) do begin
     Inc(FCurPos);
     if FParseText[FCurPos - 1] = '+' then Value := Value + SubTerm
     else Value := Value - SubTerm;
   end;
-  if not (FParseText[FCurPos] in [#0, ')', '>', '<', '=', ',']) then
-    InvalidCondition(SParseSyntaxError);
+  if not CharInSet(FParseText[FCurPos], [#0, ')', '>', '<', '=', ',']) then
+    InvalidCondition(RxLoadStr(SParseSyntaxError));
   Result := Value;
 end;
 
@@ -409,10 +445,10 @@ begin
   if J = 0 then begin
     FCurPos := 1;
     FParseText := FParseText + #0;
-    if (FParseText[1] in ['-', '+']) then FParseText := '0' + FParseText;
+    if CharInSet(FParseText[1], ['-', '+']) then FParseText := '0' + FParseText;
     Result := Calculate;
   end
-  else InvalidCondition(SParseNotCramp);
+  else InvalidCondition(RxLoadStr(SParseNotCramp));
 end;
 
 class procedure TRxMathParser.RegisterUserFunction(const Name: string;
@@ -420,18 +456,22 @@ class procedure TRxMathParser.RegisterUserFunction(const Name: string;
 var
   I: Integer;
 begin
-  if (Length(Name) > 0) and (Name[1] in ['A'..'Z', 'a'..'z', '_']) then
+  if (Length(Name) > 0) and CharInSet(Name[1], ['A'..'Z', 'a'..'z', '_']) then
   begin
     if not Assigned(Proc) then UnregisterUserFunction(Name)
     else begin
       with GetUserFuncList do begin
         I := IndexOf(Name);
         if I < 0 then I := Add(Name);
+{$IFNDEF VER80}
         Objects[I] := @Proc;
+{$ELSE}
+        Objects[I] := Proc;
+{$ENDIF}
       end;
     end;
   end
-  else InvalidCondition(SParseSyntaxError);
+  else InvalidCondition(RxLoadStr(SParseSyntaxError));
 end;
 
 class procedure TRxMathParser.UnregisterUserFunction(const Name: string);
@@ -448,6 +488,10 @@ end;
 
 initialization
   UserFuncList := nil;
+{$IFNDEF VER80}
 finalization
-  FreeUserFunc;
+  FreeUserFunc;  
+{$ELSE}
+  AddExitProc(FreeUserFunc);
+{$ENDIF}
 end.

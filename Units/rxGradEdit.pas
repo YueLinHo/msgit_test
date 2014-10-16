@@ -8,7 +8,7 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxGradEdit;
+unit RxGradEdit;
 
 {$I RX.INC}
 
@@ -16,9 +16,8 @@ interface
 
 uses
   Windows, SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Mask, RTLConsts,
-  {$IFDEF RX_D6} DesignIntf, DesignEditors, {$ELSE} DsgnIntf, {$ENDIF} // Polaris
-  rxToolEdit, RxGrdCpt, RXCtrls, rxPlacemnt;
+  StdCtrls, Mask, RxToolEdit, RxGrdCpt, RXCtrls, RxPlacemnt,
+  {$IFDEF RX_D6} DesignIntf, DesignEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 {$IFNDEF RX_D4}
 type
@@ -107,20 +106,21 @@ function EditGradientCaption(Component: TRxGradientCaption;
 
 implementation
 
-uses
-  rxVCLUtils, rxBoxProcs, RxConst, RxLConst;
+uses RxVCLUtils, RxBoxProcs, RxConst, RxResConst;
 
 {$R *.DFM}
 
-function EditGradientCaption(Component: TRxGradientCaption; ADesigner: IDesigner): Boolean;
-  var gce : TGradCaptionsEditor;
+function EditGradientCaption(Component: TRxGradientCaption;
+  ADesigner: IDesigner): Boolean; 
+var
+  loc : TGradCaptionsEditor;
 begin
-  gce := TGradCaptionsEditor.Create(Application);
+  loc := TGradCaptionsEditor.Create(Application);
   try
-    gce.SetGradientCaption(Component, ADesigner);
-    Result := gce.ShowModal = mrOk;
+    loc.SetGradientCaption(Component, ADesigner);  // Polaris  Designer -> ADesigner
+    Result := loc.ShowModal = mrOk;
   finally
-    gce.Free;
+    loc.Free;
   end;
 end;
 
@@ -138,7 +138,7 @@ end;
 
 function TGradientCaptionEditor.GetVerb(Index: Integer): string;
 begin
-  if Index = 0 then Result := LoadStr(srCaptionDesigner)
+  if Index = 0 then Result := RxLoadStr(srCaptionDesigner)
   else Result := '';
 end;
 
@@ -176,7 +176,7 @@ begin
   try
     CaptionList.Items.Clear;
     for I := 0 to GradientCaption.Captions.Count - 1 do
-      CaptionList.Items.Add(Format('%s[%d]', [LoadStr(srGradientCaptions), I]));
+      CaptionList.Items.Add(Format('%s[%d]', [RxLoadStr(srGradientCaptions), I]));
     if Save < 0 then Save := 0;
     if Save >= CaptionList.Items.Count then
       Save := CaptionList.Items.Count - 1;
@@ -215,10 +215,10 @@ begin
       Captions := Component.Captions;
       if Component.Name <> '' then
         FormCaption := Format('%s.%s', [Component.Name,
-          LoadStr(srGradientCaptions)])
+          RxLoadStr(srGradientCaptions)])
       else
         FormCaption := Format('%s.%s', [Component.ClassName,
-          LoadStr(srGradientCaptions)]);
+          RxLoadStr(srGradientCaptions)]);
       Active := True;
     end;
   end;

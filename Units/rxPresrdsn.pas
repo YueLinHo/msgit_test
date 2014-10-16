@@ -5,9 +5,10 @@
 {         Copyright (c) 1995, 1996 AO ROSNO             }
 {                                                       }
 { Patched by Polaris Software                           }
+{ Updated by Eddy to include 'Strings only' checkbox    }
 {*******************************************************}
 
-unit rxPresrDsn;
+unit RxPresrDsn;
 
 {$I RX.INC}
 
@@ -15,7 +16,7 @@ interface
 
 uses
   SysUtils, Messages, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, 
-  Buttons, ExtCtrls, RXCtrls, rxPlacemnt, RXProps, Consts, rxVclUtils,
+  Buttons, ExtCtrls, RXCtrls, RxPlacemnt, RXProps, Consts, RxVclUtils,
   {$IFDEF RX_D6} DesignIntf, DesignEditors, VCLEditors {$ELSE} DsgnIntf {$ENDIF}; // Polaris
 
 type
@@ -40,11 +41,13 @@ type
     ActiveCtrlBox: TCheckBox;
     PositionBox: TCheckBox;
     StateBox: TCheckBox;
+    StringsBox: TCheckBox;
     AddButton: TButton;
     DeleteButton: TButton;
     ClearButton: TButton;
     OkBtn: TButton;
     CancelBtn: TButton;
+    procedure StringsBoxClick(Sender: TObject);
     procedure AddButtonClick(Sender: TObject);
     procedure ClearButtonClick(Sender: TObject);
     procedure ListClick(Sender: TObject);
@@ -69,7 +72,7 @@ type
     procedure ClearLists;
     procedure CheckAddItem(const CompName, PropName: string);
     procedure AddItem(IdxComp, IdxProp: Integer; AUpdate: Boolean);
-    procedure BuildLists(StoredProps: TStrings);
+    procedure BuildLists(StoredProps: TStrings; StringsOnly: Boolean);
     procedure CheckButtons;
     procedure SetStoredList(AList: TStrings);
   public
@@ -99,12 +102,13 @@ function ShowStorageDesigner(ACompOwner: TComponent; ADesigner: IDesigner;
 
 implementation
 
-uses
-  Windows, rxBoxProcs, TypInfo, RXLConst;
+uses Windows, RxBoxProcs, TypInfo, RxResConst;
 
 {$R *.DFM}
 
-{$D-}
+{$IFNDEF VER80}
+ {$D-}
+{$ENDIF}
 
 { TFormStorageEditor }
 
@@ -114,13 +118,15 @@ var
   Opt: TPlacementOptions;
 begin
   Storage := Component as TFormStorage;
-  if Index = 0 then begin
+  if Index = 0 then
+  begin
     Opt := Storage.Options;
-    if ShowStorageDesigner(TComponent(Storage.Owner), Designer,
-      Storage.StoredProps, Opt) then
+    if ShowStorageDesigner(TComponent(Storage.Owner), Designer, Storage.StoredProps, Opt) then
     begin
       Storage.Options := Opt;
+      {$IFNDEF VER80}
       Storage.SetNotification;
+      {$ENDIF}
     end;
   end;
 end;
@@ -128,8 +134,9 @@ end;
 function TFormStorageEditor.GetVerb(Index: Integer): string;
 begin
   case Index of
-    0: Result := LoadStr(srStorageDesigner);
-    else Result := '';
+    0: Result := RxLoadStr(srStorageDesigner);
+  else
+    Result := '';
   end;
 end;
 
@@ -158,11 +165,12 @@ var
 begin
   Storage := GetComponent(0) as TFormStorage;
   Opt := Storage.Options;
-  if ShowStorageDesigner(Storage.Owner as TComponent, Designer,
-    Storage.StoredProps, Opt) then
+  if ShowStorageDesigner(Storage.Owner as TComponent, Designer, Storage.StoredProps, Opt) then
   begin
     Storage.Options := Opt;
+    {$IFNDEF VER80}
     Storage.SetNotification;
+    {$ENDIF}
   end;
 end;
 
@@ -186,7 +194,8 @@ begin
       Screen.Cursor := crDefault;
     end;
     Result := ShowModal = mrOk;
-    if Result then begin
+    if Result then
+    begin
       AStoredList.Assign(StoredList.Items);
       Options := [];
       if ActiveCtrlBox.Checked then Include(Options, fpActiveControl);
@@ -246,13 +255,16 @@ var
   StrList: TStringList;
 begin
   Idx := StoredList.ItemIndex;
-  if ParseStoredItem(StoredList.Items[I], CompName, PropName) then begin
+  if ParseStoredItem(StoredList.Items[I], CompName, PropName) then
+  begin
     StoredList.Items.Delete(I);
     if FDesigner <> nil then FDesigner.Modified;
     ListToIndex(StoredList, Idx);
     {I := ComponentsList.ItemIndex;}
-    if not FindProp(CompName, PropName, IdxComp, IdxProp) then begin
-      if IdxComp < 0 then begin
+    if not FindProp(CompName, PropName, IdxComp, IdxProp) then
+    begin
+      if IdxComp < 0 then
+      begin
         StrList := TStringList.Create;
         try
           StrList.Add(PropName);
@@ -263,7 +275,8 @@ begin
           raise;
         end;
       end
-      else begin
+      else
+      begin
         TStrings(ComponentsList.Items.Objects[IdxComp]).Add(PropName);
       end;
       UpdateCurrent;
@@ -276,7 +289,8 @@ function TFormPropsDlg.FindProp(const CompName, PropName: string; var IdxComp,
 begin
   Result := False;
   IdxComp := ComponentsList.Items.IndexOf(CompName);
-  if IdxComp >= 0 then begin
+  if IdxComp >= 0 then
+  begin
     IdxProp := TStrings(ComponentsList.Items.Objects[IdxComp]).IndexOf(PropName);
     if IdxProp >= 0 then Result := True;
   end;
@@ -286,7 +300,8 @@ procedure TFormPropsDlg.ClearLists;
 var
   I: Integer;
 begin
-  for I := 0 to ComponentsList.Items.Count - 1 do begin
+  for I := 0 to ComponentsList.Items.Count - 1 do
+  begin
     ComponentsList.Items.Objects[I].Free;
   end;
   ComponentsList.Items.Clear;
@@ -308,7 +323,8 @@ begin
   StrList := TStringList(ComponentsList.Items.Objects[IdxComp]);
   PropName := StrList[IdxProp];
   StrList.Delete(IdxProp);
-  if StrList.Count = 0 then begin
+  if StrList.Count = 0 then
+  begin
     Idx := ComponentsList.ItemIndex;
     StrList.Free;
     ComponentsList.Items.Delete(IdxComp);
@@ -328,7 +344,7 @@ begin
     AddItem(IdxComp, IdxProp, True);
 end;
 
-procedure TFormPropsDlg.BuildLists(StoredProps: TStrings);
+procedure TFormPropsDlg.BuildLists(StoredProps: TStrings; StringsOnly: Boolean);
 var
   I, J: Integer;
   C: TComponent;
@@ -337,17 +353,23 @@ var
   CompName, PropName: string;
 begin
   ClearLists;
-  if FCompOwner <> nil then begin
-    for I := 0 to FCompOwner.ComponentCount - 1 do begin
+  if FCompOwner <> nil then
+  begin
+    for I := 0 to FCompOwner.ComponentCount - 1 do
+    begin
       C := FCompOwner.Components[I];
       if (C is TFormPlacement) or (C.Name = '') then Continue;
+      if StringsOnly then
+         List := TPropInfoList.Create(C, [tkString,tkLString,tkWString{$IFDEF UNICODE},tkUString{$ENDIF}])
+      else
       List := TPropInfoList.Create(C, tkProperties);
       try
         StrList := TStringList.Create;
         try
           TStringList(StrList).Sorted := True;
           for J := 0 to List.Count - 1 do
-            StrList.Add(List.Items[J]^.Name);
+            if List.Items[J]^.Name <> 'Name' then       // corrected Rx bug !
+              StrList.Add(string(List.Items[J]^.Name)); // do NOT store Name property
           ComponentsList.Items.AddObject(C.Name, StrList);
         except
           StrList.Free;
@@ -357,8 +379,10 @@ begin
         List.Free;
       end;
     end;
-    if StoredProps <> nil then begin
-      for I := 0 to StoredProps.Count - 1 do begin
+    if StoredProps <> nil then
+    begin
+      for I := 0 to StoredProps.Count - 1 do
+      begin
         if ParseStoredItem(StoredProps[I], CompName, PropName) then
           CheckAddItem(CompName, PropName);
       end;
@@ -371,7 +395,7 @@ end;
 
 procedure TFormPropsDlg.SetStoredList(AList: TStrings);
 begin
-  BuildLists(AList);
+  BuildLists(AList,False);
   if ComponentsList.Items.Count > 0 then
     ComponentsList.ItemIndex := 0;
   CheckButtons;
@@ -395,8 +419,10 @@ procedure TFormPropsDlg.AddButtonClick(Sender: TObject);
 var
   I: Integer;
 begin
-  if PropertiesList.SelCount > 0 then begin
-    for I := PropertiesList.Items.Count - 1 downto 0 do begin
+  if PropertiesList.SelCount > 0 then
+  begin
+    for I := PropertiesList.Items.Count - 1 downto 0 do
+    begin
       if PropertiesList.Selected[I] then
         AddItem(ComponentsList.ItemIndex, I, False);
     end;
@@ -408,7 +434,8 @@ end;
 
 procedure TFormPropsDlg.ClearButtonClick(Sender: TObject);
 begin
-  if StoredList.Items.Count > 0 then begin
+  if StoredList.Items.Count > 0 then
+  begin
     SetStoredList(nil);
     if FDesigner <> nil then FDesigner.Modified;
   end;
@@ -467,6 +494,20 @@ end;
 procedure TFormPropsDlg.PropertiesListDblClick(Sender: TObject);
 begin
   if AddButton.Enabled then AddButtonClick(nil);
+end;
+
+procedure TFormPropsDlg.StringsBoxClick(Sender: TObject); // method added by eddy
+var
+  list: TStringList;
+begin
+  list := TStringList.Create;
+  try
+    list.AddStrings(StoredList.Items);
+    BuildLists(TStrings(list),StringsBox.Checked);
+  finally
+    list.Free;
+  end;
+  Invalidate;
 end;
 
 end.

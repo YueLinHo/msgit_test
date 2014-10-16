@@ -8,19 +8,18 @@
 { Renamed and patched by Polaris Software               }
 {*******************************************************}
 
-unit rxAppUtils;
+unit RxAppUtils;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Windows, Registry, Classes, Controls, Forms, IniFiles, Grids,
-  rxVCLUtils;
+uses {$IFNDEF VER80} Windows, Registry, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  Classes, Controls, Forms, IniFiles, Grids, RxVCLUtils;
 
 function GetDefaultSection(Component: TComponent): string;
 procedure GetDefaultIniData(Control: TControl; var IniFileName,
-  Section: string {$IFDEF WIN32}; UseRegistry: Boolean {$ENDIF});
+  Section: string {$IFNDEF VER80}; UseRegistry: Boolean {$ENDIF});
 function GetDefaultIniName: string;
 
 type
@@ -29,7 +28,7 @@ type
 const
   OnGetDefaultIniName: TOnGetDefaultIniName = nil;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 var
   DefCompanyName: string = '';
   RegUseAppTitle: Boolean = False;
@@ -42,7 +41,7 @@ function FindShowForm(FormClass: TFormClass; const Caption: string): TForm;
 function ShowDialog(FormClass: TFormClass): Boolean;
 function InstantiateForm(FormClass: TFormClass; var Reference): TForm;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure SaveFormPlacement(Form: TForm; const IniFileName: string;
   UseRegistry: Boolean);
 procedure RestoreFormPlacement(Form: TForm; const IniFileName: string;
@@ -58,7 +57,7 @@ procedure SaveGridLayoutReg(Grid: TCustomGrid; IniFile: TRegIniFile);
 {$ELSE}
 procedure SaveFormPlacement(Form: TForm; const IniFileName: string);
 procedure RestoreFormPlacement(Form: TForm; const IniFileName: string);
-{$ENDIF WIN32}
+{$ENDIF}
 
 procedure WriteFormPlacement(Form: TForm; IniFile: TIniFile;
   const Section: string);
@@ -90,11 +89,11 @@ procedure IniReadSections(IniFile: TObject; Strings: TStrings);
 procedure IniEraseSection(IniFile: TObject; const Section: string);
 procedure IniDeleteKey(IniFile: TObject; const Section, Ident: string);
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure AppBroadcast(Msg, wParam: Longint; lParam: Longint);
 {$ELSE}
 procedure AppBroadcast(Msg, wParam: Word; lParam: Longint);
-{$ENDIF WIN32}
+{$ENDIF}
 
 procedure AppTaskbarIcons(AppOnly: Boolean);
 
@@ -109,10 +108,8 @@ procedure InternalRestoreMDIChildren(MainForm: TForm; IniFile: TObject);
 
 implementation
 
-uses
-  SysUtils, Messages, Consts,
-  {$IFDEF RX_D6} RTLConsts {$ENDIF}, // Polaris
-  rxStrUtils, rxFileUtil, rxPlacemnt;
+uses SysUtils, Messages, Consts, RxFileUtil, RxPlacemnt,
+     {$IFDEF RX_D6} RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
 function GetDefaultSection(Component: TComponent): string;
 var
@@ -149,7 +146,7 @@ begin
     Result := ExtractFileName(ChangeFileExt(Application.ExeName, '.INI'));
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 function GetDefaultIniRegKey: string;
 begin
   if RegUseAppTitle and (Application.Title <> '') then
@@ -162,7 +159,7 @@ end;
 {$ENDIF}
 
 procedure GetDefaultIniData(Control: TControl; var IniFileName,
-  Section: string {$IFDEF WIN32}; UseRegistry: Boolean {$ENDIF});
+  Section: string {$IFNDEF VER80}; UseRegistry: Boolean {$ENDIF});
 var
   I: Integer;
 begin
@@ -176,7 +173,7 @@ begin
         end;
   Section := GetDefaultSection(Control);
   if IniFileName = EmptyStr then
-{$IFDEF WIN32}
+{$IFNDEF VER80}
     if UseRegistry then IniFileName := GetDefaultIniRegKey
     else
 {$ENDIF}
@@ -245,16 +242,16 @@ end;
 
 function StrToIniStr(const Str: string): string;
 var
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   Buffer: array[0..4095] of Char;
 {$ELSE}
   Buffer: array[0..255] of Char;
 {$ENDIF}
   B, S: PChar;
 begin
-  if Length(Str) > SizeOf(Buffer) then
+  if Length(Str) > Length(Buffer) then
     raise Exception.Create(ResStr(SLineTooLong));
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   S := PChar(Str);
 {$ELSE}
   S := StrPAlloc(Str);
@@ -279,7 +276,7 @@ begin
         Inc(S);
       end;
   finally
-{$IFNDEF WIN32}
+{$IFDEF VER80}
     StrDispose(S);
 {$ENDIF}
   end;
@@ -289,16 +286,16 @@ end;
 
 function IniStrToStr(const Str: string): string;
 var
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   Buffer: array[0..4095] of Char;
 {$ELSE}
   Buffer: array[0..255] of Char;
 {$ENDIF}
   B, S: PChar;
 begin
-  if Length(Str) > SizeOf(Buffer) then
+  if Length(Str) > Length(Buffer) then
     raise Exception.Create(ResStr(SLineTooLong));
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   S := PChar(Str);
 {$ELSE}
   S := StrPAlloc(Str);
@@ -322,7 +319,7 @@ begin
         Inc(S);
       end;
   finally
-{$IFNDEF WIN32}
+{$IFDEF VER80}
     StrDispose(S);
 {$ENDIF}
   end;
@@ -344,7 +341,7 @@ const
 function IniReadString(IniFile: TObject; const Section, Ident,
   Default: string): string;
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     Result := TRegIniFile(IniFile).ReadString(Section, Ident, Default)
   else
@@ -359,7 +356,7 @@ procedure IniWriteString(IniFile: TObject; const Section, Ident,
 var
   S: string;
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     TRegIniFile(IniFile).WriteString(Section, Ident, Value)
   else begin
@@ -372,7 +369,7 @@ begin
     end;
     if IniFile is TIniFile then
       TIniFile(IniFile).WriteString(Section, Ident, S);
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   end;
 {$ENDIF}
 end;
@@ -380,7 +377,7 @@ end;
 function IniReadInteger(IniFile: TObject; const Section, Ident: string;
   Default: Longint): Longint;
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     Result := TRegIniFile(IniFile).ReadInteger(Section, Ident, Default)
   else
@@ -393,7 +390,7 @@ end;
 procedure IniWriteInteger(IniFile: TObject; const Section, Ident: string;
   Value: Longint);
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     TRegIniFile(IniFile).WriteInteger(Section, Ident, Value)
   else
@@ -405,7 +402,7 @@ end;
 function IniReadBool(IniFile: TObject; const Section, Ident: string;
   Default: Boolean): Boolean;
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     Result := TRegIniFile(IniFile).ReadBool(Section, Ident, Default)
   else
@@ -418,7 +415,7 @@ end;
 procedure IniWriteBool(IniFile: TObject; const Section, Ident: string;
   Value: Boolean);
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     TRegIniFile(IniFile).WriteBool(Section, Ident, Value)
   else
@@ -429,7 +426,7 @@ end;
 
 procedure IniEraseSection(IniFile: TObject; const Section: string);
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     TRegIniFile(IniFile).EraseSection(Section)
   else
@@ -439,28 +436,27 @@ begin
 end;
 
 procedure IniDeleteKey(IniFile: TObject; const Section, Ident: string);
-{$IFNDEF WIN32}
+{$IFDEF VER80}
 var
   CSection: array[0..127] of Char;
   CIdent: array[0..127] of Char;
   CFileName: array[0..127] of Char;
 {$ENDIF}
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TRegIniFile then
     TRegIniFile(IniFile).DeleteKey(Section, Ident)
   else if IniFile is TIniFile then
     TIniFile(IniFile).DeleteKey(Section, Ident);
 {$ELSE}
-  if IniFile is TIniFile then begin
+  if IniFile is TIniFile then
     WritePrivateProfileString(StrPLCopy(CSection, Section, SizeOf(CSection) - 1),
       StrPLCopy(CIdent, Ident, SizeOf(CIdent) - 1), nil,
       StrPLCopy(CFileName, TIniFile(IniFile).FileName, SizeOf(CFileName) - 1));
-  end;
 {$ENDIF}
 end;
 
-{$IFNDEF WIN32}
+{$IFDEF VER80}
 procedure IniFileReadSections(IniFile: TIniFile; Strings: TStrings);
 const
   BufSize = 8192;
@@ -493,7 +489,7 @@ end;
 
 procedure IniReadSections(IniFile: TObject; Strings: TStrings);
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if IniFile is TIniFile then
     TIniFile(IniFile).ReadSections(Strings)
   else if IniFile is TRegIniFile then
@@ -544,7 +540,7 @@ begin
   end;
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure SaveMDIChildrenReg(MainForm: TForm; IniFile: TRegIniFile);
 begin
   InternalSaveMDIChildren(MainForm, IniFile);
@@ -554,7 +550,7 @@ procedure RestoreMDIChildrenReg(MainForm: TForm; IniFile: TRegIniFile);
 begin
   InternalRestoreMDIChildren(MainForm, IniFile);
 end;
-{$ENDIF WIN32}
+{$ENDIF}
 
 procedure SaveMDIChildren(MainForm: TForm; IniFile: TIniFile);
 begin
@@ -586,7 +582,7 @@ begin
       Format(siItem, [I]), TDrawGrid(Grid).ColWidths[I]);
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure RestoreGridLayoutReg(Grid: TCustomGrid; IniFile: TRegIniFile);
 begin
   InternalRestoreGridLayout(Grid, IniFile, GetDefaultSection(Grid));
@@ -596,7 +592,7 @@ procedure SaveGridLayoutReg(Grid: TCustomGrid; IniFile: TRegIniFile);
 begin
   InternalSaveGridLayout(Grid, IniFile, GetDefaultSection(Grid));
 end;
-{$ENDIF WIN32}
+{$ENDIF}
 
 procedure RestoreGridLayout(Grid: TCustomGrid; IniFile: TIniFile);
 begin
@@ -649,13 +645,13 @@ begin
   end;
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure WriteFormPlacementReg(Form: TForm; IniFile: TRegIniFile;
   const Section: string);
 begin
   InternalWriteFormPlacement(Form, IniFile, Section);
 end;
-{$ENDIF WIN32}
+{$ENDIF}
 
 procedure WriteFormPlacement(Form: TForm; IniFile: TIniFile;
   const Section: string);
@@ -663,21 +659,21 @@ begin
   InternalWriteFormPlacement(Form, IniFile, Section);
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure SaveFormPlacement(Form: TForm; const IniFileName: string;
   UseRegistry: Boolean);
 {$ELSE}
 procedure SaveFormPlacement(Form: TForm; const IniFileName: string);
-{$ENDIF WIN32}
+{$ENDIF}
 var
   IniFile: TObject;
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if UseRegistry then IniFile := TRegIniFile.Create(IniFileName)
   else IniFile := TIniFile.Create(IniFileName);
 {$ELSE}
   IniFile := TIniFile.Create(IniFileName);
-{$ENDIF WIN32}
+{$ENDIF}
   try
     InternalWriteFormPlacement(Form, IniFile, Form.ClassName);
   finally
@@ -685,7 +681,7 @@ begin
   end;
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   {$HINTS OFF}
 {$ENDIF}
 
@@ -716,7 +712,7 @@ type
   end;
 
   THackComponent = class(TComponent);
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   {$HINTS ON}
 {$ENDIF}
 
@@ -758,7 +754,7 @@ begin
       if Screen.PixelsPerInch <> IniReadInteger(IniFile, Section, siPixels,
         Screen.PixelsPerInch) then DataFound := False;
       if DataFound then begin
-        if not (BorderStyle in [bsSizeable {$IFDEF WIN32}, bsSizeToolWin {$ENDIF}]) then
+        if not (BorderStyle in [bsSizeable {$IFNDEF VER80}, bsSizeToolWin {$ENDIF}]) then
           rcNormalPosition := Rect(rcNormalPosition.Left, rcNormalPosition.Top,
             rcNormalPosition.Left + Width, rcNormalPosition.Top + Height);
         if rcNormalPosition.Right > rcNormalPosition.Left then begin
@@ -791,7 +787,7 @@ begin
           WinState := wsMinimized;
         SW_MAXIMIZE: WinState := wsMaximized;
       end;
-{$IFDEF WIN32}
+{$IFNDEF VER80}
       if (WinState = wsMinimized) and ((Form = Application.MainForm)
         {$IFDEF RX_D4} or (Application.MainForm = nil) {$ENDIF}) then
       begin
@@ -808,13 +804,13 @@ begin
   end;
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure ReadFormPlacementReg(Form: TForm; IniFile: TRegIniFile;
   const Section: string; LoadState, LoadPosition: Boolean);
 begin
   InternalReadFormPlacement(Form, IniFile, Section, LoadState, LoadPosition);
 end;
-{$ENDIF WIN32}
+{$ENDIF}
 
 procedure ReadFormPlacement(Form: TForm; IniFile: TIniFile;
   const Section: string; LoadState, LoadPosition: Boolean);
@@ -822,7 +818,7 @@ begin
   InternalReadFormPlacement(Form, IniFile, Section, LoadState, LoadPosition);
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure RestoreFormPlacement(Form: TForm; const IniFileName: string;
   UseRegistry: Boolean);
 {$ELSE}
@@ -831,7 +827,7 @@ procedure RestoreFormPlacement(Form: TForm; const IniFileName: string);
 var
   IniFile: TObject;
 begin
-{$IFDEF WIN32}
+{$IFNDEF VER80}
   if UseRegistry then begin
     IniFile := TRegIniFile.Create(IniFileName);
   {$IFDEF RX_D5} 
@@ -842,7 +838,7 @@ begin
     IniFile := TIniFile.Create(IniFileName);
 {$ELSE}
   IniFile := TIniFile.Create(IniFileName);
-{$ENDIF WIN32}
+{$ENDIF}
   try
     InternalReadFormPlacement(Form, IniFile, Form.ClassName, True, True);
   finally
@@ -865,11 +861,11 @@ begin
   end;
 end;
 
-{$IFDEF WIN32}
+{$IFNDEF VER80}
 procedure AppBroadcast(Msg, wParam: Longint; lParam: Longint);
 {$ELSE}
 procedure AppBroadcast(Msg, wParam: Word; lParam: Longint);
-{$ENDIF WIN32}
+{$ENDIF}
 var
   I: Integer;
 begin

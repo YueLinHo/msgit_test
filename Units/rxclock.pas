@@ -8,7 +8,7 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit RXClock;
+unit RxClock;
 
 interface
 
@@ -16,8 +16,10 @@ interface
 
 
 uses
-  Windows, SysUtils, Messages, Classes, Graphics, Controls,
-  Forms, StdCtrls, ExtCtrls, Menus, RxTimer, RTLConsts;
+  {$IFNDEF VER80}Windows,{$ELSE}WinTypes, WinProcs,{$ENDIF}
+  SysUtils, Messages, Classes, Graphics, Controls,
+  {$IFDEF RX_D17}System.UITypes,{$ENDIF}
+  Forms, StdCtrls, ExtCtrls, Menus, RxTimer;
 
 type
   TShowClock = (scDigital, scAnalog);
@@ -151,7 +153,9 @@ type
 {$IFDEF RX_D5}
     property OnContextPopup;
 {$ENDIF}
+{$IFNDEF VER80}
     property OnStartDrag;
+{$ENDIF}
 {$IFDEF RX_D4}
     property OnCanResize;
     property OnConstrainedResize;
@@ -166,8 +170,7 @@ type
 
 implementation
 
-uses
-  Consts, rxVCLUtils {$IFDEF RX_D6} , SysConst {$ENDIF};  // Polaris
+uses Consts, RxVCLUtils {$IFDEF RX_D6} , SysConst {$ENDIF};  // Polaris
 
 const
   Registered: Boolean = False;
@@ -234,10 +237,10 @@ var
 
 procedure InvalidTime(Hour, Min, Sec: Word);
 var
-  sTime: string[50];
+  sTime: string;
 begin
-  sTime := IntToStr(Hour) + TimeSeparator + IntToStr(Min) +
-    TimeSeparator + IntToStr(Sec);
+  sTime := IntToStr(Hour) + {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeSeparator + IntToStr(Min) +
+    {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeSeparator + IntToStr(Sec);
   raise EConvertError.CreateFmt(ResStr(SInvalidTime), [sTime]);
 end;
 
@@ -330,7 +333,8 @@ begin
     Registered := True;
   end;
   Caption := TimeToStr(Time);
-  ControlStyle := ControlStyle - [csSetCaption] - [csReplicatable];
+  ControlStyle := ControlStyle - [csSetCaption] 
+    {$IFNDEF VER80} - [csReplicatable] {$ENDIF};
   BevelInner := bvLowered;
   BevelOuter := bvRaised;
   FTimer := TRxTimer.Create(Self);
@@ -469,9 +473,9 @@ begin
     TimeStr := '88888';
     if FShowSeconds then TimeStr := TimeStr + '888';
     if FTwelveHour then begin
-      if Canvas.TextWidth(TimeAMString) > Canvas.TextWidth(TimePMString) then
-        TimeStr := TimeStr + ' ' + TimeAMString
-      else TimeStr := TimeStr + ' ' + TimePMString;
+      if Canvas.TextWidth({$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeAMString) > Canvas.TextWidth({$IFDEF RX_D15}FormatSettings.{$ENDIF}TimePMString) then
+        TimeStr := TimeStr + ' ' + {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimeAMString
+      else TimeStr := TimeStr + ' ' + {$IFDEF RX_D15}FormatSettings.{$ENDIF}TimePMString;
     end;
     SetNewFontSize(Canvas, TimeStr, H, W);
     Font := Canvas.Font;

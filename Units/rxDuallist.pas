@@ -7,14 +7,13 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxDualList;
+unit RxDualList;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Classes, Controls;
+uses Classes, Controls;
 
 type
 
@@ -73,8 +72,7 @@ type
 
 implementation
 
-uses
-  SysUtils, Forms, rxFDualLst, Consts, RxTConst, rxVCLUtils;
+uses SysUtils, Forms, RxFDualLst, Consts, RxResConst, RxVCLUtils;
 
 { TDualListDialog }
 
@@ -90,8 +88,8 @@ begin
 {$ENDIF}
   FList1 := TStringList.Create;
   FList2 := TStringList.Create;
-  FLabel1Caption := LoadStr(SDualListSrcCaption);
-  FLabel2Caption := LoadStr(SDualListDestCaption);
+  FLabel1Caption := RxLoadStr(SDualListSrcCaption);
+  FLabel2Caption := RxLoadStr(SDualListDestCaption);
   OkBtnCaption := ResStr(SOKButton);
   CancelBtnCaption := ResStr(SCancelButton);
   HelpBtnCaption := ResStr(SHelpButton);
@@ -137,12 +135,12 @@ end;
 
 function TDualListDialog.IsLabel1Custom: Boolean;
 begin
-  Result := CompareStr(Label1Caption, LoadStr(SDualListSrcCaption)) <> 0;
+  Result := CompareStr(Label1Caption, RxLoadStr(SDualListSrcCaption)) <> 0;
 end;
 
 function TDualListDialog.IsLabel2Custom: Boolean;
 begin
-  Result := CompareStr(Label2Caption, LoadStr(SDualListDestCaption)) <> 0;
+  Result := CompareStr(Label2Caption, RxLoadStr(SDualListDestCaption)) <> 0;
 end;
 
 function TDualListDialog.IsOkBtnCustom: Boolean;
@@ -168,7 +166,9 @@ begin
   try
     with Form do begin
       Ctl3D := Self.Ctl3D;
+{$IFNDEF VER80}
       if NewStyleControls then Font.Style := [];
+{$ENDIF}
       ShowHelp := Self.ShowHelp;
       SrcList.Sorted := Sorted;
       DstList.Sorted := Sorted;

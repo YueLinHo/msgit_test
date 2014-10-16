@@ -15,10 +15,9 @@ unit RxQuery;
 
 interface
 
-uses
-  Bde, Windows, Classes, SysUtils, DB, DBTables,
-  rxStrUtils, rxBdeUtils
-  {$IFDEF RX_D6} ,RTLConsts {$ENDIF}; // Polaris
+uses {$IFNDEF VER80} Bde, Windows, {$ELSE} DbiTypes, DbiProcs, {$ENDIF}
+  Classes, SysUtils, DB, DBTables, RxBdeUtils,
+  {$IFDEF RX_D6} RTLConsts,{$ENDIF} RxStrUtils; // Polaris
 
 {.$DEFINE DEBUG}
 
@@ -29,6 +28,16 @@ const
 { TRxQuery }
 
 type
+{$IFDEF RX_D12}
+  TBookmarkType = TBookmark;
+  TBookmarkPointerType = Pointer;
+  TBuffer = TRecordBuffer;
+{$ELSE}
+  TBookmarkType = TBookmarkStr;
+  TBookmarkPointerType = TBookmark;
+  TBuffer = PChar;
+{$ENDIF}
+
   TQueryOpenStatus = (qsOpened, qsExecuted, qsFailed);
 
   TRxQuery = class(TQuery)
@@ -41,6 +50,9 @@ type
     FStreamPatternChanged: Boolean;
     FPatternChanged: Boolean;
     FOpenStatus: TQueryOpenStatus;
+{$IFDEF VER80}
+    FParamCheck: Boolean;
+{$ENDIF}
     function GetMacros: TParams;
     procedure SetMacros(Value: TParams);
     procedure SetSQL(Value: TStrings);
@@ -58,7 +70,7 @@ type
   protected
 {$IFDEF RX_D3}
     procedure InternalFirst; override;
-    function GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
+    function GetRecord(Buffer: TBuffer; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
 {$ENDIF}
     procedure Loaded; override;
     function CreateHandle: HDBICur; override;
@@ -89,6 +101,9 @@ type
     property RealSQL: TStrings read GetRealSQL;
 {$ENDIF DEBUG}
   published
+{$IFDEF VER80}
+    property ParamCheck: Boolean read FParamCheck write FParamCheck default True;
+{$ENDIF}
     property MacroChar: Char read FMacroChar write SetMacroChar default DefaultMacroChar;
     property SQL: TStrings read FSQLPattern write SetSQL;
 {$IFDEF DEBUG}
@@ -96,6 +111,8 @@ type
 {$ENDIF DEBUG}
     property Macros: TParams read GetMacros write SetMacros;
   end;
+
+{$IFNDEF VER80}
 
 { TRxQueryThread }
 
@@ -118,6 +135,8 @@ type
       Prepare, CreateSuspended: Boolean);
   end;
 
+{$ENDIF}
+
 { TSQLScript }
 
   TScriptAction = (saFail, saAbort, saRetry, saIgnore, saContinue);
@@ -137,10 +156,12 @@ type
     FBeforeExec: TNotifyEvent;
     FAfterExec: TNotifyEvent;
     FOnScriptError: TScriptErrorEvent;
+{$IFNDEF VER80}
     function GetSessionName: string;
     procedure SetSessionName(const Value: string);
     function GetDBSession: TSession;
     function GetText: string;
+{$ENDIF}
 {$IFDEF RX_D4}
     procedure ReadParamData(Reader: TReader);
     procedure WriteParamData(Writer: TWriter);
@@ -165,15 +186,21 @@ type
     procedure ExecSQL;
     procedure ExecStatement(StatementNo: Integer);
     function ParamByName(const Value: string): TParam;
+{$IFNDEF VER80}
     property DBSession: TSession read GetDBSession;
     property Text: string read GetText;
+{$ELSE}
+    function GetText: PChar;
+{$ENDIF}
     property Database: TDatabase read GetDatabase;
     property ParamCount: Cardinal read GetParamsCount;
   published
     property DatabaseName: string read GetDatabaseName write SetDatabaseName;
     property IgnoreParams: Boolean read FIgnoreParams write FIgnoreParams default False;
     property SemicolonTerm: Boolean read FSemicolonTerm write FSemicolonTerm default True;
+{$IFNDEF VER80}
     property SessionName: string read GetSessionName write SetSessionName;
+{$ENDIF}
     property Term: Char read FTerm write FTerm default DefaultTermChar;
     property SQL: TStrings read FSQL write SetQuery;
     property Params: TParams read FParams write SetParamsList {$IFDEF RX_D4} stored False {$ENDIF};
@@ -192,19 +219,19 @@ procedure CreateQueryParams(List: TParams; const Value: PChar; Macro: Boolean;
 implementation
 
 uses
-  rxDBUtils, Consts, DBConsts, Forms, {$IFDEF RX_D3} BDEConst, {$ENDIF}
-  rxVclUtils;
+  RxDBUtils, Consts, DBConsts, Forms {$IFDEF RX_D3}, BDEConst {$ENDIF}
+  {$IFDEF VER80}, RxStr16 {$ENDIF}, RxVclUtils;
 
 { Parse SQL utility routines }
 
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
 begin
-  Result := (C in [' ', ',', ';', ')', #13, #10]) or (C in Delims);
+  Result := CharInSet(C, [' ', ',', ';', ')', #13, #10]) or CharInSet(C, Delims);
 end;
 
 function IsLiteral(C: Char): Boolean;
 begin
-  Result := C in ['''', '"'];
+  Result := CharInSet(C, ['''', '"']);
 end;
 
 procedure CreateQueryParams(List: TParams; const Value: PChar; Macro: Boolean;
@@ -296,6 +323,9 @@ end;
 constructor TRxQuery.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+{$IFDEF VER80}
+  FParamCheck := True;
+{$ENDIF}
   FOpenStatus := qsFailed;
   FSaveQueryChanged := TStringList(inherited SQL).OnChange;
   TStringList(inherited SQL).OnChange := QueryChanged;
@@ -328,7 +358,7 @@ begin
     inherited InternalFirst;
 end;
 
-function TRxQuery.GetRecord(Buffer: PChar; GetMode: TGetMode;
+function TRxQuery.GetRecord(Buffer: TBuffer; GetMode: TGetMode;
   DoCheck: Boolean): TGetResult;
 begin
   //!!!!!!
@@ -408,14 +438,26 @@ begin
 end;
 
 procedure TRxQuery.ExecDirect;
+{$IFDEF VER80}
+var
+  P: PChar;
+{$ENDIF}
 begin
   CheckInactive;
   SetDBFlag(dbfExecSQL, True);
   try
     if SQL.Count > 0 then begin
       FOpenStatus := qsFailed;
-      Check(DbiQExecDirect(DBHandle, qryLangSQL, PChar(inherited SQL.Text),
-        nil));
+{$IFNDEF VER80}
+      Check(DbiQExecDirect(DBHandle, qryLangSQL, PAnsiChar(AnsiString(inherited SQL.Text)), nil));
+{$ELSE}
+      P := inherited SQL.GetText;
+      try
+        Check(DbiQExecDirect(DBHandle, qryLangSQL, P, nil));
+      finally
+        StrDispose(P);
+      end;
+{$ENDIF}
       FOpenStatus := qsExecuted;
     end
     else _DBError(SEmptySQLStatement);
@@ -488,8 +530,25 @@ begin
 end;
 
 procedure TRxQuery.QueryChanged(Sender: TObject);
+{$IFDEF VER80}
+var
+  List: TParams;
+  SaveParams: Boolean;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   FSaveQueryChanged(Sender);
+{$ELSE}
+  SaveParams := not (ParamCheck or (csDesigning in ComponentState));
+  if SaveParams then List := TParams.Create{$IFDEF RX_D4}(Self){$ENDIF};
+  try
+    if SaveParams then List.Assign(Params);
+    FSaveQueryChanged(Sender);
+    if SaveParams then Params.Assign(List);
+  finally
+    if SaveParams then List.Free;
+  end;
+{$ENDIF}
   if not FDisconnectExpected then begin
     SQL := inherited SQL;
   end;
@@ -518,13 +577,25 @@ end;
 procedure TRxQuery.RecreateMacros;
 var
   List: TParams;
+{$IFDEF VER80}
+  P: PChar;
+{$ENDIF}
 begin
 {$IFDEF RX_D4}
   if not (csReading in ComponentState) then begin
 {$ENDIF RX_D4}
     List := TParams.Create{$IFDEF RX_D4}(Self){$ENDIF};
     try
+  {$IFNDEF VER80}
       CreateMacros(List, PChar(FSQLPattern.Text));
+  {$ELSE}
+      P := FSQLPattern.GetText;
+      try
+        CreateMacros(List, P);
+      finally
+        StrDispose(P);
+      end;
+  {$ENDIF}
       List.AssignValues(FMacros);
   {$IFDEF RX_D4}
       FMacros.Clear;
@@ -643,6 +714,8 @@ begin
 end;
 {$ENDIF DEBUG}
 
+{$IFNDEF VER80}
+
 { TRxQueryThread }
 
 constructor TRxQueryThread.Create(Data: TBDEDataSet; RunMode: TRunQueryMode;
@@ -718,6 +791,8 @@ begin
   end;
 end;
 
+{$ENDIF}
+
 { TSQLScript }
 
 constructor TSQLScript.Create(AOwner: TComponent);
@@ -754,6 +829,7 @@ begin
   FQuery.DatabaseName := Value;
 end;
 
+{$IFNDEF VER80}
 function TSQLScript.GetSessionName: string;
 begin
   Result := FQuery.SessionName;
@@ -768,6 +844,7 @@ function TSQLScript.GetDBSession: TSession;
 begin
   Result := FQuery.DBSession;
 end;
+{$ENDIF}
 
 procedure TSQLScript.CheckExecQuery(LineNo, StatementNo: Integer);
 var
@@ -775,6 +852,9 @@ var
   Action: TScriptAction;
   I: Integer;
   Param: TParam;
+{$IFDEF VER80}
+  Msg: array[0..255] of Char;
+{$ENDIF}
   S: string;
 begin
   Done := False;
@@ -795,7 +875,7 @@ begin
         S := Format(ResStr(SParseError), [ResStr(SMsgdlgError), LineNo]);
         if E is EDBEngineError then
           TDBError.Create(EDBEngineError(E), 0, LineNo,
-            PChar(S))
+            {$IFNDEF VER80} PChar(S) {$ELSE} StrPCopy(Msg, S) {$ENDIF})
         else begin
           if E.Message <> '' then E.Message := E.Message + '. ';
           E.Message := E.Message + S;
@@ -820,13 +900,15 @@ var
   IsTrans, SQLFilled, StmtFound: Boolean;
   I, P, CurrStatement: Integer;
 begin
-  IsTrans := FTransaction 
+  IsTrans := FTransaction {$IFDEF VER80} and Database.IsSQLBased {$ENDIF}
     and not TransActive(Database) and (StatementNo < 0);
   LastStr := '';
   try
     if IsTrans then begin
+{$IFNDEF VER80}
       if not Database.IsSQLBased then
         Database.TransIsolation := tiDirtyRead;
+{$ENDIF}
       Database.StartTransaction;
     end;
   except
@@ -879,7 +961,7 @@ begin
 {$IFDEF RX_D3}
       DatabaseError(Format(SListIndexError, [StatementNo]));
 {$ELSE}
-      DatabaseError(Format('%s: %d', [LoadStr(SListIndexError), StatementNo]));
+      DatabaseError(Format('%s: %d', [{LoadStr(}SListIndexError{)}, StatementNo]));
 {$ENDIF RX_D3}
     end;
     if IsTrans then Database.Commit;
@@ -921,21 +1003,37 @@ begin
   QueryChanged(nil);
 end;
 
-function TSQLScript.GetText: string;
+function TSQLScript.GetText: {$IFNDEF VER80} string {$ELSE} PChar {$ENDIF};
 begin
+{$IFNDEF VER80}
   Result := SQL.Text;
+{$ELSE}
+  Result := SQL.GetText;
+{$ENDIF}
 end;
 
 procedure TSQLScript.QueryChanged(Sender: TObject);
 var
   List: TParams;
+{$IFDEF VER80}
+  P: PChar;
+{$ENDIF}
 begin
 {$IFDEF RX_D4}
   if not (csReading in ComponentState) then begin
 {$ENDIF RX_D4}
     List := TParams.Create{$IFDEF RX_D4}(Self){$ENDIF};
     try
+  {$IFNDEF VER80}
       CreateParams(List, PChar(Text));
+  {$ELSE}
+      P := GetText;
+      try
+        CreateParams(List, P);
+      finally
+        StrDispose(P);
+      end;
+  {$ENDIF}
       List.AssignValues(FParams);
   {$IFDEF RX_D4}
       FParams.Clear;

@@ -8,23 +8,24 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxPlacemnt;
+unit RxPlacemnt;
 
 {$I RX.INC}
 
 interface
 
-uses
-  Windows, Registry, Controls, Messages, Classes, Forms,
-  IniFiles, Dialogs, rxVclUtils, RxHook;
+uses {$IFNDEF VER80} Windows, Registry, {$ELSE} WinTypes, WinProcs, {$ENDIF}
+  {$IFDEF RX_D6}Types,{$ENDIF}
+  Controls, Messages, Classes, Forms, IniFiles, Dialogs, RxVCLUtils, RxHook;
 
 type
   TPlacementOption = (fpState, fpPosition, fpActiveControl);
   TPlacementOptions = set of TPlacementOption;
   TPlacementOperation = (poSave, poRestore);
-
+{$IFNDEF VER80}
   TPlacementRegRoot = (prCurrentUser, prLocalMachine, prCurrentConfig,
     prClassesRoot, prUsers, prDynData);
+{$ENDIF}
 
   TIniLink = class;
 
@@ -66,8 +67,10 @@ type
 {$ENDIF}
     FIniFile: TIniFile;
     FUseRegistry: Boolean;
+{$IFNDEF VER80}
     FRegIniFile: TRegIniFile;
     FRegistryRoot: TPlacementRegRoot;
+{$ENDIF}
     FLinks: TList;
     FOptions: TPlacementOptions;
     FVersion: Integer;
@@ -130,7 +133,9 @@ type
     procedure EraseSections;
     property IniFileObject: TObject read GetIniFile;
     property IniFile: TIniFile read FIniFile;
+{$IFNDEF VER80}
     property RegIniFile: TRegIniFile read FRegIniFile;
+{$ENDIF}
   published
     property Active: Boolean read FActive write FActive default True;
     property IniFileName: string read GetIniFileName write SetIniFileName;
@@ -138,8 +143,10 @@ type
     property MinMaxInfo: TWinMinMaxInfo read FWinMinMaxInfo write SetWinMinMaxInfo;
     property Options: TPlacementOptions read FOptions write FOptions default [fpState, fpPosition];
     property PreventResize: Boolean read FPreventResize write SetPreventResize default False;
+{$IFNDEF VER80}
     property RegistryRoot: TPlacementRegRoot read FRegistryRoot write FRegistryRoot default prCurrentUser;
-    property UseRegistry: Boolean read FUseRegistry write FUseRegistry default true;
+{$ENDIF}
+    property UseRegistry: Boolean read FUseRegistry write FUseRegistry default False;
     property Version: Integer read FVersion write FVersion default 0;
     property OnSavePlacement: TNotifyEvent read FOnSavePlacement
       write FOnSavePlacement;
@@ -177,7 +184,9 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+{$IFNDEF VER80}
     procedure SetNotification;
+{$ENDIF}
 {$IFDEF RX_D3}
     property StoredValue[const Name: string]: Variant read GetStoredValue write SetStoredValue;
 {$ENDIF RX_D3}
@@ -195,6 +204,7 @@ type
     FStorage: TFormPlacement;
     FOnSave: TNotifyEvent;
     FOnLoad: TNotifyEvent;
+    FOnIniLinkDestroy: TNotifyEvent;
     function GetIniObject: TObject;
     function GetRootSection: string;
     procedure SetStorage(Value: TFormPlacement);
@@ -208,6 +218,7 @@ type
     property RootSection: string read GetRootSection;
     property OnSave: TNotifyEvent read FOnSave write FOnSave;
     property OnLoad: TNotifyEvent read FOnLoad write FOnLoad;
+    property OnIniLinkDestroy: TNotifyEvent read FOnIniLinkDestroy write FOnIniLinkDestroy;
   end;
 
 {$IFDEF RX_D3}
@@ -220,7 +231,7 @@ type
   private
     FName: string;
     FValue: Variant;
-    FKeyString: string;
+    FKeyString: AnsiString;
     FOnSave: TStoredValueEvent;
     FOnRestore: TStoredValueEvent;
     function IsValueStored: Boolean;
@@ -238,7 +249,7 @@ type
   published
     property Name: string read FName write SetDisplayName;
     property Value: Variant read FValue write FValue stored IsValueStored;
-    property KeyString: string read FKeyString write FKeyString;
+    property KeyString: AnsiString read FKeyString write FKeyString;
     property OnSave: TStoredValueEvent read FOnSave write FOnSave;
     property OnRestore: TStoredValueEvent read FOnRestore write FOnRestore;
   end;
@@ -273,13 +284,12 @@ type
 
 implementation
 
-uses
-  SysUtils,
+uses SysUtils,
 {$IFDEF RX_D3}
   Consts,
 {$ENDIF RX_D3}
-  rxAppUtils, rxStrUtils, RxProps
-  {$IFDEF RX_D6} , Variants, RTLConsts {$ENDIF}; // Polaris
+  RxAppUtils, RxProps,
+  {$IFDEF RX_D6} Variants, RTLConsts, {$ENDIF} RxStrUtils; // Polaris
 
 const
 { The following string should not be localized }
@@ -314,7 +324,8 @@ begin
   IniFree;
   while FLinks.Count > 0 do RemoveLink(FLinks.Last);
   FLinks.Free;
-  if not (csDesigning in ComponentState) then begin
+  if not (csDesigning in ComponentState) then
+  begin
     ReleaseHook;
     RestoreEvents;
   end;
@@ -332,7 +343,8 @@ var
 begin
   Loading := csLoading in ComponentState;
   inherited Loaded;
-  if not (csDesigning in ComponentState) then begin
+  if not (csDesigning in ComponentState) then
+  begin
     if Loading then SetEvents;
     CheckToggleHook;
   end;
@@ -370,8 +382,10 @@ end;
 
 procedure TFormPlacement.SetEvents;
 begin
-  if Owner is TCustomForm then begin
-    with TForm(Form) do begin
+  if Owner is TCustomForm then
+  begin
+    with TForm(Form) do
+    begin
       FSaveFormShow := OnShow;
       OnShow := FormShow;
       FSaveFormCloseQuery := OnCloseQuery;
@@ -387,7 +401,8 @@ end;
 procedure TFormPlacement.RestoreEvents;
 begin
   if (Owner <> nil) and (Owner is TCustomForm) then
-    with TForm(Form) do begin
+    with TForm(Form) do
+    begin
       OnShow := FSaveFormShow;
       OnCloseQuery := FSaveFormCloseQuery;
       OnDestroy := FSaveFormDestroy;
@@ -430,18 +445,22 @@ end;
 procedure TFormPlacement.WndMessage(Sender: TObject; var Msg: TMessage;
   var Handled: Boolean);
 begin
-  if FPreventResize and (Owner is TCustomForm) then begin
+  if FPreventResize and (Owner is TCustomForm) then
+  begin
     case Msg.Msg of
       WM_GETMINMAXINFO:
-        if Form.HandleAllocated and IsWindowVisible(Form.Handle) then begin
-          with TWMGetMinMaxInfo(Msg).MinMaxInfo^ do begin
+        if Form.HandleAllocated and IsWindowVisible(Form.Handle) then
+        begin
+          with TWMGetMinMaxInfo(Msg).MinMaxInfo^ do
+          begin
             ptMinTrackSize := Point(Form.Width, Form.Height);
             ptMaxTrackSize := Point(Form.Width, Form.Height);
           end;
           Msg.Result := 1;
         end;
       WM_INITMENUPOPUP:
-        if TWMInitMenuPopup(Msg).SystemMenu then begin
+        if TWMInitMenuPopup(Msg).SystemMenu then
+        begin
           if Form.Menu <> nil then
             Form.Menu.DispatchPopup(TWMInitMenuPopup(Msg).MenuPopup);
           EnableMenuItem(TWMInitMenuPopup(Msg).MenuPopup, SC_SIZE,
@@ -458,9 +477,12 @@ begin
         end;
     end;
   end
-  else if (Msg.Msg = WM_GETMINMAXINFO) then begin
-    if CheckMinMaxInfo then begin
-      with TWMGetMinMaxInfo(Msg).MinMaxInfo^ do begin
+  else if (Msg.Msg = WM_GETMINMAXINFO) then
+  begin
+    if CheckMinMaxInfo then
+    begin
+      with TWMGetMinMaxInfo(Msg).MinMaxInfo^ do
+      begin
          if FWinMinMaxInfo.MinTrackWidth <> 0 then
            ptMinTrackSize.X := FWinMinMaxInfo.MinTrackWidth;
          if FWinMinMaxInfo.MinTrackHeight <> 0 then
@@ -479,7 +501,8 @@ begin
            ptMaxPosition.Y := FWinMinMaxInfo.MaxPosTop;
       end;
     end
-    else begin
+    else
+    begin
       TWMGetMinMaxInfo(Msg).MinMaxInfo^.ptMaxPosition.X := 0;
       TWMGetMinMaxInfo(Msg).MinMaxInfo^.ptMaxPosition.Y := 0;
     end;
@@ -512,7 +535,8 @@ end;
 
 procedure TFormPlacement.FormDestroy(Sender: TObject);
 begin
-  if Active and not FSaved then begin
+  if Active and not FSaved then
+  begin
     FDestroying := True;
     try
       SaveFormPlacement;
@@ -526,19 +550,26 @@ end;
 
 procedure TFormPlacement.UpdatePlacement;
 const
+{$IFNDEF VER80}
   Metrics: array[bsSingle..bsSizeToolWin] of Word =
     (SM_CXBORDER, SM_CXFRAME, SM_CXDLGFRAME, SM_CXBORDER, SM_CXFRAME);
+{$ELSE}
+  Metrics: array[bsSingle..bsDialog] of Word =
+    (SM_CXBORDER, SM_CXFRAME, SM_CXDLGFRAME);
+{$ENDIF}
 var
   Placement: TWindowPlacement;
 begin
   if (Owner <> nil) and (Owner is TCustomForm) and Form.HandleAllocated and
-  not (csLoading in ComponentState) then
-    if not (FPreventResize or CheckMinMaxInfo) then begin
+    not (csLoading in ComponentState) then
+    if not (FPreventResize or CheckMinMaxInfo) then
+    begin
       Placement.Length := SizeOf(TWindowPlacement);
       GetWindowPlacement(Form.Handle, @Placement);
       if not IsWindowVisible(Form.Handle) then
         Placement.ShowCmd := SW_HIDE;
-      if Form.BorderStyle <> bsNone then begin
+      if Form.BorderStyle <> bsNone then
+      begin
         Placement.ptMaxPosition.X := -GetSystemMetrics(Metrics[Form.BorderStyle]);
         Placement.ptMaxPosition.Y := -GetSystemMetrics(Metrics[Form.BorderStyle] + 1);
       end
@@ -571,7 +602,8 @@ end;
 
 procedure TFormPlacement.SetPreventResize(Value: Boolean);
 begin
-  if (Form <> nil) and (FPreventResize <> Value) then begin
+  if (Form <> nil) and (FPreventResize <> Value) then
+  begin
     FPreventResize := Value;
     UpdatePlacement;
     UpdatePreventResize;
@@ -580,8 +612,12 @@ end;
 
 function TFormPlacement.GetIniFile: TObject;
 begin
+{$IFNDEF VER80}
   if UseRegistry then Result := FRegIniFile
   else Result := FIniFile;
+{$ELSE}
+  Result := FIniFile;
+{$ENDIF}
 end;
 
 function TFormPlacement.GetIniFileName: string;
@@ -591,9 +627,14 @@ begin
 {$ELSE}
   Result := FIniFileName^;
 {$ENDIF}
-  if (Result = '') and not (csDesigning in ComponentState) then begin
+  if (Result = '') and not (csDesigning in ComponentState) then
+  begin
+{$IFNDEF VER80}
     if UseRegistry then Result := GetDefaultIniRegKey
     else Result := GetDefaultIniName;
+{$ELSE}
+    Result := GetDefaultIniName;
+{$ENDIF}
   end;
 end;
 
@@ -638,34 +679,52 @@ end;
 
 procedure TFormPlacement.SavePlacement;
 begin
-  if Owner is TCustomForm then begin
-    if UseRegistry then begin
-      if (Options * [fpState, fpPosition] <> []) then begin
+  if Owner is TCustomForm then
+  begin
+{$IFNDEF VER80}
+    if UseRegistry then
+    begin
+      if (Options * [fpState, fpPosition] <> []) then
+      begin
         WriteFormPlacementReg(Form, FRegIniFile, IniSection);
         FRegIniFile.WriteBool(IniSection, siVisible, FDestroying);
       end;
       if (fpActiveControl in Options) and (Form.ActiveControl <> nil) then
         FRegIniFile.WriteString(IniSection, siActiveCtrl, Form.ActiveControl.Name);
     end
-    else begin
-      if (Options * [fpState, fpPosition] <> []) then begin
+    else
+    begin
+      if (Options * [fpState, fpPosition] <> []) then
+      begin
         WriteFormPlacement(Form, FIniFile, IniSection);
         FIniFile.WriteBool(IniSection, siVisible, FDestroying);
       end;
       if (fpActiveControl in Options) and (Form.ActiveControl <> nil) then
         FIniFile.WriteString(IniSection, siActiveCtrl, Form.ActiveControl.Name);
     end;
+{$ELSE}
+    if (Options * [fpState, fpPosition] <> []) then
+    begin
+      WriteFormPlacement(Form, FIniFile, IniSection);
+      FIniFile.WriteBool(IniSection, siVisible, FDestroying);
+    end;
+    if (fpActiveControl in Options) and (Form.ActiveControl <> nil) then
+      FIniFile.WriteString(IniSection, siActiveCtrl, Form.ActiveControl.Name);
+{$ENDIF}
   end;
   NotifyLinks(poSave);
 end;
 
 procedure TFormPlacement.RestorePlacement;
 begin
-  if Owner is TCustomForm then begin
+  if Owner is TCustomForm then
+  begin
+{$IFNDEF VER80}
     if UseRegistry then
       ReadFormPlacementReg(Form, FRegIniFile, IniSection, fpState in Options,
         fpPosition in Options)
     else
+{$ENDIF}
       ReadFormPlacement(Form, FIniFile, IniSection, fpState in Options,
         fpPosition in Options);
   end;
@@ -674,8 +733,11 @@ end;
 
 procedure TFormPlacement.IniNeeded(ReadOnly: Boolean);
 begin
-  if IniFileObject = nil then begin
-    if UseRegistry then begin
+  if IniFileObject = nil then
+  begin
+{$IFNDEF VER80}
+    if UseRegistry then
+    begin
       FRegIniFile := TRegIniFile.Create(IniFileName);
 {$IFDEF RX_D5}
       if ReadOnly then FRegIniFile.Access := KEY_READ;
@@ -683,11 +745,11 @@ begin
       case FRegistryRoot of
         prLocalMachine:
           FRegIniFile.RootKey := HKEY_LOCAL_MACHINE;
-        prClassesRoot:
+        prClassesRoot: 
           FRegIniFile.RootKey := HKEY_CLASSES_ROOT;
-        prCurrentConfig:
+        prCurrentConfig: 
           FRegIniFile.RootKey := HKEY_CURRENT_CONFIG;
-        prUsers:
+        prUsers: 
           FRegIniFile.RootKey := HKEY_USERS;
         prDynData:
           FRegIniFile.RootKey := HKEY_DYN_DATA;
@@ -696,16 +758,20 @@ begin
         FRegIniFile.OpenKey(FRegIniFile.FileName, not ReadOnly);
     end
     else
+{$ENDIF}
     FIniFile := TIniFile.Create(IniFileName);
   end;
 end;
 
 procedure TFormPlacement.IniFree;
 begin
-  if IniFileObject <> nil then begin
+  if IniFileObject <> nil then
+  begin
     IniFileObject.Free;
     FIniFile := nil;
+{$IFNDEF VER80}
     FRegIniFile := nil;
+{$ENDIF}
   end;
 end;
 
@@ -714,7 +780,8 @@ function TFormPlacement.DoReadString(const Section, Ident,
 begin
   if IniFileObject <> nil then
     Result := IniReadString(IniFileObject, Section, Ident, Default)
-  else begin
+  else
+  begin
     IniNeeded(True);
     try
       Result := IniReadString(IniFileObject, Section, Ident, Default);
@@ -733,7 +800,8 @@ procedure TFormPlacement.DoWriteString(const Section, Ident, Value: string);
 begin
   if IniFileObject <> nil then
     IniWriteString(IniFileObject, Section, Ident, Value)
-  else begin
+  else
+  begin
     IniNeeded(False);
     try
       IniWriteString(IniFileObject, Section, Ident, Value);
@@ -752,7 +820,8 @@ function TFormPlacement.ReadInteger(const Ident: string; Default: Longint): Long
 begin
   if IniFileObject <> nil then
     Result := IniReadInteger(IniFileObject, IniSection, Ident, Default)
-  else begin
+  else
+  begin
     IniNeeded(True);
     try
       Result := IniReadInteger(IniFileObject, IniSection, Ident, Default);
@@ -766,7 +835,8 @@ procedure TFormPlacement.WriteInteger(const Ident: string; Value: Longint);
 begin
   if IniFileObject <> nil then
     IniWriteInteger(IniFileObject, IniSection, Ident, Value)
-  else begin
+  else
+  begin
     IniNeeded(False);
     try
       IniWriteInteger(IniFileObject, IniSection, Ident, Value);
@@ -781,13 +851,15 @@ var
   Lines: TStrings;
   I: Integer;
 begin
-  if IniFileObject = nil then begin
+  if IniFileObject = nil then
+  begin
     IniNeeded(False);
     try
       Lines := TStringList.Create;
       try
         IniReadSections(IniFileObject, Lines);
-        for I := 0 to Lines.Count - 1 do begin
+        for I := 0 to Lines.Count - 1 do
+        begin
           if (Lines[I] = IniSection) or
             (IsWild(Lines[I], IniSection + '.*', False) or
             IsWild(Lines[I], IniSection + '\*', False)) then
@@ -804,7 +876,8 @@ end;
 
 procedure TFormPlacement.SaveFormPlacement;
 begin
-  if FRestored or not Active then begin
+  if FRestored or not Active then
+  begin
     IniNeeded(False);
     try
       WriteInteger(siVersion, FVersion);
@@ -824,11 +897,13 @@ begin
   FSaved := False;
   IniNeeded(True);
   try
-    if ReadInteger(siVersion, 0) >= FVersion then begin
+    if ReadInteger(siVersion, 0) >= FVersion then
+    begin
       RestorePlacement;
       FRestored := True;
       Restore;
-      if (fpActiveControl in Options) and (Owner is TCustomForm) then begin
+      if (fpActiveControl in Options) and (Owner is TCustomForm) then
+      begin
         cActive := Form.FindComponent(IniReadString(IniFileObject,
           IniSection, siActiveCtrl, ''));
         if (cActive <> nil) and (cActive is TWinControl) and
@@ -847,7 +922,8 @@ end;
 
 procedure TWinMinMaxInfo.Assign(Source: TPersistent);
 begin
-  if Source is TWinMinMaxInfo then begin
+  if Source is TWinMinMaxInfo then
+  begin
     FMinMaxInfo := TWinMinMaxInfo(Source).FMinMaxInfo;
     if FOwner <> nil then FOwner.MinMaxInfoModified;
   end
@@ -856,7 +932,8 @@ end;
 
 function TWinMinMaxInfo.GetMinMaxInfo(Index: Integer): Integer;
 begin
-  with FMinMaxInfo do begin
+  with FMinMaxInfo do
+  begin
     case Index of
       0: Result := ptMaxPosition.X;
       1: Result := ptMaxPosition.Y;
@@ -873,8 +950,10 @@ end;
 
 procedure TWinMinMaxInfo.SetMinMaxInfo(Index: Integer; Value: Integer);
 begin
-  if GetMinMaxInfo(Index) <> Value then begin
-    with FMinMaxInfo do begin
+  if GetMinMaxInfo(Index) <> Value then
+  begin
+    with FMinMaxInfo do
+    begin
       case Index of
         0: ptMaxPosition.X := Value;
         1: ptMaxPosition.Y := Value;
@@ -892,7 +971,8 @@ end;
 
 function TWinMinMaxInfo.DefaultMinMaxInfo: Boolean;
 begin
-  with FMinMaxInfo do begin
+  with FMinMaxInfo do
+  begin
     Result := not ((ptMinTrackSize.X <> 0) or (ptMinTrackSize.Y <> 0) or
       (ptMaxTrackSize.X <> 0) or (ptMaxTrackSize.Y <> 0) or
       (ptMaxSize.X <> 0) or (ptMaxSize.Y <> 0) or
@@ -923,21 +1003,26 @@ begin
   inherited Destroy;
 end;
 
+{$IFNDEF VER80}
 procedure TFormStorage.SetNotification;
 var
   I: Integer;
   Component: TComponent;
 begin
-  for I := FStoredProps.Count - 1 downto 0 do begin
+  for I := FStoredProps.Count - 1 downto 0 do
+  begin
     Component := TComponent(FStoredProps.Objects[I]);
     if Component <> nil then Component.FreeNotification(Self);
   end;
 end;
+{$ENDIF}
 
 procedure TFormStorage.SetStoredProps(Value: TStrings);
 begin
   FStoredProps.Assign(Value);
+{$IFNDEF VER80}
   SetNotification;
+{$ENDIF}
 end;
 
 {$IFDEF RX_D3}
@@ -978,7 +1063,8 @@ begin
   inherited Notification(AComponent, Operation);
   if not (csDestroying in ComponentState) and (Operation = opRemove) and
     (FStoredProps <> nil) then
-    for I := FStoredProps.Count - 1 downto 0 do begin
+    for I := FStoredProps.Count - 1 downto 0 do
+    begin
       Component := TComponent(FStoredProps.Objects[I]);
       if Component = AComponent then FStoredProps.Delete(I);
     end;
@@ -990,8 +1076,12 @@ begin
   try
     Section := IniSection;
     OnWriteString := DoWriteString;
+{$IFNDEF VER80}
     if UseRegistry then OnEraseSection := FRegIniFile.EraseSection
     else OnEraseSection := FIniFile.EraseSection;
+{$ELSE}
+    OnEraseSection := FIniFile.EraseSection;
+{$ENDIF}
     StoreObjectsProps(Owner, FStoredProps);
   finally
     Free;
@@ -1037,6 +1127,8 @@ end;
 
 destructor TIniLink.Destroy;
 begin
+  if Assigned(FOnIniLinkDestroy) then
+    FOnIniLinkDestroy(Self);
   FOnSave := nil;
   FOnLoad := nil;
   SetStorage(nil);
@@ -1058,12 +1150,13 @@ begin
     Result := FStorage.FIniSection^
 {$ENDIF}
   else Result := '';
-  if Result <> '' then Result := Result + '\';
+  if Result <> '' then Result := Result + {$IFDEF RX_D6}PathDelim{$ELSE}'\'{$ENDIF};
 end;
 
 procedure TIniLink.SetStorage(Value: TFormPlacement);
 begin
-  if FStorage <> Value then begin
+  if FStorage <> Value then
+  begin
     if FStorage <> nil then FStorage.RemoveLink(Self);
     if Value <> nil then Value.AddLink(Self);
   end;
@@ -1091,7 +1184,8 @@ end;
 
 procedure TStoredValue.Assign(Source: TPersistent);
 begin
-  if (Source is TStoredValue) and (Source <> nil) then begin
+  if (Source is TStoredValue) and (Source <> nil) then
+  begin
     if VarIsEmpty(TStoredValue(Source).FValue) then
       Clear
     else
@@ -1146,7 +1240,7 @@ begin
     FOnSave(Self, SaveValue);
   SaveStrValue := VarToStr(SaveValue);
   if KeyString <> '' then
-    SaveStrValue := XorEncode(KeyString, SaveStrValue);
+    SaveStrValue := string(XorEncode(KeyString, AnsiString(SaveStrValue)));
   StoredValues.Storage.WriteString(Name, SaveStrValue);
 end;
 
@@ -1157,10 +1251,10 @@ var
 begin
   DefaultStrValue := VarToStr(Value);
   if KeyString <> '' then
-    DefaultStrValue := XorEncode(KeyString, DefaultStrValue);
+    DefaultStrValue := string(XorEncode(KeyString, AnsiString(DefaultStrValue)));
   RestoreStrValue := StoredValues.Storage.ReadString(Name, DefaultStrValue);
   if KeyString <> '' then
-    RestoreStrValue := XorDecode(KeyString, RestoreStrValue);
+    RestoreStrValue := string(XorDecode(KeyString, AnsiString(RestoreStrValue)));
   RestoreValue := RestoreStrValue;
   if Assigned(FOnRestore) then
     FOnRestore(Self, RestoreValue);
@@ -1212,7 +1306,8 @@ var
   StoredValue: TStoredValue;
 begin
   StoredValue := GetValue(Name);
-  if StoredValue = nil then begin
+  if StoredValue = nil then
+  begin
     StoredValue := TStoredValue(Add);
     StoredValue.Name := Name; 
     StoredValue.Value := Value;

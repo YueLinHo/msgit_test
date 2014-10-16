@@ -8,15 +8,15 @@
 { Patched by Polaris Software                           }
 {*******************************************************}
 
-unit rxPickDate;
+unit RxPickDate;
 
 {$I RX.INC}
 {$S-}
 
 interface
 
-uses
-  Windows, Classes, Controls, SysUtils, Graphics, rxDateUtil;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} Classes,
+  Controls, SysUtils, Graphics, RxDateUtil;
 
 { Calendar dialog }
 
@@ -56,30 +56,33 @@ const
 
 implementation
 
-uses
-  Messages, Consts, Forms, Buttons, StdCtrls, Grids, ExtCtrls, 
-  {$IFDEF RX_D6} Variants, {$ENDIF}
-  RXCtrls, RXCConst, rxToolEdit, rxVCLUtils, rxMaxMin, rxStrUtils;
+uses Messages, Consts, Forms, Buttons, StdCtrls, Grids, ExtCtrls, RxCtrls,
+  RxToolEdit, RxVCLUtils, RxMaxMin, RxResConst,
+  {$IFDEF RX_D6} Variants,{$ENDIF} RxStrUtils; // Polaris
 
- {$R *.R32}
+{$R *.RES}
 
 const
   SBtnGlyphs: array[0..3] of PChar = ('PREV2', 'PREV1', 'NEXT1', 'NEXT2');
 
 procedure FontSetDefault(AFont: TFont);
+{$IFNDEF VER80}
 var
   NonClientMetrics: TNonClientMetrics;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   NonClientMetrics.cbSize := SizeOf(NonClientMetrics);
   if SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, @NonClientMetrics, 0) then
     AFont.Handle := CreateFontIndirect(NonClientMetrics.lfMessageFont)
   else
-    with AFont do begin
-      Color := clWindowText;
-      Name := 'MS Sans Serif';
-      Size := 8;
-      Style := [];
-    end;
+{$ENDIF}
+  with AFont do begin
+    Color := clWindowText;
+    Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
+    Size := 8;
+    Style := [];
+  end;
 end;
 
 { TRxTimerSpeedButton }
@@ -98,7 +101,9 @@ begin
   inherited Create(AOwner);
   Style := bsWin31;
   AllowTimer := True;
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
 end;
 
 { TRxCalendar }
@@ -207,7 +212,9 @@ procedure TRxCalendar.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
   Params.Style := Params.Style or WS_BORDER;
+{$IFNDEF VER80}
   Params.ExStyle := Params.ExStyle and not WS_EX_CLIENTEDGE;
+{$ENDIF}
 {$IFDEF RX_D4}
   AddBiDiModeExStyle(Params.ExStyle);
 {$ENDIF}
@@ -231,6 +238,8 @@ function TRxCalendar.DaysThisMonth: Integer;
 begin
   Result := DaysPerMonth(Year, Month);
 end;
+
+{$I Holidays.inc}
 
 procedure TRxCalendar.DrawCell(ACol, ARow: Longint; ARect: TRect; AState: TGridDrawState);
 var
@@ -267,10 +276,23 @@ var
       DefaultDraw;
     end;
   end;
+  function IsNumber(S: String): Boolean;
+  Begin
+    Try
+      Result := True;
+      StrToInt(S);
+    Except
+      Result := False;
+    End
+  End;
 //<Polaris
 begin
   TheText := CellText[ACol, ARow];
   with ARect, Canvas do begin
+    if IsNumber(TheText) Then
+      if IsHoliday(EncodeDate(Year,Month,StrToInt(TheText))) Then
+        Font.Color := clBlue;
+
     if IsWeekend(ACol, ARow) and not (gdSelected in AState) then
       Font.Color := WeekendColor;
 
@@ -288,7 +310,7 @@ var
   DayNum: Integer;
 begin
   if ARow = 0 then  { day names at tops of columns }
-    Result := ShortDayNames[(Ord(StartOfWeek) + ACol) mod 7 + 1]
+    Result := {$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDayNames[(Ord(StartOfWeek) + ACol) mod 7 + 1]
   else begin
     DayNum := FMonthOffset + ACol + (ARow - 1) * 7;
     if (DayNum < 1) or (DayNum > DaysThisMonth) then Result := ''
@@ -385,7 +407,7 @@ end;
 
 procedure TRxCalendar.KeyPress(var Key: Char);
 begin
-  if Key in ['T', 't'] then begin
+  if CharInSet(Key, ['T', 't']) then begin
     CalendarDate := Trunc(Now);
     Key := #0;
   end;
@@ -645,10 +667,12 @@ constructor TLocCalendar.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ControlStyle := [csCaptureMouse, csClickEvents, csDoubleClicks];
+{$IFNDEF VER80}
   ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   Ctl3D := False;
   Enabled := False;
-  BorderStyle := bsNone;
+  BorderStyle := Forms.bsNone;
   ParentColor := True;
   CalendarDate := Trunc(Now);
   UseCurrentDate := False;
@@ -723,8 +747,13 @@ type
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     procedure KeyPress(var Key: Char); override;
+{$IFNDEF VER80}
     function GetValue: Variant; override;
     procedure SetValue(const Value: Variant); override;
+{$ELSE}
+    function GetValue: string; override;
+    procedure SetValue(const Value: string); override;
+{$ENDIF}
 //>Polaris
     procedure CheckButton;
 //<Polaris
@@ -817,7 +846,9 @@ begin
     Parent := Self;
     Align := alClient;
     ParentColor := True;
+{$IFNDEF VER80}
     ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   end;
 
   Control := TPanel.Create(Self);
@@ -828,7 +859,9 @@ begin
     Height := 18;
     BevelOuter := bvNone;
     ParentColor := True;
+{$IFNDEF VER80}
     ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   end;
 
   FCalendar := TLocCalendar.Create(Self);
@@ -845,7 +878,7 @@ begin
     SetBounds(-1, -1, BtnSide, BtnSide);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[0]);
     OnClick := PrevYearBtnClick;
-    Hint := LoadStr(SPrevYear);
+    Hint := RxLoadStr(SPrevYear);
   end;
 
   FBtns[1] := TRxTimerSpeedButton.Create(Self);
@@ -854,7 +887,7 @@ begin
     SetBounds(BtnSide - 2, -1, BtnSide, BtnSide);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[1]);
     OnClick := PrevMonthBtnClick;
-    Hint := LoadStr(SPrevMonth);
+    Hint := RxLoadStr(SPrevMonth);
   end;
 
   FTitleLabel := TLabel.Create(Self);
@@ -865,7 +898,9 @@ begin
     SetBounds(BtnSide * 2 + 1, 1, Control.Width - 4 * BtnSide - 2, 14);
     Transparent := True;
     OnDblClick := TopPanelDblClick;
+{$IFNDEF VER80}
     ControlStyle := ControlStyle + [csReplicatable];
+{$ENDIF}
   end;
 
   FBtns[2] := TRxTimerSpeedButton.Create(Self);
@@ -874,7 +909,7 @@ begin
     SetBounds(Control.Width - 2 * BtnSide + 2, -1, BtnSide, BtnSide);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[2]);
     OnClick := NextMonthBtnClick;
-    Hint := LoadStr(SNextMonth);
+    Hint := RxLoadStr(SNextMonth);
   end;
 
   FBtns[3] := TRxTimerSpeedButton.Create(Self);
@@ -883,7 +918,7 @@ begin
     SetBounds(Control.Width - BtnSide + 1, -1, BtnSide, BtnSide);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[3]);
     OnClick := NextYearBtnClick;
-    Hint := LoadStr(SNextYear);
+    Hint := RxLoadStr(SNextYear);
   end;
 //Polaris
   CheckButton;
@@ -990,6 +1025,8 @@ begin
     FCalendar.KeyPress(Key);
 end;
 
+{$IFNDEF VER80}
+
 function TPopupCalendar.GetValue: Variant;
 begin
   if (csDesigning in ComponentState) then
@@ -1002,7 +1039,7 @@ procedure TPopupCalendar.SetValue(const Value: Variant);
 begin
   if not (csDesigning in ComponentState) then begin
     try
-      if (Trim(ReplaceStr(VarToStr(Value), DateSeparator, '')) = '') or
+      if (Trim(ReplaceStr(VarToStr(Value), {$IFDEF RX_D15}FormatSettings.{$ENDIF}DateSeparator, '')) = '') or
         VarIsNull(Value) or VarIsEmpty(Value) then
         FCalendar.CalendarDate := VarToDateTime(SysUtils.Date)
       else FCalendar.CalendarDate := VarToDateTime(Value);
@@ -1012,6 +1049,27 @@ begin
     end;
   end;
 end;
+
+{$ELSE}
+
+function TPopupCalendar.GetValue: string;
+begin
+  if (csDesigning in ComponentState) then
+    Result := FormatDateTime(DefDateFormat(FFourDigitYear), SysUtils.Date)
+  else
+    Result := FormatDateTime(DefDateFormat(FFourDigitYear), FCalendar.CalendarDate);
+end;
+
+procedure TPopupCalendar.SetValue(const Value: string);
+begin
+  if not (csDesigning in ComponentState) then begin
+    FCalendar.CalendarDate := StrToDateFmtDef(DefDateFormat(FFourDigitYear),
+      Value, SysUtils.Date);
+    CalendarChange(nil);
+  end;
+end;
+
+{$ENDIF}
 
 procedure TPopupCalendar.PrevYearBtnClick(Sender: TObject);
 begin
@@ -1075,8 +1133,12 @@ begin
 {$ELSE}
   inherited CreateNew(AOwner);
 {$ENDIF}
-  Caption := LoadStr(SDateDlgTitle);
+  Caption := RxLoadStr(SDateDlgTitle);
+{$IFNDEF VER80}
   BorderStyle := bsToolWindow;
+{$ELSE}
+  BorderStyle := bsDialog;
+{$ENDIF}
   BorderIcons := [biSystemMenu];
   ClientHeight := 158;   // Polaris
   ClientWidth := 222;
@@ -1116,7 +1178,7 @@ begin
     SetBounds(3, 3, 16, 16);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[0]);
     OnClick := PrevYearBtnClick;
-    Hint := LoadStr(SPrevYear);
+    Hint := RxLoadStr(SPrevYear);
   end;
 
   FBtns[1] := TRxTimerSpeedButton.Create(Self);
@@ -1125,7 +1187,7 @@ begin
     SetBounds(18, 3, 16, 16);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[1]);
     OnClick := PrevMonthBtnClick;
-    Hint := LoadStr(SPrevMonth);
+    Hint := RxLoadStr(SPrevMonth);
   end;
 
   FBtns[2] := TRxTimerSpeedButton.Create(Self);
@@ -1134,7 +1196,7 @@ begin
     SetBounds(188, 3, 16, 16);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[2]);
     OnClick := NextMonthBtnClick;
-    Hint := LoadStr(SNextMonth);
+    Hint := RxLoadStr(SNextMonth);
   end;
 
   FBtns[3] := TRxTimerSpeedButton.Create(Self);
@@ -1143,7 +1205,7 @@ begin
     SetBounds(203, 3, 16, 16);
     Glyph.Handle := LoadBitmap(hInstance, SBtnGlyphs[3]);
     OnClick := NextYearBtnClick;
-    Hint := LoadStr(SNextYear);
+    Hint := RxLoadStr(SNextYear);
   end;
 
   Control := TPanel.Create(Self);
@@ -1160,14 +1222,14 @@ begin
 {  with TButton.Create(Self) do begin
     Parent := Control;
     SetBounds(0, 0, 112, 21);
-    Caption := ResStr(SOKButton);
+    Caption := RxLoadStr(SOKButton);
     ModalResult := mrOk;
   end;
 
   with TButton.Create(Self) do begin
     Parent := Control;
     SetBounds(111, 0, 111, 21);
-    Caption := ResStr(SCancelButton);
+    Caption := RxLoadStr(SCancelButton);
     ModalResult := mrCancel;
     Cancel := True;
   end; }  // Polaris
@@ -1343,6 +1405,7 @@ begin
     end;
   except
     Result.Free;
+
     raise;
   end;
 end;
@@ -1440,7 +1503,7 @@ var
 begin
   if StrDate <> '' then begin
     try
-      DateValue := StrToDateFmt(ShortDateFormat, StrDate);
+      DateValue := StrToDateFmt({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat, StrDate);
     except
       DateValue := Date;
     end;
@@ -1448,7 +1511,7 @@ begin
   else DateValue := Date;
   Result := SelectDate(Sender, DateValue, DlgCaption, AStartOfWeek, AWeekends,
     AWeekendColor, BtnHints, MinDate, MaxDate);  // Polaris
-  if Result then StrDate := FormatDateTime(ShortDateFormat, DateValue);
+  if Result then StrDate := FormatDateTime({$IFDEF RX_D15}FormatSettings.{$ENDIF}ShortDateFormat, DateValue);
 end;
 
 end.

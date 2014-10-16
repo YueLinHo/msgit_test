@@ -13,9 +13,8 @@ unit RxHints;
 
 interface
 
-uses
-  Windows, Messages,
-  Graphics, Classes, Controls, Forms, Dialogs;
+uses {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF} Messages,
+  Graphics, Classes, Controls, Forms, Dialogs {$IFDEF RX_D6}, Types{$ENDIF};
 
 type
   THintStyle = (hsRectangle, hsRoundRect, hsEllipse);
@@ -60,9 +59,7 @@ function GetHintControl: TControl;
 
 implementation
 
-uses
-  SysUtils,
-  rxVclUtils, rxAppUtils, rxMaxMin;
+uses SysUtils, RxVclUtils, RxAppUtils, RxMaxMin;  // Polaris
 
 const
   HintStyle: THintStyle = hsRectangle;
@@ -110,19 +107,28 @@ begin
 end;
 
 procedure StandardHintFont(AFont: TFont);
+{$IFNDEF VER80}
 var
   NonClientMetrics: TNonClientMetrics;
+{$ENDIF}
 begin
+{$IFNDEF VER80}
   NonClientMetrics.cbSize := SizeOf(NonClientMetrics);
   if SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, @NonClientMetrics, 0) then
     AFont.Handle := CreateFontIndirect(NonClientMetrics.lfStatusFont)
   else begin
-    AFont.Name := 'MS Sans Serif';
+    AFont.Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
     AFont.Size := 8;
   end;
   AFont.Color := clInfoText;
+{$ELSE}
+  AFont.Name := {$IFDEF RX_D6}'Tahoma'{$ELSE}'MS Sans Serif'{$ENDIF};
+  AFont.Size := 8;
+  AFont.Color := clWindowText;
+{$ENDIF}
 end;
 
+{$IFNDEF VER80}
 {$IFNDEF RX_D3}
 function GetCursorHeightMargin: Integer;
 { Return number of scanlines between the scanline containing cursor hotspot
@@ -187,6 +193,7 @@ begin
   end;
 end;
 {$ENDIF}
+{$ENDIF}
 
 { TRxHintWindow }
 
@@ -247,12 +254,14 @@ begin
     hsEllipse: Result := CreateEllipticRgnIndirect(R);
     hsRectangle: Result := CreateRectRgnIndirect(R);
   end;
-  if HintTail then begin
+  if HintTail then
+  begin
     R := FTextRect;
     GetCursorPos(P);
     TileOffs := 0;
     if FPos in [hpTopLeft, hpBottomLeft] then TileOffs := Width;
-    if Shade then begin
+    if Shade then
+    begin
       OffsetRect(R, HintShadowSize, HintShadowSize);
       Inc(TileOffs, HintShadowSize);
     end;
@@ -287,7 +296,8 @@ end;
 
 procedure TRxHintWindow.FillRegion(Rgn: HRgn; Shade: Boolean);
 begin
-  if Shade then begin
+  if Shade then
+  begin
     FImage.Canvas.Brush.Bitmap :=
 {$IFDEF RX_D4}
       AllocPatternBitmap(clBtnFace, clWindowText);
@@ -296,22 +306,28 @@ begin
 {$ENDIF}
     FImage.Canvas.Pen.Style := psClear;
   end
-  else begin
+  else
+  begin
     FImage.Canvas.Pen.Style := psSolid;
     FImage.Canvas.Brush.Color := Color;
   end;
   try
     PaintRgn(FImage.Canvas.Handle, Rgn);
-    if not Shade then begin
+    if not Shade then
+    begin
       FImage.Canvas.Brush.Color := Font.Color;
-      if (HintStyle = hsRectangle) and not HintTail then begin
+{$IFNDEF VER80}
+      if (HintStyle = hsRectangle) and not HintTail then
+      begin
         DrawEdge(FImage.Canvas.Handle, FRect, BDR_RAISEDOUTER, BF_RECT);
       end
       else
+{$ENDIF}
         FrameRgn(FImage.Canvas.Handle, Rgn, FImage.Canvas.Brush.Handle, 1, 1);
     end;
   finally
-    if Shade then begin
+    if Shade then
+    begin
 {$IFDEF RX_D4}
       FImage.Canvas.Brush.Bitmap := nil;
 {$ELSE}
@@ -331,8 +347,16 @@ var
   procedure PaintText(R: TRect);
   const
     Flag: array[TAlignment] of Longint = (DT_LEFT, DT_RIGHT, DT_CENTER);
+{$IFDEF VER80}
+  var
+    ACaption: array[0..255] of Char;
+{$ENDIF}
   begin
+{$IFNDEF VER80}
     DrawText(FImage.Canvas.Handle, PChar(Caption),
+{$ELSE}
+    DrawText(FImage.Canvas.Handle, StrPCopy(ACaption, Caption),
+{$ENDIF}
       -1, R, DT_NOPREFIX or DT_WORDBREAK or Flag[HintAlignment]
       {$IFDEF RX_D4} or DrawTextBiDiModeFlagsReadingOnly {$ENDIF});
   end;
@@ -372,7 +396,11 @@ begin
 {$IFDEF RX_D3}
   OffsetRect(R, Rect.Left - R.Left, Rect.Top - R.Top);
 {$ELSE}
+ {$IFNDEF VER80}
   OffsetRect(R, P.X, P.Y + GetCursorHeightMargin);
+ {$ELSE}
+  OffsetRect(R, P.X, Rect.Top - R.Top);
+ {$ENDIF}
 {$ENDIF}
   Rect := R;
   BoundsRect := Rect;
@@ -450,10 +478,17 @@ const
 var
   A: Integer;
   X, Y, Factor: Double;
+{$IFDEF VER80}
+  ACaption: array[0..255] of Char;
+{$ENDIF}
 begin
   Result := Rect(0, 0, MaxWidth, 0);
   DrawText(Canvas.Handle,
+{$IFNDEF VER80}
     PChar(AHint),
+{$ELSE}
+    StrPCopy(ACaption, AHint),
+{$ENDIF}
     -1, Result, DT_CALCRECT or DT_WORDBREAK or DT_NOPREFIX or Flag[HintAlignment]
     {$IFDEF RX_D4} or DrawTextBiDiModeFlagsReadingOnly {$ENDIF});
   Inc(Result.Right, 8);

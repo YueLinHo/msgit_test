@@ -6,14 +6,13 @@
 {                                                       }
 {*******************************************************}
 
-unit rxIcoList;
+unit RxIcoList;
 
 interface
 
 {$I RX.INC}
 
-uses
-  Messages, Windows,
+uses Messages, {$IFNDEF VER80} Windows, {$ELSE} WinTypes, WinProcs, {$ENDIF}
   SysUtils, Classes, Graphics;
 
 type
@@ -160,6 +159,7 @@ end;
 
 procedure TIconList.DefineProperties(Filer: TFiler);
 
+{$IFNDEF VER80}
   function DoWrite: Boolean;
   var
     I: Integer;
@@ -176,10 +176,11 @@ procedure TIconList.DefineProperties(Filer: TFiler);
     end
     else Result := Count > 0;
   end;
+{$ENDIF}
 
 begin
   Filer.DefineBinaryProperty('Icons', ReadData, WriteData,
-    DoWrite);
+    {$IFNDEF VER80} DoWrite {$ELSE} Count > 0 {$ENDIF});
 end;
 
 function TIconList.Get(Index: Integer): TIcon;
