@@ -1,0 +1,74 @@
+#
+# Generic text files
+#
+*.xml           text
+*.xml.in        text
+*.sed           text
+*.sh            text
+
+#
+# PO files should be compared using a special diff filter
+#
+*.po            text eol=lf diff=podiff
+*.pot           text eol=lf diff=podiff
+
+#
+# Pascal sources should always be CRLF
+#
+*.pas           text eol=crlf diff=pascal
+*.dpr           text eol=crlf diff=pascal
+*.dpk           text eol=crlf diff=pascal
+*.inc           text eol=crlf diff=pascal
+*.inc.in        text eol=crlf diff=pascal
+
+#
+# Other Windows-only files that should be CRLF
+#
+*.dfm           text eol=crlf
+*.bat           text eol=crlf
+*.rc.in         text eol=crlf
+*.isl           text eol=crlf
+*.manifest      text eol=crlf
+*.txt           text eol=crlf
+*.xsl           text eol=crlf
+*.dproj         text eol=crlf
+*.groupproj     text eol=crlf
+
+#
+# Various source codes
+#
+*.c             text diff=cpp
+*.cpp           text diff=cpp
+*.h             text diff=cpp
+*.py            text diff=python
+*.html          text diff=html
+
+#
+# Don't want to see diffs of these files
+#
+*.bdsproj       binary
+*.bdsgroup      binary
+
+#
+# Actual binary files (images & documents)
+#
+*.bmp           binary
+*.gif           binary
+*.jpg           binary
+*.png           binary
+*.cur           binary
+*.ico           binary
+*.psd           binary
+*.pdf           binary
+*.rtf           binary
+
+#
+# Actual binary files (other)
+#
+*.obj           binary
+*.opf           binary
+*.dcr           binary
+*.res           binary
+*.r32           binary
+*.tlb           binary
+
